@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaSyncAlt, FaEye } from "react-icons/fa";
-import type {
-  Material,
-  MaterialMasterProps,
-} from "../../interfaces/materialTypes";
+import type { Material, MaterialMasterProps } from "../../interfaces/materialTypes";
 
 const MaterialMaster: React.FC<MaterialMasterProps> = ({
   title = "Material Details",
@@ -24,25 +21,11 @@ const MaterialMaster: React.FC<MaterialMasterProps> = ({
     const loadMaterials = async () => {
       setLoading(true);
       setError(null);
-
       try {
         const response = await fetch("/misapi/api/materials");
         const text = await response.text();
-        console.log("API raw response:", text);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        let data: Material[] = [];
-        try {
-          const result = JSON.parse(text);
-          if (Array.isArray(result)) {
-            data = result;
-          } else if (result.data && Array.isArray(result.data)) {
-            data = result.data;
-          }
-        } catch (e) {
-          throw new Error("Response is not valid JSON.");
-        }
+        const result = JSON.parse(text);
+        const data = Array.isArray(result) ? result : result.data || [];
         setMaterials(data);
         setFilteredMaterials(data);
         setLastUpdated(new Date());
@@ -54,160 +37,92 @@ const MaterialMaster: React.FC<MaterialMasterProps> = ({
         setLoading(false);
       }
     };
-
     loadMaterials();
   }, []);
 
   useEffect(() => {
-    if (searchTermName.trim() === "" && searchTermCode.trim() === "") {
-      setFilteredMaterials(materials);
-    } else {
-      const filtered = materials.filter((material) => {
-        const nameMatch =
-          searchTermName.trim() === "" ||
-          material.MatNm.toLowerCase().includes(searchTermName.toLowerCase());
-        const codeMatch =
-          searchTermCode.trim() === "" ||
-          material.MatCd.toLowerCase().includes(searchTermCode.toLowerCase());
-        return nameMatch && codeMatch;
-      });
-      setFilteredMaterials(filtered);
-    }
+    const filtered = materials.filter((m) =>
+      (!searchTermName || m.MatNm.toLowerCase().includes(searchTermName.toLowerCase())) &&
+      (!searchTermCode || m.MatCd.toLowerCase().includes(searchTermCode.toLowerCase()))
+    );
+    setFilteredMaterials(filtered);
+    setCurrentPage(1);
   }, [searchTermName, searchTermCode, materials]);
 
-  // Calculate paginated materials
   const paginatedMaterials = filteredMaterials.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  // Update page if filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filteredMaterials]);
-
+  const handleView = (matCd: string) => navigate(`/report/inventory/material-details/${matCd}`);
   const clearAllFilters = () => {
     setSearchTermName("");
     setSearchTermCode("");
   };
 
-  const handleView = (matCd: string) => {
-    console.log("handleView called with matCd:", matCd);
-    console.log("Current location:", window.location.href);
-    navigate(`/report/inventory/material-details/${matCd}`);
-    console.log(
-      "Navigation attempted to:",
-      `/report/inventory/material-details/${matCd}`
-    );
-  };
+  const maroon = "text-[#7A0000]";
+  const maroonBg = "bg-[#7A0000]";
+  const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8 text-blue-600 text-[11px] font-sans">
-        Loading...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-red-600 bg-red-50 border border-red-200 p-3 rounded text-[11px] font-sans">
-        Error: {error}
-      </div>
-    );
-  }
+  if (loading) return <div className="text-center py-8 text-[#7A0000] text-sm animate-pulse">Loading...</div>;
+  if (error) return <div className="text-red-600 bg-red-100 border border-red-300 p-4 rounded text-sm">Error: {error}</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-4 bg-white rounded-lg shadow border border-gray-100 font-sans text-[11px]">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 gap-2">
-        <h2 className="text-[13px] font-semibold text-gray-800">
-          {title}{" "}
-          <span className="text-[10px] font-normal text-gray-500">
-            (Total: {filteredMaterials.length})
-          </span>
+    <div className="max-w-5xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className={`text-xl font-bold ${maroon}`}>
+          {title}
+          <span className="ml-2 text-xs text-gray-500">(Total: {filteredMaterials.length})</span>
         </h2>
-        {lastUpdated && (
-          <span className="text-[9px] text-gray-400">
-            Last updated: {lastUpdated.toLocaleString()}
-          </span>
-        )}
+        {lastUpdated && <p className="text-[10px] text-gray-400">Last updated: {lastUpdated.toLocaleString()}</p>}
       </div>
 
-      <div className="flex flex-wrap justify-end items-center gap-2 mb-3">
-        <div className="relative">
-          <FaSearch className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3" />
-          <input
-            type="text"
-            placeholder="Material Code..."
-            value={searchTermCode}
-            onChange={(e) => setSearchTermCode(e.target.value)}
-            className="pl-7 pr-2 border border-gray-300 rounded py-1 text-[11px] focus:outline-none focus:border-blue-500 transition w-36 bg-gray-50"
-          />
-        </div>
-        <div className="relative">
-          <FaSearch className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3" />
-          <input
-            type="text"
-            placeholder="Material Name..."
-            value={searchTermName}
-            onChange={(e) => setSearchTermName(e.target.value)}
-            className="pl-7 pr-2 border border-gray-300 rounded py-1 text-[11px] focus:outline-none focus:border-blue-500 transition w-36 bg-gray-50"
-          />
-        </div>
+      <div className="flex flex-wrap gap-3 justify-end mb-4">
+        {[{ value: searchTermCode, set: setSearchTermCode, placeholder: "Material Code" },
+          { value: searchTermName, set: setSearchTermName, placeholder: "Material Name" }
+        ].map((input, idx) => (
+          <div key={idx} className="relative">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+            <input
+              type="text"
+              value={input.value}
+              placeholder={input.placeholder}
+              onChange={(e) => input.set(e.target.value)}
+              className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition"
+            />
+          </div>
+        ))}
         {(searchTermName || searchTermCode) && (
-          <button
-            onClick={clearAllFilters}
-            className="flex items-center gap-1 px-2 py-1 text-[11px] bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded transition-colors text-gray-600"
-            title="Clear all filters"
-          >
+          <button onClick={clearAllFilters} className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700">
             <FaSyncAlt className="w-3 h-3" /> Clear
           </button>
         )}
       </div>
 
       {filteredMaterials.length === 0 ? (
-        <div className="text-gray-600 bg-gray-50 border border-gray-200 p-3 rounded text-[11px]">
-          No materials found.
-        </div>
+        <div className="text-gray-600 bg-gray-100 p-4 rounded">No materials found.</div>
       ) : (
-        <div className="overflow-x-auto border border-gray-200 rounded">
+        <div className="overflow-x-auto border border-gray-200 rounded-lg">
           <div className="max-h-80 overflow-y-auto">
-            <table className="w-full text-[11px] text-gray-700 table-fixed">
-              <thead className="bg-gray-100 text-[10px] text-gray-700 sticky top-0 z-10 shadow">
+            <table className="w-full table-fixed text-left text-gray-700 text-sm">
+              <thead className={`${maroonBg} text-white sticky top-0 z-10`}>
                 <tr>
-                  <th className="w-1/4 px-3 py-2 text-left font-medium">
-                    Material Code
-                  </th>
-                  <th className="w-1/2 px-3 py-2 text-left font-medium">
-                    Material Name
-                  </th>
-                  <th className="w-1/4 px-3 py-2 text-center font-medium">
-                    Action
-                  </th>
+                  <th className="px-4 py-2 w-1/4">Material Code</th>
+                  <th className="px-4 py-2 w-1/2">Material Name</th>
+                  <th className="px-4 py-2 w-1/4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedMaterials.map((material, idx) => (
-                  <tr
-                    key={idx}
-                    className={
-                      idx % 2 === 0
-                        ? "bg-white hover:bg-gray-50 transition"
-                        : "bg-gray-50 hover:bg-gray-100 transition"
-                    }
-                  >
-                    <td className="w-1/4 px-3 py-2 truncate">
-                      {material.MatCd}
-                    </td>
-                    <td className="w-1/2 px-3 py-2 truncate">
-                      {material.MatNm}
-                    </td>
-                    <td className="w-1/4 px-3 py-2 text-center">
+                {paginatedMaterials.map((mat, i) => (
+                  <tr key={i} className={i % 2 ? "bg-white" : "bg-gray-50"}>
+                    <td className="px-4 py-2 truncate">{mat.MatCd}</td>
+                    <td className="px-4 py-2 truncate">{mat.MatNm}</td>
+                    <td className="px-4 py-2 text-center">
                       <button
-                        onClick={() => handleView(material.MatCd)}
-                        className="inline-flex items-center justify-center px-3 py-1 text-[11px] font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 min-w-[60px]"
+                        onClick={() => handleView(mat.MatCd)}
+                        className={`px-3 py-1 ${maroonGrad} text-white rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
                       >
-                        <FaEye className="w-3 h-3 mr-1" /> View
+                        <FaEye className="inline-block mr-1 w-3 h-3" /> View
                       </button>
                     </td>
                   </tr>
@@ -218,23 +133,21 @@ const MaterialMaster: React.FC<MaterialMasterProps> = ({
         </div>
       )}
 
-      <div className="flex justify-end items-center gap-2 mt-2">
+      <div className="flex justify-end items-center gap-3 mt-3">
         <button
-          disabled={currentPage === 1}
           onClick={() => setCurrentPage((p) => p - 1)}
-          className="px-2 py-1 text-[11px] bg-gray-100 border border-gray-300 rounded disabled:opacity-50 text-gray-600 hover:bg-gray-200"
+          disabled={currentPage === 1}
+          className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
         >
           Prev
         </button>
-        <span className="text-[11px] text-gray-500">
+        <span className="text-xs text-gray-500">
           Page {currentPage} of {Math.ceil(filteredMaterials.length / pageSize)}
         </span>
         <button
-          disabled={
-            currentPage === Math.ceil(filteredMaterials.length / pageSize)
-          }
           onClick={() => setCurrentPage((p) => p + 1)}
-          className="px-2 py-1 text-[11px] bg-gray-100 border border-gray-300 rounded disabled:opacity-50 text-gray-600 hover:bg-gray-200"
+          disabled={currentPage >= Math.ceil(filteredMaterials.length / pageSize)}
+          className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
         >
           Next
         </button>

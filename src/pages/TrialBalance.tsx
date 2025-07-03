@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
+import CostCenterTrial from "../mainTopics/TrialBalance/CostCenterTrial";
 
 type Subtopic = {
   id: number;
@@ -30,9 +31,9 @@ const TrialBalance = () => {
   };
 
   const renderSubtopicContent = (subtopicName: string) => {
-    switch (subtopicName.toLowerCase()) {
-      case "pucsl regulations":
-        return <div>PUCSL Regulations Content</div>;
+    switch (subtopicName) {
+      case "Cost center wise trial balances":
+        return <CostCenterTrial/>;
 
       default:
         return (
