@@ -9,7 +9,7 @@ import UserDetails from "./pages/UserDetails";
 import MaterialDetails from "./mainTopics/inventory/MaterialDetails";
 import ReportRoutes from "./routes/ReportRoutes";
 import CostCenterTrial from "./mainTopics/TrialBalance/CostCenterTrial";
-import SelectCostCenterTrial from "./mainTopics/TrialBalance/SelectCostCeneterTrial";
+// import SelectCostCenterTrial from "./mainTopics/TrialBalance/SelectCostCeneterTrial";
 
 function App() {
   return (
@@ -44,14 +44,14 @@ function App() {
           }
         />
 
-       <Route
+       {/* <Route
   path="/report/TrialBalance/select-cost-center/:compId"
   element={
     <Layout>
       <SelectCostCenterTrial />
     </Layout>
   }
-/>
+/> */}
 
 
         {ReportRoutes()}
