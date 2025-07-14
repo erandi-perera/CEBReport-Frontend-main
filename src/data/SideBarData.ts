@@ -84,7 +84,7 @@ export const data = [
   },
   {
     id: 5,
-    name: "Consumption analysis",
+    name: "Consumption Analysis",
     icon: MdAssignmentTurnedIn,
     subtopics: [
       { id: 43, name: "Consumer consumption analysis" },
@@ -136,14 +136,14 @@ export const data = [
     id: 8,
     name: "Inventory",
     icon: FaBoxes,
-    subtopics: [{ id: 59, name: "Ceylon Electricity Board Material Details" }],
+    subtopics: [{ id: 59, name: "All Material Details" }],
     path: "/report/inventory",
   },
   {
     id: 9,
     name: "Trial Balance",
     icon: FaBalanceScale,
-    subtopics: [{ id: 60, name: "Cost center wise trial balances" }],
+    subtopics: [{ id: 60, name: "Cost Center Wise Trial Balances" }],
     path: "/report/trialBalance",
   },
 ];

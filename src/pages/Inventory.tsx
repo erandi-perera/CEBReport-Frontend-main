@@ -32,7 +32,7 @@ const Inventory = () => {
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-      case "Ceylon Electricity Board Material Details":
+      case "All Material Details":
         return <MaterialMaster />;
       default:
         return (

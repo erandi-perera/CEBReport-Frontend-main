@@ -32,7 +32,7 @@ const TrialBalance = () => {
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-      case "Cost center wise trial balances":
+      case "Cost Center Wise Trial Balances":
         return <CostCenterTrial/>;
 
       default:
