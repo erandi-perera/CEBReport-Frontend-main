@@ -50,11 +50,12 @@ export const data = [
     name: "Analysis",
     icon: FaBoxes,
     subtopics: [
+       { id: 27, name: "Total debtors analysis" },
       { id: 23, name: "Age analysis" },
       { id: 24, name: "Transaction analysis" },
       { id: 25, name: "Transaction analysis (incl. Prov. Data)" },
       { id: 26, name: "Age analysis for solar customer" },
-      { id: 27, name: "Total debtors analysis" },
+     
       { id: 28, name: "Debtors age analysis (individual customers)" },
       { id: 29, name: "Financial analysis" },
       { id: 30, name: "Assessed unit analysis" },

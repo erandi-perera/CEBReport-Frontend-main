@@ -72,7 +72,7 @@ const MaterialMaster: React.FC<MaterialMasterProps> = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className={`text-xl font-bold ${maroon}`}>
           {title}
-          <span className="ml-2 text-xs text-gray-500">(Total: {filteredMaterials.length})</span>
+          <span className="ml-2 text-xs text-gray-500"></span>
         </h2>
         {lastUpdated && <p className="text-[10px] text-gray-400">Last updated: {lastUpdated.toLocaleString()}</p>}
       </div>
