@@ -316,6 +316,17 @@ const CostCenterTrial: React.FC = () => {
       }
     });
 
+    // Add Grand Total row at the end of tbody
+    tableRowsHTML += `
+      <tr style="background-color: #7A0000; color: white; font-weight: bold;">
+        <td style="padding: 8px; border: 1px solid #7A0000;">Grand Total</td>
+        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(grandTotals.opening)}</td>
+        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(grandTotals.debit)}</td>
+        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(grandTotals.credit)}</td>
+        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(grandTotals.closing)}</td>
+      </tr>
+    `;
+
     // Create the HTML content for printing
     const htmlContent = `
       <!DOCTYPE html>
@@ -410,15 +421,6 @@ const CostCenterTrial: React.FC = () => {
           <tbody>
             ${tableRowsHTML}
           </tbody>
-          <tfoot>
-            <tr style="background-color: #7A0000; color: white; font-weight: bold;">
-              <td style="padding: 8px; border: 1px solid #7A0000;">Grand Total</td>
-              <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(grandTotals.opening)}</td>
-              <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(grandTotals.debit)}</td>
-              <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(grandTotals.credit)}</td>
-              <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(grandTotals.closing)}</td>
-            </tr>
-          </tfoot>
         </table>
         
         <div class="footer">
