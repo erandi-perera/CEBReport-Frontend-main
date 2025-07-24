@@ -12,11 +12,6 @@ interface BillCycleModel {
   ErrorMessage?: string | null;
 }
 
-interface CustomerTypeModel {
-  CustType: string;
-  Description: string;
-  ErrorMessage?: string | null;
-}
 
 interface ApiResponse<T> {
   data: T;
@@ -32,7 +27,7 @@ const AgeAnalysis: React.FC = () => {
   const [billCycles, setBillCycles] = useState<string[]>([]);
   const [selectedBillCycle, setSelectedBillCycle] = useState<string>("");
   const [selectedCustType, setSelectedCustType] = useState<string>("A");
-  const [customerDescription, setCustomerDescription] = useState<string>("");
+  // Removed unused customerDescription state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,23 +62,7 @@ const AgeAnalysis: React.FC = () => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const fetchCustomerDescription = async () => {
-      try {
-        const res = await fetch(`/debtorsage/api/billcycle/customerType/${selectedCustType}`);
-        const json: ApiResponse<CustomerTypeModel> = await res.json();
-        if (json.data && json.data.Description) {
-          setCustomerDescription(json.data.Description);
-        } else {
-          setCustomerDescription("");
-        }
-      } catch {
-        setCustomerDescription("");
-      }
-    };
-
-    fetchCustomerDescription();
-  }, [selectedCustType]);
+  // Removed useEffect for fetching customerDescription since it's unused
 
   const isAllSelected = selectedArea && selectedBillCycle && selectedCustType;
 

@@ -117,7 +117,7 @@ const DebtorsAnalysis: React.FC = () => {
       };
 
       if (showOrdinary) {
-        let ordinaryUrl = `/debtorsapi/api/debtors/summary?opt=${option}&cycle=${cycle}`;
+        let ordinaryUrl = `/misapi/api/debtors/summary?opt=${option}&cycle=${cycle}`;
         if (option !== "E" && !areaCode) throw new Error(`Please enter ${getCodeLabel()}`);
         if (option !== "E") ordinaryUrl += `&areaCode=${areaCode}`;
 
@@ -130,7 +130,7 @@ const DebtorsAnalysis: React.FC = () => {
       }
 
       if (showBulk) {
-        let bulkUrl = `/debtorsapi/api/debtorsbulk/summary?opt=${option}&cycle=${cycle}`;
+        let bulkUrl = `/misapi/api/debtorsbulk/summary?opt=${option}&cycle=${cycle}`;
         if (option !== "E" && !areaCode) throw new Error(`Please enter ${getCodeLabel()}`);
         if (option !== "E") bulkUrl += `&areaCode=${areaCode}`;
 
