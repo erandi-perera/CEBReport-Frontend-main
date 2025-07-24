@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import CostCenterTrial from "../mainTopics/TrialBalance/CostCenterTrial";
+import ProvintionalWiseTrial from "../mainTopics/TrialBalance/ProvintionalWiseTrial";
 
 type Subtopic = {
   id: number;
@@ -32,8 +33,11 @@ const TrialBalance = () => {
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-      case "Cost Center Wise Trial Balances":
+      case "Cost Center Trial Balance - End of Month/Year":
         return <CostCenterTrial/>;
+
+         case "Provintial Trial Balance - End of Month/Year":
+        return <ProvintionalWiseTrial/>;
 
       default:
         return (

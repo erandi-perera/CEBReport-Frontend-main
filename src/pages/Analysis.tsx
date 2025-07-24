@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import DebtorsAnalysis from "../mainTopics/Analysis/DebtorsAnalysis";
+import AgeAnalysis from "../mainTopics/Analysis/AgeAnalysis";
 
 type Subtopic = {
   id: number;
@@ -33,9 +34,11 @@ const Analysis = () => {
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
      
-      case "Total debtors analysis":
+      case "Total Debtors Analysis":
      
         return <DebtorsAnalysis/>;
+        case "Age analysis":
+        return <AgeAnalysis/>;
       default:
         return (
           <div className="text-red-500 text-xs">

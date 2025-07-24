@@ -50,7 +50,7 @@ export const data = [
     name: "Analysis",
     icon: FaBoxes,
     subtopics: [
-       { id: 27, name: "Total debtors analysis" },
+       { id: 27, name: "Total Debtors Analysis" },
       { id: 23, name: "Age analysis" },
       { id: 24, name: "Transaction analysis" },
       { id: 25, name: "Transaction analysis (incl. Prov. Data)" },
@@ -143,7 +143,10 @@ export const data = [
     id: 9,
     name: "Trial Balance",
     icon: FaBalanceScale,
-    subtopics: [{ id: 60, name: "Cost Center Wise Trial Balances" }],
+    subtopics: [{ id: 60, name: "Cost Center Trial Balance - End of Month/Year" },
+               { id: 61, name: "Provintial Trial Balance - End of Month/Year" }
+              ],
+
     path: "/report/trialBalance",
   },
 ];

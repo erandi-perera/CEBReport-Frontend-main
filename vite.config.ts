@@ -27,11 +27,27 @@ export default defineConfig({
         secure: false,
       },
       "/debtorsapi": {
-        target: "http://localhost:44381", // your local .NET API
+        target: "http://localhost:44381", 
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/debtorsapi/, "") // <-- fix added here
-      }
+      },
+      "/provincetrial": {
+        target: "http://localhost:44381", 
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/provincetrial/, "") // <-- fix added here
+
+      },
+
+ "/debtorsage": {
+  target: "http://localhost:44381", 
+  changeOrigin: true,
+  secure: false,
+  rewrite: (path) => path.replace(/^\/debtorsage/, "")
+},
+
+
     },
   },
 });
