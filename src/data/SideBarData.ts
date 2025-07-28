@@ -59,6 +59,7 @@ export const data = [
       { id: 28, name: "Debtors age analysis (individual customers)" },
       { id: 29, name: "Financial analysis" },
       { id: 30, name: "Assessed unit analysis" },
+      { id: 32, name: "unit analysis" },
     ],
     path: "/report/analysis",
   },
@@ -144,9 +145,14 @@ export const data = [
     name: "Trial Balance",
     icon: FaBalanceScale,
     subtopics: [{ id: 60, name: "Cost Center Trial Balance - End of Month/Year" },
-               { id: 61, name: "Provintial Trial Balance - End of Month/Year" }
+               { id: 61, name: "Provintial Trial Balance - End of Month/Year" },
+                { id: 62, name: "Reagion Trial Balance - End of Month/Year" }
+              
               ],
+              
 
     path: "/report/trialBalance",
   },
+
+  
 ];

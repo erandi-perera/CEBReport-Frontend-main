@@ -3,6 +3,7 @@ import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import CostCenterTrial from "../mainTopics/TrialBalance/CostCenterTrial";
 import ProvintionalWiseTrial from "../mainTopics/TrialBalance/ProvintionalWiseTrial";
+import ReagionTrial from "../mainTopics/TrialBalance/ReagionTrial";
 
 type Subtopic = {
   id: number;
@@ -38,6 +39,8 @@ const TrialBalance = () => {
 
          case "Provintial Trial Balance - End of Month/Year":
         return <ProvintionalWiseTrial/>;
+         case "Reagion Trial Balance - End of Month/Year":
+        return <ReagionTrial/>;
 
       default:
         return (

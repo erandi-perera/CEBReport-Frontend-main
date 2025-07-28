@@ -112,5 +112,7 @@ const ReportRoutes = () => (
       }
     />
   </>
+
+  
 );
 export default ReportRoutes;
