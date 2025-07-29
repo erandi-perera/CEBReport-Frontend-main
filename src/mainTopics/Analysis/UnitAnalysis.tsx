@@ -8,13 +8,13 @@ const data = [
   { name: 'West Region', value: 100 },
 ];
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+const COLORS = ['#47b728ff', '#00C49F', '#FFBB28', '#d0632dff'];
 
 const UnitAnalysis = () => {
   return (
     <div style={{ textAlign: 'center' }}>
       <h2>Unit Analysis - Region Wise</h2>
-      <PieChart width={400} height={300}>
+      <PieChart width={900} height={300}>
         <Pie
           data={data}
           cx="50%"
