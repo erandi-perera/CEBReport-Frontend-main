@@ -47,40 +47,71 @@ const TariffBlockWiseConsumption = () => {
   });
   const navigate = useNavigate();
 
-  // Fetch bill cycles on component mount
+  // Helper function - SAME AS FIRST COMPONENT
+  const generateBillCycleOptions = (billCycles: string[], maxCycle: string): BillCycleOption[] => {
+    const maxCycleNum = parseInt(maxCycle);
+    return billCycles.map((cycle, index) => ({
+      display: cycle,
+      code: (maxCycleNum - index).toString()
+    }));
+  };
+
+  // Fetch with error handling - SAME AS FIRST COMPONENT
+  const fetchWithErrorHandling = async (url: string) => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        let errorMsg = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.errorMessage) {
+            errorMsg = errorData.errorMessage;
+          }
+        } catch (e) {
+          errorMsg = response.statusText;
+        }
+        throw new Error(errorMsg);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`Expected JSON response but got ${contentType}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching ${url}:`, error);
+      throw error;
+    }
+  };
+
+  // Fetch bill cycles on component mount - SAME LOGIC AS FIRST COMPONENT
   useEffect(() => {
     const fetchBillCycles = async () => {
+      setBillCycleLoading(true);
+      setError(null);
       try {
-        const response = await fetch('/debtorsage/api/billcycle/max', {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          }
-        });
+        // Fetch bill cycles using the same logic as first component
+        const maxCycleData = await fetchWithErrorHandling("/debtorsage/api/billcycle/max");
         
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (maxCycleData.data && maxCycleData.data.BillCycles?.length > 0) {
+          const options = generateBillCycleOptions(
+            maxCycleData.data.BillCycles,
+            maxCycleData.data.MaxBillCycle
+          );
+          setBillCycleOptions(options);
+          setFormData(prev => ({ ...prev, billCycle: options[0].code }));
+        } else {
+          setBillCycleOptions([]);
+          setFormData(prev => ({ ...prev, billCycle: "" }));
         }
-        
-        const result = await response.json();
-        if (result.errorMessage) {
-          throw new Error(result.errorMessage);
-        }
-        
-        // Generate bill cycle options (20 years back from max cycle)
-        const maxCycle = parseInt(result.data.MaxBillCycle);
-        const cycles = Array.from({ length: 20 }, (_, i) => {
-          const cycle = (maxCycle - i).toString();
-          return {
-            display: cycle,
-            code: cycle
-          };
-        });
-        
-        setBillCycleOptions(cycles);
-        setFormData(prev => ({ ...prev, billCycle: cycles[0].code }));
       } catch (err: any) {
-        setError("Failed to fetch bill cycles: " + err.message);
+        setError("Error loading bill cycle data: " + (err.message || err.toString()));
       } finally {
         setBillCycleLoading(false);
       }
@@ -204,6 +235,15 @@ const TariffBlockWiseConsumption = () => {
     });
   };
 
+  // Clear data and reset form
+  const closeReport = () => {
+    setData({
+      ordinary: [],
+      bulk: []
+    });
+    setError(null);
+  };
+
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,139 +251,146 @@ const TariffBlockWiseConsumption = () => {
   };
 
   // Download as CSV
- const downloadAsCSV = () => {
-  const currentData = formData.tariffType === 'ordinary' ? data.ordinary : data.bulk;
-  if (currentData.length === 0) {
-    alert('No data available to download');
-    return;
-  }
-
-  // Helper function to properly escape CSV values
-  interface EscapeCsv {
-    (value: string | number | undefined | null): string;
-  }
-
-  const escapeCsv: EscapeCsv = (value) => {
-    if (value === undefined || value === null) return '';
-    // Convert to string if not already
-    const stringValue = typeof value === 'string' ? value : String(value);
-    // Escape quotes by doubling them
-    const escapedValue = stringValue.replace(/"/g, '""');
-    // Wrap in quotes if contains commas, quotes, or newlines
-    if (/[",\n\r]/.test(escapedValue)) {
-      return `"${escapedValue}"`;
+  const downloadAsCSV = () => {
+    const currentData = formData.tariffType === 'ordinary' ? data.ordinary : data.bulk;
+    if (currentData.length === 0) {
+      alert('No data available to download');
+      return;
     }
-    return escapedValue;
+
+    // Helper function to properly escape CSV values
+    interface EscapeCsv {
+      (value: string | number | undefined | null): string;
+    }
+
+    const escapeCsv: EscapeCsv = (value) => {
+      if (value === undefined || value === null) return '';
+      // Convert to string if not already
+      const stringValue = typeof value === 'string' ? value : String(value);
+      // Escape quotes by doubling them
+      const escapedValue = stringValue.replace(/"/g, '""');
+      // Wrap in quotes if contains commas, quotes, or newlines
+      if (/[",\n\r]/.test(escapedValue)) {
+        return `"${escapedValue}"`;
+      }
+      return escapedValue;
+    };
+
+    // Format currency without commas for CSV
+    interface FormatCurrencyForCsv {
+      (value: number | undefined | null): string;
+    }
+
+    const formatCurrencyForCsv: FormatCurrencyForCsv = (value) => {
+      if (value === undefined || value === null) return '0.00';
+      return value.toFixed(2);
+    };
+
+    // Create CSV headers
+    const headers = formData.tariffType === 'ordinary' 
+      ? [
+          'Tariff', 'No of Accounts', 'kWh Units', 'kWh Charge',
+          'Fuel Charge', 'Tax Charge', 'Fixed Charge', 'Total Charge'
+        ]
+      : [
+          'Tariff', 'No of Accounts', 'kWo Units', 'kWd Units', 'kWp Units',
+          'kWh Units', 'kVA Units', 'kWo Charge', 'kWd Charge', 'kWp Charge',
+          'kWh Charge', 'kVA Charge', 'Fixed Charge', 'Tax Charge',
+          'FAC Charge', 'Payments'
+        ];
+
+    // Create data rows
+    const rows = currentData.map(row => {
+      if (formData.tariffType === 'ordinary') {
+        return [
+          escapeCsv(row.tariff),
+          escapeCsv(row.noAccts),
+          escapeCsv(row.kwhUnits),
+          escapeCsv(formatCurrencyForCsv(row.kwhCharge)),
+          escapeCsv(formatCurrencyForCsv(row.fuelCharge)),
+          escapeCsv(formatCurrencyForCsv(row.taxCharge)),
+          escapeCsv(formatCurrencyForCsv(row.fixedCharge)),
+          escapeCsv(formatCurrencyForCsv(row.Charge))
+        ];
+      } else {
+        return [
+          escapeCsv(row.tariff),
+          escapeCsv(row.noAccts),
+          escapeCsv(row.kwoUnits || '0.00'),
+          escapeCsv(row.kwdUnits || '0.00'),
+          escapeCsv(row.kwpUnits || '0.00'),
+          escapeCsv(row.kwhUnits),
+          escapeCsv(row.kvaUnits || '0.00'),
+          escapeCsv(formatCurrencyForCsv(row.kwoCharge)),
+          escapeCsv(formatCurrencyForCsv(row.kwdCharge)),
+          escapeCsv(formatCurrencyForCsv(row.kwpCharge)),
+          escapeCsv(formatCurrencyForCsv(row.kwhCharge)),
+          escapeCsv(formatCurrencyForCsv(row.kvaCharge)),
+          escapeCsv(formatCurrencyForCsv(row.fixedCharge)),
+          escapeCsv(formatCurrencyForCsv(row.taxCharge)),
+          escapeCsv(formatCurrencyForCsv(row.facCharge)),
+          escapeCsv(formatCurrencyForCsv(row.payments))
+        ];
+      }
+    });
+
+    // Add totals row
+    const totals = calculateTotals();
+    const totalsRow = formData.tariffType === 'ordinary'
+      ? [
+          'TOTAL',
+          escapeCsv(totals.noAccts),
+          escapeCsv(totals.kwhUnits.toFixed(2)),
+          escapeCsv(formatCurrencyForCsv(totals.kwhCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.fuelCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.taxCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.fixedCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.Charge))
+        ]
+      : [
+          'TOTAL',
+          escapeCsv(totals.noAccts),
+          escapeCsv(totals.kwoUnits.toFixed(2)),
+          escapeCsv(totals.kwdUnits.toFixed(2)),
+          escapeCsv(totals.kwpUnits.toFixed(2)),
+          escapeCsv(totals.kwhUnits.toFixed(2)),
+          escapeCsv(totals.kvaUnits.toFixed(2)),
+          escapeCsv(formatCurrencyForCsv(totals.kwoCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.kwdCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.kwpCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.kwhCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.kvaCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.fixedCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.taxCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.facCharge)),
+          escapeCsv(formatCurrencyForCsv(totals.payments))
+        ];
+
+    // Get bill cycle display name for filename
+    const billCycleDisplay = billCycleOptions.find(b => b.code === formData.billCycle)?.display || formData.billCycle;
+
+    // Combine all CSV content
+    const csvContent = [
+      `"Tariff Block Wise Consumption - ${formData.tariffType === 'ordinary' ? 'Ordinary' : 'Bulk'}"`,
+      `"Bill Cycle: ${billCycleDisplay}"`,
+      "",
+      headers.map(h => `"${h}"`).join(","),
+      ...rows.map(row => row.join(",")),
+      totalsRow.join(",")
+    ].join('\r\n');
+
+    // Create download link
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Tariff_${formData.tariffType}_${formData.billCycle}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
-  // Format currency without commas for CSV
-  interface FormatCurrencyForCsv {
-    (value: number | undefined | null): string;
-  }
-
-  const formatCurrencyForCsv: FormatCurrencyForCsv = (value) => {
-    if (value === undefined || value === null) return '0.00';
-    return value.toFixed(2);
-  };
-
-  // Create CSV headers
-  const headers = formData.tariffType === 'ordinary' 
-    ? [
-        'Tariff', 'No of Accounts', 'kWh Units', 'kWh Charge',
-        'Fuel Charge', 'Tax Charge', 'Fixed Charge', 'Total Charge'
-      ]
-    : [
-        'Tariff', 'No of Accounts', 'kWo Units', 'kWd Units', 'kWp Units',
-        'kWh Units', 'kVA Units', 'kWo Charge', 'kWd Charge', 'kWp Charge',
-        'kWh Charge', 'kVA Charge', 'Fixed Charge', 'Tax Charge',
-        'FAC Charge', 'Payments'
-      ];
-
-  // Create data rows
-  const rows = currentData.map(row => {
-    if (formData.tariffType === 'ordinary') {
-      return [
-        escapeCsv(row.tariff),
-        escapeCsv(row.noAccts),
-        escapeCsv(row.kwhUnits),
-        escapeCsv(formatCurrencyForCsv(row.kwhCharge)),
-        escapeCsv(formatCurrencyForCsv(row.fuelCharge)),
-        escapeCsv(formatCurrencyForCsv(row.taxCharge)),
-        escapeCsv(formatCurrencyForCsv(row.fixedCharge)),
-        escapeCsv(formatCurrencyForCsv(row.Charge))
-      ];
-    } else {
-      return [
-        escapeCsv(row.tariff),
-        escapeCsv(row.noAccts),
-        escapeCsv(row.kwoUnits || '0.00'),
-        escapeCsv(row.kwdUnits || '0.00'),
-        escapeCsv(row.kwpUnits || '0.00'),
-        escapeCsv(row.kwhUnits),
-        escapeCsv(row.kvaUnits || '0.00'),
-        escapeCsv(formatCurrencyForCsv(row.kwoCharge)),
-        escapeCsv(formatCurrencyForCsv(row.kwdCharge)),
-        escapeCsv(formatCurrencyForCsv(row.kwpCharge)),
-        escapeCsv(formatCurrencyForCsv(row.kwhCharge)),
-        escapeCsv(formatCurrencyForCsv(row.kvaCharge)),
-        escapeCsv(formatCurrencyForCsv(row.fixedCharge)),
-        escapeCsv(formatCurrencyForCsv(row.taxCharge)),
-        escapeCsv(formatCurrencyForCsv(row.facCharge)),
-        escapeCsv(formatCurrencyForCsv(row.payments))
-      ];
-    }
-  });
-
-  // Add totals row
-  const totals = calculateTotals();
-  const totalsRow = formData.tariffType === 'ordinary'
-    ? [
-        'TOTAL',
-        escapeCsv(totals.noAccts),
-        escapeCsv(totals.kwhUnits.toFixed(2)),
-        escapeCsv(formatCurrencyForCsv(totals.kwhCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.fuelCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.taxCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.fixedCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.Charge))
-      ]
-    : [
-        'TOTAL',
-        escapeCsv(totals.noAccts),
-        escapeCsv(totals.kwoUnits.toFixed(2)),
-        escapeCsv(totals.kwdUnits.toFixed(2)),
-        escapeCsv(totals.kwpUnits.toFixed(2)),
-        escapeCsv(totals.kwhUnits.toFixed(2)),
-        escapeCsv(totals.kvaUnits.toFixed(2)),
-        escapeCsv(formatCurrencyForCsv(totals.kwoCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.kwdCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.kwpCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.kwhCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.kvaCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.fixedCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.taxCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.facCharge)),
-        escapeCsv(formatCurrencyForCsv(totals.payments))
-      ];
-
-  // Combine all CSV content
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.join(',')),
-    totalsRow.join(',')
-  ].join('\r\n');
-
-  // Create download link
-  const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `Tariff_${formData.tariffType}_${formData.billCycle}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 100);
-};
   // Print as PDF
   const printPDF = () => {
     const printWindow = window.open("", "_blank");
@@ -351,6 +398,7 @@ const TariffBlockWiseConsumption = () => {
     
     const currentData = formData.tariffType === 'ordinary' ? data.ordinary : data.bulk;
     const totals = calculateTotals();
+    const billCycleDisplay = billCycleOptions.find(b => b.code === formData.billCycle)?.display || formData.billCycle;
     
     // Create table rows
     const tableRows = currentData.map(row => {
@@ -477,7 +525,7 @@ const TariffBlockWiseConsumption = () => {
             th, td { padding: 4px 6px; border: 1px solid #ddd; }
             .text-left { text-align: left; }
             .text-right { text-align: right; }
-            .header { font-weight: bold; margin-bottom: 5px; }
+            .header { font-weight: bold; margin-bottom: 5px; color: #7A0000; }
             .subheader { margin-bottom: 10px; }
             .footer { margin-top: 10px; font-size: 9px; }
             .total-row { font-weight: bold; background-color: #f5f5f5; }
@@ -486,7 +534,7 @@ const TariffBlockWiseConsumption = () => {
         </head>
         <body>
           <div class="header">TARIFF BLOCK WISE CONSUMPTION - ${formData.tariffType === 'ordinary' ? 'ORDINARY' : 'BULK'}</div>
-          <div class="subheader">Bill Cycle: ${formData.billCycle}</div>
+          <div class="subheader">Bill Cycle: ${billCycleDisplay}</div>
           <table>
             <thead>
               ${tableHeaders}
@@ -508,6 +556,7 @@ const TariffBlockWiseConsumption = () => {
     }, 500);
   };
 
+  // Loading states
   if (billCycleLoading) {
     return (
       <div className={`text-center py-8 ${maroon} text-sm animate-pulse`}>
@@ -566,7 +615,7 @@ const TariffBlockWiseConsumption = () => {
               </div>
             </div>
 
-            {/* Bill Cycle Dropdown */}
+            {/* Bill Cycle Dropdown - NOW WORKS LIKE FIRST COMPONENT */}
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Bill Cycle</label>
               <select
@@ -578,32 +627,18 @@ const TariffBlockWiseConsumption = () => {
               >
                 {billCycleOptions.map(cycle => (
                   <option key={cycle.code} value={cycle.code} className="text-xs py-1">
-                    {cycle.display}
+                    {cycle.display} - {cycle.code}
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Submit Buttons */}
-          <div className="flex justify-end space-x-2 pt-2">
-            <button
-              type="button"
-              onClick={() => navigate('/general-category')}
-              className="px-2 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#7A0000]"
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/general-category/submenu')}
-              className="px-2 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#7A0000]"
-            >
-              Back
-            </button>
+          {/* Submit Button */}
+          <div className="flex justify-end pt-2">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !formData.billCycle}
               className={`px-3 py-1 rounded-md text-xs font-medium text-white ${maroonGrad} hover:opacity-90 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#7A0000] disabled:opacity-50`}
             >
               {loading ? (
@@ -696,6 +731,18 @@ const TariffBlockWiseConsumption = () => {
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Close Report Button */}
+            {(data.ordinary.length > 0 || data.bulk.length > 0) && (
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={closeReport}
+                  className="px-4 py-2 bg-[#7A0000] hover:bg-[#A52A2A] rounded-md text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7A0000]"
+                >
+                  Close Report
+                </button>
               </div>
             )}
 
