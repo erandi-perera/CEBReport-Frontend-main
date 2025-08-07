@@ -7,11 +7,7 @@ interface BillCycleOption {
   isSynthetic?: boolean; // Flag to identify frontend-generated cycles
 }
 
-// Ordinary Data Interface
 
-// Bulk Data Interface
-
-// Ordinary Block Data Interface
 
 
 const TariffBlockWiseConsumption: React.FC = () => {
@@ -169,8 +165,6 @@ const TariffBlockWiseConsumption: React.FC = () => {
     fetchBillCycles();
   }, []);
 
-  // Check if selected bill cycle is synthetic
-
   // Event handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -196,10 +190,14 @@ const TariffBlockWiseConsumption: React.FC = () => {
           billCycle: formData.billCycle
         };
         
+        console.log("Making API call to:", selectedReport.api, "with body:", postBody);
+        
         data = await fetchWithErrorHandling(selectedReport.api, {
           method: 'POST',
           body: JSON.stringify(postBody)
         });
+        
+        console.log("API Response:", data);
       } catch (postError: any) {
         console.log("POST request failed, trying GET:", postError.message);
         
@@ -230,23 +228,75 @@ const TariffBlockWiseConsumption: React.FC = () => {
         throw new Error(data.errorMessage);
       }
 
+      console.log("Full API Response for debugging:", JSON.stringify(data, null, 2));
+      
       let resultData = [];
       if (formData.reportType === "ordinary") {
         resultData = data.data?.OrdList || data.OrdList || [];
       } else if (formData.reportType === "bulk") {
         resultData = data.data?.BulkList || data.BulkList || [];
       } else if (formData.reportType === "ordinary-block") {
-        // Try different possible response data paths for the block data
-        resultData = data.data?.BlockList || data.BlockList || 
-                    data.data?.OrdBlockList || data.OrdBlockList ||
-                    data.data?.TariffBlockList || data.TariffBlockList ||
-                    data.data || [];
+        // FIXED: Added the specific key that your API is returning
+        resultData = data.data?.OrdBlockwiseList || 
+                    data.OrdBlockwiseList ||
+                    data.data?.BlockList || 
+                    data.BlockList || 
+                    data.data?.OrdBlockList || 
+                    data.OrdBlockList ||
+                    data.data?.TariffBlockList || 
+                    data.TariffBlockList ||
+                    data.data?.tariffBlockList || 
+                    data.tariffBlockList ||
+                    data.data?.blockList ||
+                    data.blockList ||
+                    data.data?.list ||
+                    data.list ||
+                    data.data?.Data ||
+                    data.Data ||
+                    data.data?.results ||
+                    data.results ||
+                    [];
+                    
+        // If still empty, check if data itself is an array
+        if (!resultData || resultData.length === 0) {
+          if (Array.isArray(data.data)) {
+            resultData = data.data;
+          } else if (Array.isArray(data)) {
+            resultData = data;
+          }
+        }
+                    
+        console.log("All possible data paths checked");
+        console.log("data.data:", data.data);
+        console.log("data:", data);
+        console.log("Final extracted result data:", resultData);
+        console.log("Result data length:", resultData?.length);
+      }
+
+      // Debug: Log the complete structure to understand the response
+      if (formData.reportType === "ordinary-block") {
+        console.log("=== DEBUGGING ORDINARY-BLOCK API RESPONSE ===");
+        console.log("Complete response keys:", Object.keys(data));
+        if (data.data) {
+          console.log("data.data keys:", Object.keys(data.data));
+          console.log("data.data type:", typeof data.data);
+          console.log("data.data is array?:", Array.isArray(data.data));
+        }
+        console.log("Response structure:");
+        console.log(JSON.stringify(data, null, 2));
       }
 
       // If resultData is not an array, wrap it in an array
       if (!Array.isArray(resultData)) {
-        resultData = [resultData];
+        if (resultData && typeof resultData === 'object') {
+          resultData = [resultData];
+        } else {
+          resultData = [];
+        }
       }
+
+      console.log("Final resultData before setState:", resultData);
+      console.log("Final resultData length:", resultData.length);
 
       setReportData(resultData);
       setShowReport(true);
@@ -271,24 +321,23 @@ const TariffBlockWiseConsumption: React.FC = () => {
     let headers: string[] = [];
     let filename = "";
     
-    // Set headers based on report type
+    // Set headers based on report type and actual data structure
     if (formData.reportType === "ordinary") {
-      headers = ["Tariff", "No of Accounts", "KWH Units", "KWH Charge", "Fuel Charge", "Tax Charge", "Fixed Charge", "Total Charge"];
+      // Check if the ordinary data has range field (meaning it's block-wise structure)
+      if (reportData[0]?.range !== undefined) {
+        headers = ["Tariff", "Range", "No of Accounts", "KWH Units", "KWH Charge", "Fixed Charge", "Tax", "FAC", "Payments"];
+      } else {
+        // Traditional ordinary structure
+        headers = ["Tariff", "No of Accounts", "KWH Units", "KWH Charge", "Fuel Charge", "Tax Charge", "Fixed Charge", "Total Charge"];
+      }
       filename = "Ordinary_Tariff_Report";
     } else if (formData.reportType === "bulk") {
       headers = ["Tariff", "No of Accounts", "KWO Units", "KWD Units", "KWP Units", "KWH Units", "KVA Units", 
                  "KWO Charge", "KWD Charge", "KWP Charge", "KWH Charge", "KVA Charge", "Fixed Charge", "Tax Charge", "FAC Charge", "Payments"];
       filename = "Bulk_Tariff_Report";
     } else if (formData.reportType === "ordinary-block") {
-      // Check data structure and set appropriate headers
-      if (reportData.length > 0 && (reportData[0].kwoUnits !== undefined || reportData[0].kwdUnits !== undefined)) {
-        // Bulk-like structure
-        headers = ["Tariff", "No of Accounts", "KWO Units", "KWD Units", "KWP Units", "KWH Units", "KVA Units", 
-                   "KWO Charge", "KWD Charge", "KWP Charge", "KWH Charge", "KVA Charge", "Fixed Charge", "Tax Charge", "FAC Charge", "Payments"];
-      } else {
-        // Block structure with range
-        headers = ["Tariff", "Range", "No of Accounts", "KWH Units", "KWH Charge", "Fixed Charge", "Tax", "FAC", "Payments"];
-      }
+      // Always use block structure headers for ordinary-block
+      headers = ["Tariff", "Range", "No of Accounts", "KWH Units", "KWH Charge", "Fixed Charge", "Tax", "FAC", "Payments"];
       filename = "Ordinary_Block_Tariff_Report";
     }
 
@@ -300,16 +349,33 @@ const TariffBlockWiseConsumption: React.FC = () => {
       headers.map(h => `"${h}"`).join(","),
       ...reportData.map(row => {
         if (formData.reportType === "ordinary") {
-          return [
-            row.tariff?.trim(),
-            row.noAccts,
-            row.kwhUnits,
-            formatCurrency(row.kwhCharge),
-            formatCurrency(row.fuelCharge),
-            formatCurrency(row.taxCharge),
-            formatCurrency(row.fixedCharge),
-            formatCurrency(row.Charge)
-          ].map(cell => `"${cell}"`).join(",");
+          // Handle both traditional and block-wise ordinary data
+          if (row.range !== undefined) {
+            // Block-wise ordinary data
+            return [
+              row.tariff,
+              row.range || "",
+              row.noAccts,
+              row.kwhUnits,
+              formatCurrency(row.kwhCharge),
+              formatCurrency(row.fixedCharge),
+              formatCurrency(row.tax || row.taxCharge || 0),
+              formatCurrency(row.fac || row.facCharge || 0),
+              formatCurrency(row.payments)
+            ].map(cell => `"${cell}"`).join(",");
+          } else {
+            // Traditional ordinary data
+            return [
+              row.tariff?.trim(),
+              row.noAccts,
+              row.kwhUnits,
+              formatCurrency(row.kwhCharge),
+              formatCurrency(row.fuelCharge),
+              formatCurrency(row.taxCharge),
+              formatCurrency(row.fixedCharge),
+              formatCurrency(row.Charge)
+            ].map(cell => `"${cell}"`).join(",");
+          }
         } else if (formData.reportType === "bulk") {
           return [
             row.tariff,
@@ -330,41 +396,18 @@ const TariffBlockWiseConsumption: React.FC = () => {
             formatCurrency(row.payments)
           ].map(cell => `"${cell}"`).join(",");
         } else if (formData.reportType === "ordinary-block") {
-          // Handle both bulk-like and block structures
-          if (row.kwoUnits !== undefined || row.kwdUnits !== undefined) {
-            // Bulk-like structure
-            return [
-              row.tariff,
-              row.noAccts,
-              row.kwoUnits || 0,
-              row.kwdUnits || 0,
-              row.kwpUnits || 0,
-              row.kwhUnits,
-              row.kvaUnits || 0,
-              formatCurrency(row.kwoCharge || 0),
-              formatCurrency(row.kwdCharge || 0),
-              formatCurrency(row.kwpCharge || 0),
-              formatCurrency(row.kwhCharge),
-              formatCurrency(row.kvaCharge || 0),
-              formatCurrency(row.fixedCharge),
-              formatCurrency(row.taxCharge || row.tax || 0),
-              formatCurrency(row.facCharge || row.fac || 0),
-              formatCurrency(row.payments)
-            ].map(cell => `"${cell}"`).join(",");
-          } else {
-            // Block structure
-            return [
-              row.tariff,
-              row.range || "",
-              row.noAccts,
-              row.kwhUnits,
-              formatCurrency(row.kwhCharge),
-              formatCurrency(row.fixedCharge),
-              formatCurrency(row.tax || row.taxCharge || 0),
-              formatCurrency(row.fac || row.facCharge || 0),
-              formatCurrency(row.payments)
-            ].map(cell => `"${cell}"`).join(",");
-          }
+          // Always use block structure for ordinary-block
+          return [
+            row.tariff,
+            row.range || "",
+            row.noAccts,
+            row.kwhUnits,
+            formatCurrency(row.kwhCharge),
+            formatCurrency(row.fixedCharge),
+            formatCurrency(row.tax || row.taxCharge || 0),
+            formatCurrency(row.fac || row.facCharge || 0),
+            formatCurrency(row.payments)
+          ].map(cell => `"${cell}"`).join(",");
         }
         return "";
       })
@@ -556,30 +599,60 @@ const TariffBlockWiseConsumption: React.FC = () => {
 
         {!reportLoading && !reportError && reportData.length > 0 && (
           <div className="overflow-x-auto">
-            {/* Debug info - remove this after testing */}
-            {formData.reportType === "ordinary-block" && (
-              <div className="mb-4 p-2 bg-blue-50 text-xs">
-                <strong>Debug Info:</strong> Data length: {reportData.length}, 
-                First row keys: {reportData[0] ? Object.keys(reportData[0]).join(', ') : 'No data'}, 
-                Has kwoUnits: {reportData[0]?.kwoUnits !== undefined ? 'Yes' : 'No'}, 
-                Has range: {reportData[0]?.range !== undefined ? 'Yes' : 'No'}
-              </div>
-            )}
-
             {/* Ordinary Report Table */}
             {formData.reportType === "ordinary" && (
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="border border-gray-300 px-2 py-1 text-left">Tariff</th>
+                    <th className="border border-gray-300 px-2 py-1 text-center">Range</th>
                     <th className="border border-gray-300 px-2 py-1 text-right">No Accts</th>
                     <th className="border border-gray-300 px-2 py-1 text-right">KWH Units</th>
-                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Charge</th>
-                    <th className="border border-gray-300 px-2 py-1 text-right">Fuel Charge</th>
-                    <th className="border border-gray-300 px-2 py-1 text-right">Tax Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Charge Rs.</th>
                     <th className="border border-gray-300 px-2 py-1 text-right">Fixed Charge</th>
                     <th className="border border-gray-300 px-2 py-1 text-right">Tax</th>
                     <th className="border border-gray-300 px-2 py-1 text-right">Fac</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Payments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.map((row, index) => (
+                    <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <td className="border border-gray-300 px-2 py-1">{row.tariff}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-center">{row.range || ""}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseInt(row.noAccts || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwhUnits || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fixedCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.tax || row.taxCharge || 0)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fac || row.facCharge || 0)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.payments)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* Bulk Report Table */}
+            {formData.reportType === "bulk" && (
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 px-2 py-1 text-left">Tariff</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">No Accts</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWO Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWD Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWP Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KVA Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWO Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWD Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWP Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KVA Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Fixed Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Tax Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">FAC Charge</th>
                     <th className="border border-gray-300 px-2 py-1 text-right">Payments</th>
                   </tr>
                 </thead>
@@ -608,90 +681,38 @@ const TariffBlockWiseConsumption: React.FC = () => {
               </table>
             )}
 
-            {/* Ordinary Block Report Table */}
+            {/* Ordinary Block Report Table - Fixed to always show block structure */}
             {formData.reportType === "ordinary-block" && (
-              <div>
-                {/* Check if data has bulk-like structure instead of block structure */}
-                {reportData.length > 0 && (reportData[0].kwoUnits !== undefined || reportData[0].kwdUnits !== undefined) ? (
-                  // Data looks like bulk data, render as bulk table
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="border border-gray-300 px-2 py-1 text-left">Tariff</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">No Accts</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KWO Units</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KWD Units</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KWP Units</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KWH Units</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KVA Units</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KWO Charge</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KWD Charge</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KWP Charge</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KWH Charge</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KVA Charge</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">Fixed Charge</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">Tax</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">Fac</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">Payments</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reportData.map((row, index) => (
-                        <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                          <td className="border border-gray-300 px-2 py-1">{row.tariff}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{parseInt(row.noAccts || 0).toLocaleString()}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwoUnits || 0).toLocaleString()}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwdUnits || 0).toLocaleString()}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwpUnits || 0).toLocaleString()}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwhUnits || 0).toLocaleString()}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kvaUnits || 0).toLocaleString()}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwoCharge || 0)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwdCharge || 0)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwpCharge || 0)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhCharge)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kvaCharge || 0)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fixedCharge)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.taxCharge || row.tax || 0)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.facCharge || row.fac || 0)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.payments)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  // Data has block structure, render as original block table
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="border border-gray-300 px-2 py-1 text-left">Tariff</th>
-                        <th className="border border-gray-300 px-2 py-1 text-center">Range</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">No Accts</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KWH</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">KWH Charge Rs.</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">Fixed Charge</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">Tax</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">Fac</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">Payments</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reportData.map((row, index) => (
-                        <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                          <td className="border border-gray-300 px-2 py-1">{row.tariff}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-center">{row.range || ""}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{parseInt(row.noAccts || 0).toLocaleString()}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{parseInt(row.kwhUnits || 0).toLocaleString()}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhCharge)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fixedCharge)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.tax || row.taxCharge || 0)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fac || row.facCharge || 0)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.payments)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 px-2 py-1 text-left">Tariff</th>
+                    <th className="border border-gray-300 px-2 py-1 text-center">Range</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">No Accts</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Charge Rs.</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Fixed Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Tax</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">FAC</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Payments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.map((row, index) => (
+                    <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <td className="border border-gray-300 px-2 py-1">{row.tariff}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-center">{row.range || ""}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseInt(row.noAccts || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwhUnits || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fixedCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.tax || row.taxCharge || 0)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fac || row.facCharge || 0)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.payments)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         )}
@@ -770,4 +791,3 @@ const TariffBlockWiseConsumption: React.FC = () => {
 };
 
 export default TariffBlockWiseConsumption;
-                   
