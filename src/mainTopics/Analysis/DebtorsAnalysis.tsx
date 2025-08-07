@@ -8,11 +8,6 @@ interface Area {
   ErrorMessage?: string | null;
 }
 
-interface BillCycleModel {
-  MaxBillCycle: string;
-  BillCycles: string[];
-  ErrorMessage?: string | null;
-}
 
 interface BillCycleOption {
   display: string;
@@ -30,10 +25,6 @@ interface DebtorSummary {
   ErrorMessage: string | null;
 }
 
-interface ApiResponse<T> {
-  data: T;
-  errorMessage: string | null;
-}
 
 const DebtorsAnalysis: React.FC = () => {
   // Colors
@@ -175,10 +166,6 @@ const DebtorsAnalysis: React.FC = () => {
     return labels[formData.option as keyof typeof labels] || "Area Code";
   };
 
-  const getCodePlaceholder = () => {
-    const placeholders = { P: "e.g. 1", D: "e.g. R1", A: "e.g. 57" };
-    return placeholders[formData.option as keyof typeof placeholders] || "e.g. 57";
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

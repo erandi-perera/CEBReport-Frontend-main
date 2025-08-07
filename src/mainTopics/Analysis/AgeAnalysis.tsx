@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 
 // Interfaces
 interface Area {
@@ -46,22 +45,13 @@ interface Debtor {
   ErrorMessage: string | null;
 }
 
-interface ApiResponse<T> {
-  data: T;
-  errorMessage: string | null;
-}
 
 const AgeAnalysis: React.FC = () => {
   // Colors and styling
   const maroon = "text-[#7A0000]";
   const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
-  const chartColors = [
-    '#1E3A8A', '#10B981', '#F59E0B', '#6366F1', 
-    '#3B82F6', '#6B7280', '#9CA3AF', '#D97706'
-  ];
 
   // Hooks
-  const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
   const reportContainerRef = useRef<HTMLDivElement>(null);
 
@@ -149,14 +139,14 @@ const AgeAnalysis: React.FC = () => {
       setError(null);
       try {
         // Fetch areas
-        const areaData = await fetchWithErrorHandling("/debtorsage/api/areas");
+        const areaData = await fetchWithErrorHandling("/misapi/api/areas");
         setAreas(areaData.data || []);
         if (areaData.data?.length > 0) {
           setFormData(prev => ({ ...prev, areaCode: areaData.data[0].AreaCode }));
         }
 
         // Fetch bill cycles
-        const maxCycleData = await fetchWithErrorHandling("/debtorsage/api/billcycle/max");
+        const maxCycleData = await fetchWithErrorHandling("/misapi/api/billcycle/max");
         if (maxCycleData.data && maxCycleData.data.BillCycles?.length > 0) {
           const options = generateBillCycleOptions(
             maxCycleData.data.BillCycles,
@@ -206,7 +196,7 @@ const AgeAnalysis: React.FC = () => {
         default: ageRange = "All";
       }
 
-      const url = `/debtorsage/api/debtors?custType=${formData.custType}&billCycle=${formData.billCycle}&areaCode=${formData.areaCode}&ageRange=${ageRange}`;
+      const url = `/misapi/api/debtors?custType=${formData.custType}&billCycle=${formData.billCycle}&areaCode=${formData.areaCode}&ageRange=${ageRange}`;
       const data = await fetchWithErrorHandling(url);
       if (data.errorMessage) {
         throw new Error(data.errorMessage);

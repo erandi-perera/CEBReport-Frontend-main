@@ -30,7 +30,7 @@ const General = () => {
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-      case "Sales data for tariff":
+      case "Tariff Block Wise Consumption Report":
         return <TariffBlockWiseConsumption />;
       case "Bill calculation":
       case "Amex customers":

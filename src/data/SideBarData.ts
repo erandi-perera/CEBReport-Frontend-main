@@ -12,7 +12,7 @@ export const data = [
     name: "General",
     icon: MdPayment,
     subtopics: [
-      { id: 18, name: "Sales data for tariff" },
+      { id: 18, name: "Tariff Block Wise Consumption Report" },
       { id: 1, name: "Bill calculation" },
       { id: 2, name: "Amex customers" },
       { id: 3, name: "Listing of customers" },
