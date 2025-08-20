@@ -1,56 +1,41 @@
 import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
-import DishonouredCheques from "../mainTopics/Collections/DishonouredCheques";
+import CostCenterIncomeExpenditure from "../mainTopics/IncomeExpenditure/CostCenterIncomeExpenditure";
+import ProvinceExpenditure from "../mainTopics/IncomeExpenditure/ProvinceExpenditure";
+import RegionExpenditure from "../mainTopics/IncomeExpenditure/RegionExpenditure";
 
 type Subtopic = {
   id: number;
   name: string;
 };
 
-const Collections = () => {
+const IncomeExpenditure = () => {
   const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
   useEffect(() => {
-    // Get Collections topic's subtopics directly from sidebarData
-    const collectionsTopic = sidebarData.find(
-      (topic) => topic.name === "Collections"
+    // Get Income Expenditure topic's subtopics directly from sidebarData
+    const topic = sidebarData.find(
+      (topic) => topic.name === "Income Expenditure"
     );
-    if (collectionsTopic) {
-      setSubtopics(collectionsTopic.subtopics);
+    if (topic) {
+      setSubtopics(topic.subtopics);
     }
   }, []);
 
   const toggleCard = (id: number) => {
-    if (expandedCard === id) {
-      setExpandedCard(null);
-    } else {
-      setExpandedCard(id);
-    }
+    setExpandedCard(expandedCard === id ? null : id);
   };
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-      case "Online counter collections":
-      case "Sales and collection":
-      case "Stamp duty for payment collections":
-      case "Monthly revenue collection of different channels":
-      case "Kiosk payment collection":
-      case "Payment collection":
-      case "Suspense payment details":
-      case "Finalized account details":
-      case "Written off account details":
-      case "Receivable position":
-      case "Unload loan information":
-      
-        
-        return <div>{subtopicName} Content</div>;
-case "Dishonoured cheques":
-  return <DishonouredCheques />;
-
-
-
+      case "Cost Center Wise Income Expenditure":
+        return <CostCenterIncomeExpenditure />;
+         case "Province Wise Income Expenditure":
+        return <ProvinceExpenditure />;
+         case "Region Wise Income Expenditure":
+        return <RegionExpenditure />;
       default:
         return (
           <div className="text-red-500 text-xs">
@@ -77,4 +62,4 @@ case "Dishonoured cheques":
   );
 };
 
-export default Collections;
+export default IncomeExpenditure;

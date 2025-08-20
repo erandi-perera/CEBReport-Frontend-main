@@ -39,7 +39,7 @@ const Analysis = () => {
       case "Total Debtors Analysis":
      
         return <DebtorsAnalysis/>;
-        case "Age analysis":
+        case "Debtors Age Analysis (Individual Customers)":
         return <AgeAnalysis/>;
         
          case "unit analysis":

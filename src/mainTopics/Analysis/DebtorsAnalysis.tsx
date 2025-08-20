@@ -132,14 +132,14 @@ const DebtorsAnalysis: React.FC = () => {
       setError(null);
       try {
         // Fetch areas
-        const areaData = await fetchWithErrorHandling("/debtorsage/api/areas");
+        const areaData = await fetchWithErrorHandling("/misapi/api/areas");
         setAreas(areaData.data || []);
         if (areaData.data?.length > 0) {
           setFormData(prev => ({ ...prev, areaCode: areaData.data[0].AreaCode }));
         }
 
         // Fetch bill cycles using the same method as AgeAnalysis
-        const maxCycleData = await fetchWithErrorHandling("/debtorsage/api/billcycle/max");
+        const maxCycleData = await fetchWithErrorHandling("/misapi/api/billcycle/max");
         if (maxCycleData.data && maxCycleData.data.BillCycles?.length > 0) {
           const options = generateBillCycleOptions(
             maxCycleData.data.BillCycles,
