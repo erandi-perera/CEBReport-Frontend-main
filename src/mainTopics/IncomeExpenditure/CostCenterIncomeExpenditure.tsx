@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Search, RotateCcw, Eye, X, Download, Printer } from "lucide-react";
+import { useUser } from "../../contexts/UserContext";
 
 interface Department {
   DeptId: string;
@@ -19,6 +20,9 @@ interface IncomeExpenditureData {
 }
 
 const CostCenterIncomeExpenditure: React.FC = () => {
+  // Get user from context
+  const { user } = useUser();
+  
   // Main state
   const [data, setData] = useState<Department[]>([]);
   const [searchId, setSearchId] = useState("");
@@ -42,8 +46,14 @@ const CostCenterIncomeExpenditure: React.FC = () => {
   const [incomeExpLoading, setIncomeExpLoading] = useState(false);
   const [incomeExpError, setIncomeExpError] = useState<string | null>(null);
 
-  // EPF Number for API call - hardcoded as requested
-  const epfNo = "035838";
+  // Get EPF Number from user context (Userno field)
+  const epfNo = user?.Userno || "";
+  
+  // Debug log to see what EPF number is being used
+  useEffect(() => {
+    console.log('Current user:', user);
+    console.log('EPF Number being used:', epfNo);
+  }, [user, epfNo]);
 
   // Colors
   const maroon = "text-[#7A0000]";
@@ -60,9 +70,16 @@ const CostCenterIncomeExpenditure: React.FC = () => {
   // Fetch departments
   useEffect(() => {
     const fetchData = async () => {
+      // Don't fetch if no EPF number
+      if (!epfNo) {
+        setError("No EPF number available. Please login again.");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        const res = await fetch(`/expenditure/api/incomeexpenditure/departments/${epfNo}`);
+        const res = await fetch(`/misapi/api/incomeexpenditure/departments/${epfNo}`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         
         const contentType = res.headers.get('content-type');
@@ -315,7 +332,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
         </tr>
       `;
       
-      incomeData.forEach((item, index) => {
+      incomeData.forEach((item) => {
         tableRowsHTML += `
           <tr>
             <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${item.CatFlag}</td>
@@ -357,7 +374,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
         </tr>
       `;
       
-      expenditureData.forEach((item, index) => {
+      expenditureData.forEach((item) => {
         tableRowsHTML += `
           <tr>
             <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${item.CatFlag}</td>
@@ -743,10 +760,24 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h2 className={`text-xl font-bold ${maroon}`}>
-          Cost Center Income & Expenditure
-          <span className="ml-2 text-xs text-gray-500">(Total: {filtered.length})</span>
-        </h2>
+        <div>
+          <h2 className={`text-xl font-bold ${maroon}`}>
+            Cost Center Income & Expenditure
+            <span className="ml-2 text-xs text-gray-500">(Total: {filtered.length})</span>
+          </h2>
+          {epfNo && (
+            <div className="text-xs text-gray-600 mt-1 space-y-1">
+              <p>
+                EPF Number: <span className="font-mono font-medium">{epfNo}</span>
+              </p>
+              {user?.Name && (
+                <p>
+                  User: <span className="font-medium">{user.Name}</span>
+                </p>
+              )}
+            </div>
+          )}
+        </div>
         {lastUpdated && (
           <p className="text-[10px] text-gray-400">Last updated: {lastUpdated.toLocaleString()}</p>
         )}
@@ -794,6 +825,21 @@ const CostCenterIncomeExpenditure: React.FC = () => {
         </div>
       )}
 
+      {/* No EPF Number State */}
+      {!loading && !epfNo && (
+        <div className="text-center py-8">
+          <div className="text-gray-400 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-700 mb-2">Authentication Required</h3>
+          <p className="text-gray-500 text-center max-w-md">
+            No EPF number available. Please <strong>login again</strong> to access this feature.
+          </p>
+        </div>
+      )}
+
       {/* Error State */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -802,12 +848,12 @@ const CostCenterIncomeExpenditure: React.FC = () => {
       )}
 
       {/* No Results */}
-      {!loading && !error && filtered.length === 0 && (
+      {!loading && !error && epfNo && filtered.length === 0 && (
         <div className="text-gray-600 bg-gray-100 p-4 rounded">No departments found.</div>
       )}
 
       {/* Table */}
-      {!loading && !error && filtered.length > 0 && (
+      {!loading && !error && epfNo && filtered.length > 0 && (
         <>
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <div className="max-h-[50vh] overflow-y-auto">

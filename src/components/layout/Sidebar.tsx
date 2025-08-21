@@ -29,7 +29,7 @@ const Sidebar = () => {
         setActiveId(matchingTopic.id);
       } else {
         // Don't redirect for certain special paths like report display pages
-        const specialPaths = ["/report-display"];
+        const specialPaths = ["/report-display", "/home", "/user"];
         if (!specialPaths.includes(currentPath)) {
           // Only redirect to first item if we're on a completely unknown path
           const first = data[0];

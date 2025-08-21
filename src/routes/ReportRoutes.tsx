@@ -13,7 +13,7 @@ import ConsumptionAnalysis from "../pages/ConsumptionAnalysis";
 import BulkReporting from "../components/mainTopics/billing&payments/customerDetails/reports/BulkReporting";
 import OrdinaryReadingHistory from "../components/mainTopics/billing&payments/customerDetails/reports/OrdinaryReadingHistory";
 import TransactionHistoryReport from "../components/mainTopics/billing&payments/customerDetails/reports/TransactionHistoryReport";
-import SolarReport from "../mainTopics/Solar/SolarReport";
+
 
 const ReportRoutes = () => (
   <>
@@ -122,14 +122,8 @@ const ReportRoutes = () => (
       }
     />
 
- <Route
-      path="/report-display"
-      element={
-        <Layout>
-          <SolarReport />
-        </Layout>
-      }
-    />
+
+      
 
 
   </>

@@ -12,19 +12,8 @@ interface CalCycle {
   monthYear: string;
 }
 
-interface Area {
-  area_code: string;
-  area_name: string;
-}
 
-interface Province {
-  provCode: string;
-  provName: string;
-}
 
-interface Division {
-  regionName: string;
-}
 
 const ReportForm: React.FC = () => {
   const navigate = useNavigate();
@@ -36,13 +25,13 @@ const ReportForm: React.FC = () => {
   const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
   const [selectedCategoryOption, setSelectedCategoryOption] = useState("");
 
-  const [types, setTypes] = useState<string[]>([
+  const types = [
     "Net Metering",
     "Net Accounting",
     "Net Plus",
     "Net Plus Plus",
     "Convert Net Metering To Net Accounting",
-  ]);
+  ];
   const [selectedType, setSelectedType] = useState("");
 
   // Cycle type options for dropdown
@@ -80,7 +69,7 @@ const ReportForm: React.FC = () => {
     const fetchCategoryData = async () => {
       try {
         let url = "";
-        if (reportCategory === "Area") url = "/api/Area";
+        if (reportCategory === "Area") url = "/misapi/api/areas";
         else if (reportCategory === "Province") url = "/api/Province";
         else if (reportCategory === "Division") url = "/api/Region";
         else {
