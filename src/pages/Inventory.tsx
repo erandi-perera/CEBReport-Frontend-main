@@ -3,6 +3,7 @@ import { data as sidebarData } from "../data/SideBarData";
 import MaterialMaster from "../mainTopics/inventory/MaterialMaster";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import AverageConsumptions from "../mainTopics/inventory/AverageConsumptions";
+import CostCenterQuantityHnad from "../mainTopics/inventory/CostCenterQuantityHnad";
 type Subtopic = {
   id: number;
   name: string;
@@ -34,9 +35,13 @@ const Inventory = () => {
     switch (subtopicName) {
       case "All Material Details":
         return <MaterialMaster />;
+        case "Cost Center wise Quantity on Hand":
+          return <CostCenterQuantityHnad />;
 
         case "Average Consumptions":
         return <AverageConsumptions />;
+
+        
       default:
         return (
           <div className="text-red-500 text-xs">

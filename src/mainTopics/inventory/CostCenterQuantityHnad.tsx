@@ -67,6 +67,11 @@ const CostCenterIncomeExpenditure: React.FC = () => {
   // Paginated departments
   const paginatedDepartments = filtered.slice((page - 1) * pageSize, page * pageSize);
 
+  // Helper function to convert flag values
+  const convertCatFlag = (flag: string): string => {
+    return flag === "X" ? "E" : flag; // Convert X to E, keep I as I
+  };
+
   // Fetch departments
   useEffect(() => {
     const fetchData = async () => {
@@ -202,25 +207,8 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     return monthNames[monthNum - 1] || "";
   };
 
-  // Updated function to get category names based on your actual data
-  const getCategoryName = (categoryCode: string): string => {
-    const categoryMap: Record<string, string> = {
-      'TURNOVER': 'TURNOVER',
-      'INTEREST INCOME': 'INTEREST INCOME',
-      'OVERHEAD RECOVERIES': 'OVERHEAD RECOVERIES',
-      'PROFIT/ LOSS ON DISPOSAL OF PPE': 'PROFIT/LOSS ON DISPOSAL OF PPE',
-      'MICSELANIOUS INCOME': 'MISCELLANEOUS INCOME',
-      'PERSONNEL EXPENSES': 'PERSONNEL EXPENSES',
-      'MATERIAL COST': 'MATERIAL COST',
-      'ACCOMMODATION EXPENSES': 'ACCOMMODATION EXPENSES',
-      'TRANSPORT & COMMUNICATION EXPENSES': 'TRANSPORT & COMMUNICATION EXPENSES',
-      'OTHER EXPENSES': 'OTHER EXPENSES'
-    };
-    return categoryMap[categoryCode] || categoryCode;
-  };
-
   const formatNumber = (num: number | null): string => {
-    if (num === null || num === undefined) return "-";
+    if (num === null || num === 0) return "0.00";
     const absNum = Math.abs(num);
     const formatted = new Intl.NumberFormat('en-US', { 
       minimumFractionDigits: 2, 
@@ -233,31 +221,27 @@ const CostCenterIncomeExpenditure: React.FC = () => {
   // Escape CSV field function
   const escapeCSVField = (field: string | number): string => {
     const stringField = String(field);
-    // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
     if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
       return '"' + stringField.replace(/"/g, '""') + '"';
     }
     return stringField;
   };
 
-  // Improved Download as CSV function
+  // Updated Download as CSV function
   const downloadAsCSV = () => {
     if (!incomeExpData || incomeExpData.length === 0) return;
     
-    // Create headers
+    // Create headers (without Title Code)
     const headers = [
-      "", "", "Account Code", 
-      "Category Name", "Budget", "Actual Cumulative Cost", "Balance Budget (excess/shortfall)"
+      "Ledger Code", "Description", "Actual Cumulative Cost", "Budget", "Balance Budget"
     ];
     
     // Create data rows with proper CSV formatting
     const dataRows = incomeExpData.map(item => [
-      escapeCSVField(""),
-      escapeCSVField(""),
-      escapeCSVField(item.AcCd.trim()),
+      escapeCSVField(item.CatCode.trim()),
       escapeCSVField(item.CatName.trim()),
-      escapeCSVField(formatNumber(item.TotalBudget)),
       escapeCSVField(formatNumber(item.Clbal)),
+      escapeCSVField(formatNumber(item.TotalBudget)),
       escapeCSVField(formatNumber(item.Varience))
     ]);
     
@@ -268,15 +252,15 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     const summaryRows = [];
     
     // Add empty row separator
-    summaryRows.push(["", "", "", "", "", "", ""]);
+    summaryRows.push(["", "", "", "", ""]);
     
     // Income total
     if (incomeData.length > 0) {
       summaryRows.push([
-        "", "", "", 
-        "TOTAL INCOME",
-        escapeCSVField(formatNumber(incomeData.reduce((sum, item) => sum + item.TotalBudget, 0))),
+        "", 
+        "SUB TOTAL OF - INCOME",
         escapeCSVField(formatNumber(incomeData.reduce((sum, item) => sum + item.Clbal, 0))),
+        escapeCSVField(formatNumber(incomeData.reduce((sum, item) => sum + item.TotalBudget, 0))),
         escapeCSVField(formatNumber(incomeData.reduce((sum, item) => sum + item.Varience, 0)))
       ]);
     }
@@ -284,31 +268,13 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     // Expenditure total
     if (expenditureData.length > 0) {
       summaryRows.push([
-        "", "", "", 
-        "TOTAL EXPENDITURES",
-        escapeCSVField(formatNumber(expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0))),
+        "", 
+        "SUB TOTAL OF - EXPENDITURES",
         escapeCSVField(formatNumber(expenditureData.reduce((sum, item) => sum + item.Clbal, 0))),
+        escapeCSVField(formatNumber(expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0))),
         escapeCSVField(formatNumber(expenditureData.reduce((sum, item) => sum + item.Varience, 0)))
       ]);
     }
-    
-    // Net total
-    summaryRows.push([
-      "", "", "", 
-      "NET TOTAL",
-      escapeCSVField(formatNumber(
-        incomeData.reduce((sum, item) => sum + item.TotalBudget, 0) +
-        expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0)
-      )),
-      escapeCSVField(formatNumber(
-        incomeData.reduce((sum, item) => sum + item.Clbal, 0) + 
-        expenditureData.reduce((sum, item) => sum + item.Clbal, 0)
-      )),
-      escapeCSVField(formatNumber(
-        incomeData.reduce((sum, item) => sum + item.Varience, 0) +
-        expenditureData.reduce((sum, item) => sum + item.Varience, 0)
-      ))
-    ]);
     
     // Create CSV content
     const csvContent = [
@@ -329,7 +295,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Print PDF function
+  // Updated Print PDF function
   const printPDF = () => {
     if (!incomeExpData || incomeExpData.length === 0) return;
 
@@ -344,81 +310,34 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     if (incomeData.length > 0) {
       tableRowsHTML += `
         <tr class="category-header">
-          <td colspan="7" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">INCOME</td>
+          <td colspan="5" style="text-align: left; font-weight: bold; background-color: #f5f5f5; color: #000; padding: 8px; border: 1px solid #333;">INCOME</td>
         </tr>
       `;
       
-      // Group income items by category using the CatCode field
-      const groupedIncome = incomeData.reduce((groups, item) => {
-        const category = item.CatCode.trim();
-        if (!groups[category]) {
-          groups[category] = [];
-        }
-        groups[category].push(item);
-        return groups;
-      }, {} as Record<string, typeof incomeData>);
-      
-      Object.entries(groupedIncome).forEach(([category, items]) => {
-        // Category sub-header
+      incomeData.forEach((item) => {
         tableRowsHTML += `
           <tr>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">${getCategoryName(category)}</td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-          </tr>
-        `;
-        
-        // Individual items
-        items.forEach((item) => {
-          tableRowsHTML += `
-            <tr>
-              <td style="padding: 6px; border: 1px solid #ddd;"></td>
-              <td style="padding: 6px; border: 1px solid #ddd;"></td>
-              <td style="padding: 6px; border: 1px solid #ddd; font-family: monospace;">${item.AcCd.trim()}</td>
-              <td style="padding: 6px; border: 1px solid #ddd;">${item.CatName.trim()}</td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(item.TotalBudget)}</td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(item.Clbal)}</td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(item.Varience)}</td>
-            </tr>
-          `;
-        });
-        
-        // Category subtotal
-        tableRowsHTML += `
-          <tr>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">SUB TOTAL OF - ${getCategoryName(category)}</td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
-              ${formatNumber(items.reduce((sum, item) => sum + item.TotalBudget, 0))}
-            </td>
-            <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
-              ${formatNumber(items.reduce((sum, item) => sum + item.Clbal, 0))}
-            </td>
-            <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
-              ${formatNumber(items.reduce((sum, item) => sum + item.Varience, 0))}
-            </td>
+            <td style="padding: 4px 8px; border: 1px solid #333; font-family: monospace; font-size: 11px;">${item.CatCode.trim()}</td>
+            <td style="padding: 4px 8px; border: 1px solid #333; font-size: 11px;">${item.CatName.trim()}</td>
+            <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${formatNumber(item.Clbal)}</td>
+            <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${formatNumber(item.TotalBudget)}</td>
+            <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${formatNumber(item.Varience)}</td>
           </tr>
         `;
       });
       
-      // Income total
-      const incomeTotal = incomeData.reduce((sum, item) => sum + item.Clbal, 0);
+      // Income subtotal
       tableRowsHTML += `
-        <tr class="category-total">
-          <td colspan="4" style="padding: 6px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">TOTAL INCOME</td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
+        <tr style="background-color: #f9f9f9;">
+          <td style="padding: 6px 8px; border: 1px solid #333; font-weight: bold; font-size: 11px;"></td>
+          <td style="padding: 6px 8px; border: 1px solid #333; font-weight: bold; font-size: 11px;">SUB TOTAL OF - INCOME</td>
+          <td style="padding: 6px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-weight: bold; font-size: 11px;">
+            ${formatNumber(incomeData.reduce((sum, item) => sum + item.Clbal, 0))}
+          </td>
+          <td style="padding: 6px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-weight: bold; font-size: 11px;">
             ${formatNumber(incomeData.reduce((sum, item) => sum + item.TotalBudget, 0))}
           </td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
-            ${formatNumber(incomeTotal)}
-          </td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
+          <td style="padding: 6px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-weight: bold; font-size: 11px;">
             ${formatNumber(incomeData.reduce((sum, item) => sum + item.Varience, 0))}
           </td>
         </tr>
@@ -430,190 +349,112 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     if (expenditureData.length > 0) {
       tableRowsHTML += `
         <tr class="category-header">
-          <td colspan="7" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">EXPENDITURES</td>
+          <td colspan="5" style="text-align: left; font-weight: bold; background-color: #f5f5f5; color: #000; padding: 8px; border: 1px solid #333;">EXPENDITURES</td>
         </tr>
       `;
       
-      // Group expenditure items by category using the CatCode field
-      const groupedExpenditure = expenditureData.reduce((groups, item) => {
-        const category = item.CatCode.trim();
-        if (!groups[category]) {
-          groups[category] = [];
-        }
-        groups[category].push(item);
-        return groups;
-      }, {} as Record<string, typeof expenditureData>);
-      
-      Object.entries(groupedExpenditure).forEach(([category, items]) => {
-        // Category sub-header
+      expenditureData.forEach((item) => {
         tableRowsHTML += `
           <tr>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">${getCategoryName(category)}</td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-          </tr>
-        `;
-        
-        // Individual items
-        items.forEach((item) => {
-          tableRowsHTML += `
-            <tr>
-              <td style="padding: 6px; border: 1px solid #ddd;"></td>
-              <td style="padding: 6px; border: 1px solid #ddd;"></td>
-              <td style="padding: 6px; border: 1px solid #ddd; font-family: monospace;">${item.AcCd.trim()}</td>
-              <td style="padding: 6px; border: 1px solid #ddd;">${item.CatName.trim()}</td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(item.TotalBudget)}</td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(item.Clbal)}</td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(item.Varience)}</td>
-            </tr>
-          `;
-        });
-        
-        // Category subtotal
-        tableRowsHTML += `
-          <tr>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">SUB TOTAL OF - ${getCategoryName(category)}</td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd;"></td>
-            <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
-              ${formatNumber(items.reduce((sum, item) => sum + item.TotalBudget, 0))}
-            </td>
-            <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
-              ${formatNumber(items.reduce((sum, item) => sum + item.Clbal, 0))}
-            </td>
-            <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
-              ${formatNumber(items.reduce((sum, item) => sum + item.Varience, 0))}
-            </td>
+            <td style="padding: 4px 8px; border: 1px solid #333; font-family: monospace; font-size: 11px;">${item.CatCode.trim()}</td>
+            <td style="padding: 4px 8px; border: 1px solid #333; font-size: 11px;">${item.CatName.trim()}</td>
+            <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${formatNumber(item.Clbal)}</td>
+            <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${formatNumber(item.TotalBudget)}</td>
+            <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${formatNumber(item.Varience)}</td>
           </tr>
         `;
       });
       
-      // Expenditure total
-      const expenditureTotal = expenditureData.reduce((sum, item) => sum + item.Clbal, 0);
+      // Expenditure subtotal
       tableRowsHTML += `
-        <tr class="category-total">
-          <td colspan="4" style="padding: 6px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">TOTAL EXPENDITURES</td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
+        <tr style="background-color: #f9f9f9;">
+          <td style="padding: 6px 8px; border: 1px solid #333; font-weight: bold; font-size: 11px;"></td>
+          <td style="padding: 6px 8px; border: 1px solid #333; font-weight: bold; font-size: 11px;">SUB TOTAL OF - EXPENDITURES</td>
+          <td style="padding: 6px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-weight: bold; font-size: 11px;">
+            ${formatNumber(expenditureData.reduce((sum, item) => sum + item.Clbal, 0))}
+          </td>
+          <td style="padding: 6px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-weight: bold; font-size: 11px;">
             ${formatNumber(expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0))}
           </td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
-            ${formatNumber(expenditureTotal)}
-          </td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
+          <td style="padding: 6px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-weight: bold; font-size: 11px;">
             ${formatNumber(expenditureData.reduce((sum, item) => sum + item.Varience, 0))}
           </td>
         </tr>
       `;
     }
-    
-    // Net total
-    const netTotal = (incomeData.reduce((sum, item) => sum + item.Clbal, 0) + 
-                    expenditureData.reduce((sum, item) => sum + item.Clbal, 0));
-    tableRowsHTML += `
-      <tr style="background-color: #7A0000; color: white; font-weight: bold;">
-        <td colspan="4" style="padding: 8px; border: 1px solid #7A0000;">NET TOTAL</td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">
-          ${formatNumber(
-            incomeData.reduce((sum, item) => sum + item.TotalBudget, 0) +
-            expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0)
-          )}
-        </td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">
-          ${formatNumber(netTotal)}
-        </td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">
-          ${formatNumber(
-            incomeData.reduce((sum, item) => sum + item.Varience, 0) +
-            expenditureData.reduce((sum, item) => sum + item.Varience, 0)
-          )}
-        </td>
-      </tr>
-    `;
 
     // Create the HTML content for printing
     const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Income & Expenditure - ${getMonthName(selectedMonth)} ${selectedYear}</title>
+        <title>Income & Expenditure Statement - ${getMonthName(selectedMonth)} ${selectedYear}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            font-size: 12px;
-            color: #333;
+            margin: 15px;
+            font-size: 11px;
+            color: #000;
+            line-height: 1.2;
           }
           
           .header {
             text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #7A0000;
-            padding-bottom: 15px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
           }
           
           .header h1 {
-            color: #7A0000;
-            font-size: 18px;
+            font-size: 14px;
             margin: 0;
             font-weight: bold;
+            text-transform: uppercase;
           }
           
           .header h2 {
-            color: #7A0000;
-            font-size: 14px;
-            margin: 5px 0;
+            font-size: 12px;
+            margin: 3px 0;
+            font-weight: normal;
+            text-transform: uppercase;
           }
           
           .header-info {
-            margin-top: 10px;
-            font-size: 12px;
-            color: #666;
+            margin-top: 8px;
+            font-size: 10px;
+            text-align: left;
           }
           
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            font-size: 11px;
           }
           
           th {
-            background-color: #7A0000;
-            color: white;
+            background-color: #fff;
+            color: #000;
             font-weight: bold;
             text-align: center;
-            padding: 8px;
-            border: 1px solid #7A0000;
+            padding: 6px 8px;
+            border: 1px solid #333;
+            font-size: 11px;
           }
           
-          td {
-            padding: 6px;
-            border: 1px solid #ddd;
-          }
-          
-          .category-header td {
-            text-align: center;
-            font-weight: bold;
-            background-color: #f5f5f5;
-            color: #7A0000;
-          }
-          
-          .category-total td {
-            background-color: #f9f9f9;
-            font-weight: bold;
+          .currency-info {
+            text-align: left;
+            margin-bottom: 10px;
+            font-size: 10px;
           }
           
           .footer {
-            margin-top: 30px;
+            margin-top: 20px;
             text-align: center;
-            font-size: 10px;
+            font-size: 9px;
             color: #666;
-            border-top: 1px solid #ddd;
-            padding-top: 15px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
           }
           
           @media print {
@@ -626,26 +467,22 @@ const CostCenterIncomeExpenditure: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>COST CENTER INCOME & EXPENDITURE - ${getMonthName(selectedMonth).toUpperCase()} ${selectedYear}</h1>
-          <h2>Department: ${selectedDepartment?.DeptId} - ${selectedDepartment?.DeptName}</h2>
-          <div class="header-info">
-            Generated on: ${new Date().toLocaleDateString()} | Total Records: ${incomeExpData.length}
-          </div>
+          <h1>CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - COST CENTRE: ${selectedDepartment?.DeptId} / ${selectedDepartment?.DeptName}</h1>
+          <h2>INCOME & EXPENDITURE STATEMENT - Period Ended ${getMonthName(selectedMonth)} / ${selectedYear}</h2>
+        </div>
+        
+        <div class="currency-info">
+          <strong>Currency: LKR</strong>
         </div>
         
         <table>
           <thead>
             <tr>
-              <th style="width: 8%;"></th>
-              <th style="width: 12%;"></th>
-              <th style="width: 12%;">Ledger Code</th>
-              <th style="width: 30%;">Description</th>
-              <th style="width: 12%;">Budget</th>
-              <th style="width: 13%;">Actual Cumulative Cost</th>
-              <th style="width: 13%;">
-                Balance Budget<br/>
-                <span style="font-size: 10px; font-weight: normal;">(excess/shortfall)</span>
-              </th>
+              <th style="width: 15%; text-align: left;">LEDGER CODE</th>
+              <th style="width: 45%; text-align: left;">DESCRIPTION</th>
+              <th style="width: 15%; text-align: center;">Actual Cumulative Cost<br/>(including current month)</th>
+              <th style="width: 12.5%; text-align: center;">BUDGET</th>
+              <th style="width: 12.5%; text-align: center;">Balance Budget<br/>(excess/shortfall)</th>
             </tr>
           </thead>
           <tbody>
@@ -654,7 +491,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
         </table>
         
         <div class="footer">
-          <p>Generated on: ${new Date().toLocaleDateString()} | CEB@2025</p>
+          <p>Generated on: ${new Date().toLocaleDateString()} | CEB Financial System</p>
         </div>
       </body>
       </html>
@@ -671,7 +508,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     };
   };
 
-  // Income & Expenditure Modal Component
+  // Updated Income & Expenditure Modal Component
   const IncomeExpenditureModal = () => {
     if (!incomeExpModalOpen || !selectedDepartment) return null;
     
@@ -682,7 +519,6 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     // Calculate totals
     const incomeTotal = incomeData.reduce((sum, item) => sum + item.Clbal, 0);
     const expenditureTotal = expenditureData.reduce((sum, item) => sum + item.Clbal, 0);
-    const netTotal = incomeTotal + expenditureTotal;
 
     return (
       <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
@@ -691,11 +527,15 @@ const CostCenterIncomeExpenditure: React.FC = () => {
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h2 className="text-base font-bold text-gray-800">
-                  COST CENTER INCOME & EXPENDITURE - {getMonthName(selectedMonth).toUpperCase()} {selectedYear}
+                  CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT
                 </h2>
-                <h3 className={`text-sm ${maroon}`}>
-                  Department: {selectedDepartment.DeptId} - {selectedDepartment.DeptName}
+                <h3 className="text-sm font-semibold text-gray-700">
+                  COST CENTRE: {selectedDepartment.DeptId} / {selectedDepartment.DeptName}
                 </h3>
+                <h4 className={`text-sm ${maroon} font-medium`}>
+                  INCOME & EXPENDITURE STATEMENT - Period Ended {getMonthName(selectedMonth).toUpperCase()} / {selectedYear}
+                </h4>
+                <p className="text-xs text-gray-600 mt-2">Currency: LKR</p>
               </div>
               <div className="flex gap-2">
                 <button
@@ -741,107 +581,44 @@ const CostCenterIncomeExpenditure: React.FC = () => {
               </div>
             ) : (
               <div className="w-full overflow-x-auto text-xs">
-                <table className="w-full border-collapse">
+                <table className="w-full border-collapse border border-gray-800">
                   <thead>
-                    <tr className={`${maroonBg} text-white`}>
-                      <th className="px-2 py-1 text-center"></th>
-                      <th className="px-2 py-1 text-left"></th>
-                      <th className="px-2 py-1 text-left">Ledger Code</th>
-                      <th className="px-2 py-1 text-left">Description</th>
-                      <th className="px-2 py-1 text-right">Budget</th>
-                      <th className="px-2 py-1 text-right">Actual Cumulative Cost</th>
-                      <th className="px-2 py-1 text-right">
-                        Balance Budget
-                        <div className="text-xs font-normal">(excess/shortfall)</div>
-                      </th>
+                    <tr className="bg-white border-b border-gray-800">
+                      <th className="px-3 py-2 text-left border-r border-gray-800 font-bold">LEDGER<br/>CODE</th>
+                      <th className="px-3 py-2 text-left border-r border-gray-800 font-bold">DESCRIPTION</th>
+                      <th className="px-3 py-2 text-center border-r border-gray-800 font-bold">Actual Cumulative Cost<br/>(including current month)</th>
+                      <th className="px-3 py-2 text-center border-r border-gray-800 font-bold">BUDGET</th>
+                      <th className="px-3 py-2 text-center font-bold">Balance Budget<br/>(excess/shortfall)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {/* Income Section */}
                     {incomeData.length > 0 && (
                       <>
-                        <tr className="category-header">
-                          <td colSpan={2} className="text-left font-bold bg-gray-100 text-[#7A0000] px-2 py-1">
+                        <tr>
+                          <td colSpan={5} className="px-3 py-2 font-bold bg-gray-100 border-b border-gray-800">
                             INCOME
                           </td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1"></td>
                         </tr>
-                        
-                        {/* Group income items by category using CatCode */}
-                        {(() => {
-                          const groupedIncome = incomeData.reduce((groups, item) => {
-                            const category = item.CatCode.trim();
-                            if (!groups[category]) {
-                              groups[category] = [];
-                            }
-                            groups[category].push(item);
-                            return groups;
-                          }, {} as Record<string, typeof incomeData>);
-                          
-                          return Object.entries(groupedIncome).map(([category, items]) => (
-                            <React.Fragment key={`income-category-${category}`}>
-                              {/* Category sub-header */}
-                              <tr className="sub-category-header">
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1 font-bold bg-gray-50">{getCategoryName(category)}</td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1"></td>
-                              </tr>
-                              
-                              {/* Individual items */}
-                              {items.map((item, index) => (
-                                <tr key={`income-${category}-${index}`} className="border-b hover:bg-gray-50">
-                                  <td className="px-2 py-1"></td>
-                                  <td className="px-2 py-1"></td>
-                                  <td className="px-2 py-1 font-mono">{item.AcCd.trim()}</td>
-                                  <td className="px-2 py-1">{item.CatName.trim()}</td>
-                                  <td className="px-2 py-1 text-right font-mono">{formatNumber(item.TotalBudget)}</td>
-                                  <td className="px-2 py-1 text-right font-mono">{formatNumber(item.Clbal)}</td>
-                                  <td className="px-2 py-1 text-right font-mono">{formatNumber(item.Varience)}</td>
-                                </tr>
-                              ))}
-                              
-                              {/* Category subtotal */}
-                              <tr className="sub-category-total">
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1 font-bold bg-gray-50">
-                                  SUB TOTAL OF - {getCategoryName(category)}
-                                </td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1 text-right font-mono bg-gray-50 font-bold">
-                                  {formatNumber(items.reduce((sum, item) => sum + item.TotalBudget, 0))}
-                                </td>
-                                <td className="px-2 py-1 text-right font-mono bg-gray-50 font-bold">
-                                  {formatNumber(items.reduce((sum, item) => sum + item.Clbal, 0))}
-                                </td>
-                                <td className="px-2 py-1 text-right font-mono bg-gray-50 font-bold">
-                                  {formatNumber(items.reduce((sum, item) => sum + item.Varience, 0))}
-                                </td>
-                              </tr>
-                            </React.Fragment>
-                          ));
-                        })()}
-                        
-                        {/* Total Income */}
-                        <tr className="category-total">
-                          <td colSpan={2} className="px-2 py-1 font-bold bg-gray-100">TOTAL INCOME</td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1 text-right font-mono bg-gray-100 font-bold">
-                            {formatNumber(incomeData.reduce((sum, item) => sum + item.TotalBudget, 0))}
-                          </td>
-                          <td className="px-2 py-1 text-right font-mono bg-gray-100 font-bold">
+                        {incomeData.map((item, index) => (
+                          <tr key={`income-${index}`} className="border-b border-gray-300">
+                            <td className="px-3 py-1 font-mono border-r border-gray-300">{item.CatCode.trim()}</td>
+                            <td className="px-3 py-1 border-r border-gray-300">{item.CatName.trim()}</td>
+                            <td className="px-3 py-1 text-right font-mono border-r border-gray-300">{formatNumber(item.Clbal)}</td>
+                            <td className="px-3 py-1 text-right font-mono border-r border-gray-300">{formatNumber(item.TotalBudget)}</td>
+                            <td className="px-3 py-1 text-right font-mono">{formatNumber(item.Varience)}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-100 border-b border-gray-800">
+                          <td className="px-3 py-2 font-bold border-r border-gray-300"></td>
+                          <td className="px-3 py-2 font-bold border-r border-gray-300">SUB TOTAL OF - INCOME</td>
+                          <td className="px-3 py-2 text-right font-mono font-bold border-r border-gray-300">
                             {formatNumber(incomeTotal)}
                           </td>
-                          <td className="px-2 py-1 text-right font-mono bg-gray-100 font-bold">
+                          <td className="px-3 py-2 text-right font-mono font-bold border-r border-gray-300">
+                            {formatNumber(incomeData.reduce((sum, item) => sum + item.TotalBudget, 0))}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono font-bold">
                             {formatNumber(incomeData.reduce((sum, item) => sum + item.Varience, 0))}
                           </td>
                         </tr>
@@ -851,115 +628,35 @@ const CostCenterIncomeExpenditure: React.FC = () => {
                     {/* Expenditure Section */}
                     {expenditureData.length > 0 && (
                       <>
-                        <tr className="category-header">
-                          <td colSpan={2} className="text-left font-bold bg-gray-100 text-[#7A0000] px-2 py-1">
+                        <tr>
+                          <td colSpan={5} className="px-3 py-2 font-bold bg-gray-100 border-b border-gray-800">
                             EXPENDITURES
                           </td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1"></td>
                         </tr>
-                        
-                        {/* Group expenditure items by category using CatCode */}
-                        {(() => {
-                          const groupedExpenditure = expenditureData.reduce((groups, item) => {
-                            const category = item.CatCode.trim();
-                            if (!groups[category]) {
-                              groups[category] = [];
-                            }
-                            groups[category].push(item);
-                            return groups;
-                          }, {} as Record<string, typeof expenditureData>);
-                          
-                          return Object.entries(groupedExpenditure).map(([category, items]) => (
-                            <React.Fragment key={`exp-category-${category}`}>
-                              {/* Category sub-header */}
-                              <tr className="sub-category-header">
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1 font-bold bg-gray-50">{getCategoryName(category)}</td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1"></td>
-                              </tr>
-                              
-                              {/* Individual items */}
-                              {items.map((item, index) => (
-                                <tr key={`exp-${category}-${index}`} className="border-b hover:bg-gray-50">
-                                  <td className="px-2 py-1"></td>
-                                  <td className="px-2 py-1"></td>
-                                  <td className="px-2 py-1 font-mono">{item.AcCd.trim()}</td>
-                                  <td className="px-2 py-1">{item.CatName.trim()}</td>
-                                  <td className="px-2 py-1 text-right font-mono">{formatNumber(item.TotalBudget)}</td>
-                                  <td className="px-2 py-1 text-right font-mono">{formatNumber(item.Clbal)}</td>
-                                  <td className="px-2 py-1 text-right font-mono">{formatNumber(item.Varience)}</td>
-                                </tr>
-                              ))}
-                              
-                              {/* Category subtotal */}
-                              <tr className="sub-category-total">
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1 font-bold bg-gray-50">
-                                  SUB TOTAL OF - {getCategoryName(category)}
-                                </td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1"></td>
-                                <td className="px-2 py-1 text-right font-mono bg-gray-50 font-bold">
-                                  {formatNumber(items.reduce((sum, item) => sum + item.TotalBudget, 0))}
-                                </td>
-                                <td className="px-2 py-1 text-right font-mono bg-gray-50 font-bold">
-                                  {formatNumber(items.reduce((sum, item) => sum + item.Clbal, 0))}
-                                </td>
-                                <td className="px-2 py-1 text-right font-mono bg-gray-50 font-bold">
-                                  {formatNumber(items.reduce((sum, item) => sum + item.Varience, 0))}
-                                </td>
-                              </tr>
-                            </React.Fragment>
-                          ));
-                        })()}
-                        
-                        {/* Total Expenditures */}
-                        <tr className="category-total">
-                          <td colSpan={2} className="px-2 py-1 font-bold bg-gray-100">TOTAL EXPENDITURES</td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1"></td>
-                          <td className="px-2 py-1 text-right font-mono bg-gray-100 font-bold">
-                            {formatNumber(expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0))}
-                          </td>
-                          <td className="px-2 py-1 text-right font-mono bg-gray-100 font-bold">
+                        {expenditureData.map((item, index) => (
+                          <tr key={`exp-${index}`} className="border-b border-gray-300">
+                            <td className="px-3 py-1 font-mono border-r border-gray-300">{item.CatCode.trim()}</td>
+                            <td className="px-3 py-1 border-r border-gray-300">{item.CatName.trim()}</td>
+                            <td className="px-3 py-1 text-right font-mono border-r border-gray-300">{formatNumber(item.Clbal)}</td>
+                            <td className="px-3 py-1 text-right font-mono border-r border-gray-300">{formatNumber(item.TotalBudget)}</td>
+                            <td className="px-3 py-1 text-right font-mono">{formatNumber(item.Varience)}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-100 border-b border-gray-800">
+                          <td className="px-3 py-2 font-bold border-r border-gray-300"></td>
+                          <td className="px-3 py-2 font-bold border-r border-gray-300">SUB TOTAL OF - EXPENDITURES</td>
+                          <td className="px-3 py-2 text-right font-mono font-bold border-r border-gray-300">
                             {formatNumber(expenditureTotal)}
                           </td>
-                          <td className="px-2 py-1 text-right font-mono bg-gray-100 font-bold">
+                          <td className="px-3 py-2 text-right font-mono font-bold border-r border-gray-300">
+                            {formatNumber(expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0))}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono font-bold">
                             {formatNumber(expenditureData.reduce((sum, item) => sum + item.Varience, 0))}
                           </td>
                         </tr>
                       </>
                     )}
-                   
-                    {/* Net Total */}
-                    <tr className="border-t-2 border-gray-800 bg-[#7A0000] text-white font-bold">
-                      <td colSpan={2} className="px-2 py-1">NET TOTAL</td>
-                      <td className="px-2 py-1"></td>
-                      <td className="px-2 py-1"></td>
-                      <td className="px-2 py-1 text-right font-mono">
-                        {formatNumber(
-                          incomeData.reduce((sum, item) => sum + item.TotalBudget, 0) +
-                          expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0)
-                        )}
-                      </td>
-                      <td className="px-2 py-1 text-right font-mono">
-                        {formatNumber(netTotal)}
-                      </td>
-                      <td className="px-2 py-1 text-right font-mono">
-                        {formatNumber(
-                          incomeData.reduce((sum, item) => sum + item.Varience, 0) +
-                          expenditureData.reduce((sum, item) => sum + item.Varience, 0)
-                        )}
-                      </td>
-                    </tr>
                   </tbody>
                 </table>
               </div>

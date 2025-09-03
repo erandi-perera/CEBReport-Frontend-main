@@ -138,8 +138,10 @@ export const data = [
     name: "Inventory",
     icon: FaBoxes,
     subtopics: [{ id: 59, name: "All Material Details" },
-                { id: 100, name: "Average Consumptions" }
+                  { id: 101, name: "Cost Center wise Quantity on Hand" },
 
+                { id: 100, name: "Average Consumptions" }
+              
     ],
     path: "/report/inventory",
   },
@@ -169,6 +171,22 @@ export const data = [
 
     path: "/report/IncomeExpenditure",
   },
+
+
+
+  {
+    id: 11,
+    name: "Work In Progress",
+    icon: FaBalanceScale,
+    subtopics: [{ id: 108, name: "Cost Center Wise Work in Progress" },
+            
+              ],
+              
+
+    path: "/report/WorkInProgress",
+  },
+
+
 
   
 ];
