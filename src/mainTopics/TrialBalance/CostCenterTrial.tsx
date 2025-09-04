@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import CostCenterTable from "../../components/mainTopics/CostCenterTrial/CostCenterTable";
 import DepartmentModal from "../../components/mainTopics/CostCenterTrial/DepartmentModal";
 import TrialBalanceModal from "../../components/mainTopics/CostCenterTrial/TrialBalanceModal";
+import { useUser } from "../../contexts/UserContext";
 
 interface CostCenter {
   compId: string;
@@ -25,6 +26,9 @@ interface TrialBalanceData {
 }
 
 const CostCenterTrial: React.FC = () => {
+  // Get user from context
+  const { user } = useUser();
+  
   // Main state
   const [data, setData] = useState<CostCenter[]>([]);
   const [searchId, setSearchId] = useState("");
@@ -56,6 +60,22 @@ const CostCenterTrial: React.FC = () => {
   const [trialLoading, setTrialLoading] = useState(false);
   const [trialError, setTrialError] = useState<string | null>(null);
 
+  // Get EPF Number from user context (Userno field)
+  const epfNo = user?.Userno || "";
+  
+  // Debug log to see what EPF number is being used
+  useEffect(() => {
+    console.log('Current user:', user);
+    console.log('EPF Number being used:', epfNo);
+    
+    // Test formatNumber function with various values
+    console.log('Testing formatNumber:');
+    console.log('formatNumber(-5000):', formatNumber(-5000));
+    console.log('formatNumber(-2500.75):', formatNumber(-2500.75));
+    console.log('formatNumber(1500.50):', formatNumber(1500.50));
+    console.log('formatNumber(0):', formatNumber(0));
+  }, [user, epfNo]);
+
   // Colors
   const maroon = "text-[#7A0000]";
   const maroonBg = "bg-[#7A0000]";
@@ -64,9 +84,18 @@ const CostCenterTrial: React.FC = () => {
   // Fetch cost centers
   useEffect(() => {
     const fetchData = async () => {
+      // Don't fetch if no EPF number
+      if (!epfNo) {
+        setError("No EPF number available. Please login again.");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        const res = await fetch("/misapi/api/trialbalance/companies/level/70");
+        const res = await fetch(`/misapi/api/incomeexpenditure/Usercompanies/${epfNo}/70`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
         const txt = await res.text();
         const parsed = JSON.parse(txt);
         const rawData = Array.isArray(parsed) ? parsed : parsed.data || [];
@@ -84,7 +113,7 @@ const CostCenterTrial: React.FC = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [epfNo]);
 
   // Filter cost centers
   useEffect(() => {
@@ -196,9 +225,24 @@ const CostCenterTrial: React.FC = () => {
   };
 
   const formatNumber = (num: number): string => {
-    if (isNaN(num)) return "0.00";
-    const formatted = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(num));
-    return num < 0 ? `(${formatted})` : formatted;
+    // Handle undefined, null, or NaN values
+    if (num === undefined || num === null || isNaN(num)) return "0.00";
+    
+    // Convert to number if it's a string
+    const numValue = typeof num === 'string' ? parseFloat(num) : num;
+    
+    // Handle zero values
+    if (numValue === 0) return "0.00";
+    
+    // Get absolute value for formatting
+    const absValue = Math.abs(numValue);
+    const formatted = new Intl.NumberFormat('en-US', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(absValue);
+    
+    // Return negative values in parentheses, positive as normal
+    return numValue < 0 ? `(${formatted})` : formatted;
   };
 
   const getCategory = (acCd: string): string => {
@@ -236,26 +280,111 @@ const CostCenterTrial: React.FC = () => {
     return { categoryTotals, grandTotals };
   };
 
+  // Improved CSV export function
   const downloadAsCSV = () => {
     if (!trialBalanceData || trialBalanceData.length === 0) return;
+
+    // Calculate totals for categories
+    const { categoryTotals, grandTotals } = calculateTotals();
+
+    // Sort data by category (A, E, L, R) to match PDF structure
+    const sortedData = [...trialBalanceData].sort((a, b) => {
+      const categoryOrder: { [key: string]: number } = { 'A': 1, 'E': 2, 'L': 3, 'R': 4 };
+      const aCat = a.AcCd.charAt(0).toUpperCase();
+      const bCat = b.AcCd.charAt(0).toUpperCase();
+      return (categoryOrder[aCat] || 5) - (categoryOrder[bCat] || 5);
+    });
+
+    // Start with header information
     const csvRows = [
-      ["Account", "Description", "Opening", "Debit", "Credit", "Closing", "Category"],
-      ...trialBalanceData.map((row) => [
-        row.AcCd,
-        row.GlName.trim(),
-        row.OpSbal?.toString() ?? "0.00",
-        row.DrSamt?.toString() ?? "0.00",
-        row.CrSamt?.toString() ?? "0.00",
-        row.ClSbal?.toString() ?? "0.00",
-        getCategory(row.AcCd)
-      ]),
+      [`MONTHLY TRIAL BALANCE - ${trialData.month.toUpperCase()}/${trialData.year}`],
+      [`Cost Center: ${trialData.costctr} - ${trialData.deptName}`],
+      [`Generated on: ${new Date().toLocaleDateString()}`],
+      [`Total Records: ${trialBalanceData.length}`],
+      [''], // Empty row for spacing
+      ['Description/Name', 'Opening Balance', 'Debit Amount', 'Credit Amount', 'Closing Balance'] // Column headers
     ];
-    const csvContent = csvRows.map((e) => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
+
+    // Process data with category grouping
+    let currentCategory = '';
+    
+    sortedData.forEach((row, index) => {
+      const rowCategory = getCategory(row.AcCd);
+      const categoryKey = row.AcCd.charAt(0).toUpperCase();
+      
+      // Add category header if category changes
+      if (rowCategory !== currentCategory) {
+        currentCategory = rowCategory;
+        csvRows.push([''], [`=== ${rowCategory.toUpperCase()} ===`]); // Category separator
+      }
+      
+      // Add data row
+      csvRows.push([
+        row.GlName.trim(),
+        formatNumber(row.OpSbal),
+        formatNumber(row.DrSamt),
+        formatNumber(row.CrSamt),
+        formatNumber(row.ClSbal)
+      ]);
+      
+      // Check if this is the last row of current category
+      const nextIndex = index + 1;
+      const isLastInCategory = nextIndex >= sortedData.length || 
+                              getCategory(sortedData[nextIndex].AcCd) !== currentCategory;
+      
+      // Add category total if this is the last row of the category
+      if (isLastInCategory && categoryTotals[categoryKey]) {
+        csvRows.push([
+          `TOTAL ${rowCategory.toUpperCase()}`,
+          formatNumber(categoryTotals[categoryKey].opening),
+          formatNumber(categoryTotals[categoryKey].debit),
+          formatNumber(categoryTotals[categoryKey].credit),
+          formatNumber(categoryTotals[categoryKey].closing)
+        ]);
+        csvRows.push(['']); // Empty row after category total
+      }
+    });
+
+    // Add grand total
+    csvRows.push(
+      [''], // Extra spacing before grand total
+      ['=== GRAND TOTAL ==='],
+      [
+        'GRAND TOTAL',
+        formatNumber(grandTotals.opening),
+        formatNumber(grandTotals.debit),
+        formatNumber(grandTotals.credit),
+        formatNumber(grandTotals.closing)
+      ]
+    );
+
+    // Add footer information
+    csvRows.push(
+      [''],
+      [`Report generated on: ${new Date().toLocaleDateString()} | CEB@2025`]
+    );
+
+    // Convert to CSV format with proper escaping
+    const csvContent = csvRows.map(row => {
+      // Handle rows with different lengths and escape commas in content
+      return row.map(cell => {
+        const cellStr = String(cell || '');
+        // If cell contains comma, quote, or newline, wrap in quotes and escape internal quotes
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return `"${cellStr.replace(/"/g, '""')}"`;
+        }
+        return cellStr;
+      }).join(',');
+    }).join('\n');
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
     link.download = `TrialBalance_${trialData.costctr}_${trialData.month}_${trialData.year}.csv`;
+    link.style.display = 'none';
+    
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -460,6 +589,8 @@ const CostCenterTrial: React.FC = () => {
         searchName={searchName}
         setSearchName={setSearchName}
         clearFilters={clearFilters}
+        epfNo={epfNo}
+        user={user}
       />
       <DepartmentModal
         modalOpen={modalOpen}

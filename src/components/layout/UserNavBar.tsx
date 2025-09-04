@@ -41,7 +41,7 @@ const UserNavBar = () => {
 
   return (
     <div
-      className="w-full h-12 flex items-center justify-end bg-[#800000] px-4 sm:px-6 gap-2 sm:gap-3 relative"
+      className="w-full h-16 flex items-center justify-end bg-[#800000] px-4 sm:px-6 gap-2 sm:gap-3 relative"
       ref={dropdownRef}
     >
       <FaUser className="w-5 h-5 sm:w-6 sm:h-6 text-white" />

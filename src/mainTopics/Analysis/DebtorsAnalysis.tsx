@@ -8,6 +8,7 @@ interface Area {
   ErrorMessage?: string | null;
 }
 
+
 interface BillCycleOption {
   display: string;
   code: string;
@@ -27,6 +28,7 @@ interface DebtorSummary {
   Month04Percent?: number;
   ErrorMessage: string | null;
 }
+
 
 const DebtorsAnalysis: React.FC = () => {
   // Colors
@@ -181,6 +183,7 @@ const DebtorsAnalysis: React.FC = () => {
     const labels = { P: "Province Code", D: "Region Code", A: "Area Code" };
     return labels[formData.option as keyof typeof labels] || "Area Code";
   };
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

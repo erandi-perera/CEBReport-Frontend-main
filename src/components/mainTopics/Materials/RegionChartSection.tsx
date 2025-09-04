@@ -33,6 +33,9 @@ const RegionChartSection: React.FC<RegionChartSectionProps> = ({
   renderCustomTooltip
 }) => {
   const allMaterialsZero = materials.length > 0 && materials.every((m) => m.QtyOnHand === 0);
+  
+  // Calculate total quantity for all regions
+  const totalQuantity = materials.reduce((sum, material) => sum + material.QtyOnHand, 0);
 
   return (
     <div className="w-full md:w-1/2 flex flex-col md:flex-row gap-4">
@@ -51,15 +54,29 @@ const RegionChartSection: React.FC<RegionChartSectionProps> = ({
             <option value="pie">Pie</option>
           </select>
         </div>
+        
+        {/* Total Display */}
+        <div className="mb-2 text-center">
+          <div className="inline-block bg-blue-50 border border-blue-200 rounded-lg px-3 py-1">
+            <span className="text-xs text-blue-600 font-medium">Total Quantity: </span>
+            <span className="text-xs font-bold text-blue-800">
+              {totalQuantity.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
+          </div>
+        </div>
+
         <div className="flex-1 flex flex-col justify-center items-center">
           {allMaterialsZero ? (
             <div className="flex items-center justify-center h-full text-red-500 font-semibold text-base">
               There is no material in stock for this material (Divition Wise).
             </div>
           ) : materials.length > 0 ? (
-            <div className="w-full h-[320px] flex items-center justify-center">
+            <div className="w-full h-[280px] flex items-center justify-center">
               {chartType === "donut" && (
-                <div className="w-full h-full flex items-center justify-center bg-white/70 rounded-lg shadow-inner">
+                <div className="w-full h-full flex items-center justify-center bg-white/70 rounded-lg shadow-inner relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -86,6 +103,18 @@ const RegionChartSection: React.FC<RegionChartSectionProps> = ({
                       <Tooltip content={renderCustomTooltip} />
                     </PieChart>
                   </ResponsiveContainer>
+                  {/* Center total display for donut chart */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center">
+                      <div className="text-xs text-gray-500 font-medium">Total</div>
+                      <div className="text-sm font-bold text-gray-700">
+                        {totalQuantity.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               {chartType === "bar" && (
@@ -192,7 +221,10 @@ const RegionChartSection: React.FC<RegionChartSectionProps> = ({
                   )}
                 </div>
                 <div className="text-[11px] text-gray-500">
-                  Quantity: {region.QtyOnHand.toLocaleString()}
+                  Quantity: {region.QtyOnHand.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </div>
               </div>
             </div>
@@ -203,4 +235,4 @@ const RegionChartSection: React.FC<RegionChartSectionProps> = ({
   );
 };
 
-export default RegionChartSection; 
+export default RegionChartSection;

@@ -6,8 +6,8 @@ type DetailProps = {
 
 const Detail: React.FC<DetailProps> = ({ label, value, className }) => (
   <div className={`flex flex-col px-5 py-2 ${className}`}>
-    <span className="text-gray-600 font-medium">{label}</span>
-    <span className="text-gray-800 bg-gray-100 py-3 px-6">
+    <span className="text-gray-600 text-sm">{label}</span>
+    <span className="text-[#7A0000] bg-[#FDF2F2] py-3 px-6 text-sm font-semibold rounded">
       {value || "N/A"}
     </span>
   </div>

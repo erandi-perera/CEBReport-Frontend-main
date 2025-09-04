@@ -21,6 +21,7 @@ const LoginPage = () => {
           <LoginCard />
         </div>
       </section>
+      
     </main>
   );
 };

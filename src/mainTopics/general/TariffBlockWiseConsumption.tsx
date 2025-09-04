@@ -1,68 +1,91 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from "react";
 
-interface TariffData {
-  tariff: string;
-  noAccts: string;
-  kwoUnits?: string;
-  kwdUnits?: string;
-  kwpUnits?: string;
-  kwhUnits: string;
-  kvaUnits?: string;
-  kwoCharge?: number;
-  kwdCharge?: number;
-  kwpCharge?: number;
-  kwhCharge: number;
-  kvaCharge?: number;
-  fixedCharge: number;
-  taxCharge: number;
-  facCharge?: number;
-  payments?: number;
-  fuelCharge?: number;
-  Charge?: number;
-}
-
+// Interfaces
 interface BillCycleOption {
   display: string;
   code: string;
+  isSynthetic?: boolean; // Flag to identify frontend-generated cycles
 }
 
-const TariffBlockWiseConsumption = () => {
-  // Colors
+
+
+
+const TariffBlockWiseConsumption: React.FC = () => {
+  // Colors and styling
   const maroon = "text-[#7A0000]";
   const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
-  
-  // State
-  const [loading, setLoading] = useState(false);
-  const [billCycleLoading, setBillCycleLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState({
-    ordinary: [] as TariffData[],
-    bulk: [] as TariffData[]
-  });
-  const [billCycleOptions, setBillCycleOptions] = useState<BillCycleOption[]>([]);
-  const [formData, setFormData] = useState({
-    tariffType: "ordinary", // 'ordinary' or 'bulk'
-    billCycle: "" // Will be set after fetching bill cycles
-  });
-  const navigate = useNavigate();
 
-  // Helper function - SAME AS FIRST COMPONENT
+  // Hooks
+  const printRef = useRef<HTMLDivElement>(null);
+  const reportContainerRef = useRef<HTMLDivElement>(null);
+
+  // State
+  const [billCycleOptions, setBillCycleOptions] = useState<BillCycleOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reportData, setReportData] = useState<any[]>([]);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [showReport, setShowReport] = useState(false);
+
+  // Report type options
+  const reportTypeOptions = [
+    { value: "ordinary", label: "Ordinary", api: "/CEBINFO_API_2025/api/tariffBlockwiseOrdinaryData" },
+    { value: "bulk", label: "Bulk", api: "/CEBINFO_API_2025/api/tariffBlockwiseBulkData" },
+    { value: "ordinary-block", label: "Ordinary Tariff Block Wise Analysis", api: "/CEBINFO_API_2025/api/tariffBlockWiseData" }
+  ];
+
+  const [formData, setFormData] = useState({
+    reportType: "ordinary",
+    billCycle: ""
+  });
+
+  // Generate 60 months of bill cycles (24 from API + 36 synthetic)
   const generateBillCycleOptions = (billCycles: string[], maxCycle: string): BillCycleOption[] => {
     const maxCycleNum = parseInt(maxCycle);
-    return billCycles.map((cycle, index) => ({
+    const apiCycles = billCycles.map((cycle, index) => ({
       display: cycle,
-      code: (maxCycleNum - index).toString()
+      code: (maxCycleNum - index).toString(),
+      isSynthetic: false
     }));
+    
+    // Generate additional synthetic cycles if needed
+    const totalCyclesNeeded = 60;
+    const cyclesToGenerate = Math.max(0, totalCyclesNeeded - apiCycles.length);
+    const syntheticCycles: BillCycleOption[] = [];
+    
+    if (cyclesToGenerate > 0) {
+      const lastApiCycleNum = apiCycles.length > 0 ? parseInt(apiCycles[apiCycles.length - 1].code) : maxCycleNum;
+      
+      for (let i = 1; i <= cyclesToGenerate; i++) {
+        const cycleNum = lastApiCycleNum - i;
+        const date = new Date();
+        date.setMonth(date.getMonth() - (apiCycles.length + i - 1));
+        
+        const monthName = date.toLocaleString('default', { month: 'short' });
+        const year = date.getFullYear().toString().slice(-2);
+        const display = `${monthName}-${year}`;
+        
+        syntheticCycles.push({
+          display,
+          code: cycleNum.toString(),
+          isSynthetic: true
+        });
+      }
+    }
+    
+    return [...apiCycles, ...syntheticCycles];
   };
 
-  // Fetch with error handling - SAME AS FIRST COMPONENT
-  const fetchWithErrorHandling = async (url: string) => {
+  const fetchWithErrorHandling = async (url: string, options: RequestInit = {}) => {
     try {
       const response = await fetch(url, {
         headers: {
-          'Accept': 'application/json'
-        }
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...options.headers
+        },
+        ...options
       });
 
       if (!response.ok) {
@@ -90,464 +113,348 @@ const TariffBlockWiseConsumption = () => {
     }
   };
 
-  // Fetch bill cycles on component mount - SAME LOGIC AS FIRST COMPONENT
+  // Effects
   useEffect(() => {
     const fetchBillCycles = async () => {
-      setBillCycleLoading(true);
+      setLoading(true);
       setError(null);
       try {
-        // Fetch bill cycles using the same logic as first component
-        const maxCycleData = await fetchWithErrorHandling("/debtorsage/api/billcycle/max");
+        const maxCycleData = await fetchWithErrorHandling("/misapi/api/billcycle/max");
         
-        if (maxCycleData.data && maxCycleData.data.BillCycles?.length > 0) {
-          const options = generateBillCycleOptions(
-            maxCycleData.data.BillCycles,
-            maxCycleData.data.MaxBillCycle
-          );
-          setBillCycleOptions(options);
-          setFormData(prev => ({ ...prev, billCycle: options[0].code }));
-        } else {
-          setBillCycleOptions([]);
-          setFormData(prev => ({ ...prev, billCycle: "" }));
-        }
+        // Handle cases where API might return empty or incomplete data
+        const apiCycles = maxCycleData.data?.BillCycles || [];
+        const apiMaxCycle = maxCycleData.data?.MaxBillCycle || "0";
+        
+        // Generate 60 months of cycles (API + synthetic)
+        const options = generateBillCycleOptions(apiCycles, apiMaxCycle);
+        
+        setBillCycleOptions(options);
+        
+        // Set initial bill cycle to the first option (API or synthetic)
+        setFormData(prev => ({
+          ...prev,
+          billCycle: options[0]?.code || ""
+        }));
       } catch (err: any) {
-        setError("Error loading bill cycle data: " + (err.message || err.toString()));
+        setError("Error loading bill cycles: " + (err.message || err.toString()));
+        
+        // Fallback: Generate 60 synthetic cycles if API fails completely
+        const date = new Date();
+        const syntheticOptions = Array.from({ length: 60 }, (_, i) => {
+          const cycleDate = new Date(date);
+          cycleDate.setMonth(cycleDate.getMonth() - i);
+          const monthName = cycleDate.toLocaleString('default', { month: 'short' });
+          const year = cycleDate.getFullYear().toString().slice(-2);
+          return {
+            display: `${monthName}-${year}`,
+            code: (60 - i).toString(),
+            isSynthetic: true
+          };
+        });
+        
+        setBillCycleOptions(syntheticOptions);
+        setFormData(prev => ({
+          ...prev,
+          billCycle: syntheticOptions[0]?.code || ""
+        }));
       } finally {
-        setBillCycleLoading(false);
+        setLoading(false);
       }
     };
-    
+
     fetchBillCycles();
   }, []);
 
-  // Format currency values
-  const formatCurrency = (value: number | undefined): string => {
-    if (value === undefined || value === null) return "0.00";
-    return value.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  };
-
-  // Handle input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // Event handlers
+  const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Fetch tariff data with POST request
-  const fetchTariffData = async () => {
-    if (!formData.billCycle) {
-      setError("Please select a bill cycle");
-      return;
-    }
+  const handleSearch = async () => {
+    if (!formData.billCycle || !formData.reportType) return;
 
-    setLoading(true);
-    setError(null);
+    setReportLoading(true);
+    setReportError(null);
+    setReportData([]);
     
     try {
-      const endpoint = formData.tariffType === 'ordinary' 
-        ? '/CEBINFO_API_2025/api/tariffBlockwiseOrdinaryData' 
-        : '/CEBINFO_API_2025/api/tariffBlockwiseBulkData';
+      const selectedReport = reportTypeOptions.find(r => r.value === formData.reportType);
+      if (!selectedReport) throw new Error("Invalid report type selected");
+
+      let data;
       
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          billCycle: parseInt(formData.billCycle)
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      try {
+        // First try POST request with body
+        const postBody = {
+          billCycle: formData.billCycle
+        };
+        
+        console.log("Making API call to:", selectedReport.api, "with body:", postBody);
+        
+        data = await fetchWithErrorHandling(selectedReport.api, {
+          method: 'POST',
+          body: JSON.stringify(postBody)
+        });
+        
+        console.log("API Response:", data);
+      } catch (postError: any) {
+        console.log("POST request failed, trying GET:", postError.message);
+        
+        // If POST fails, try GET with query parameters
+        try {
+          const url = `${selectedReport.api}?billCycle=${formData.billCycle}`;
+          data = await fetchWithErrorHandling(url, { method: 'GET' });
+        } catch (getError: any) {
+          console.log("GET request failed, trying different parameter format:", getError.message);
+          
+          // Try alternative parameter formats
+          try {
+            const altUrl = `${selectedReport.api}/${formData.billCycle}`;
+            data = await fetchWithErrorHandling(altUrl, { method: 'GET' });
+          } catch (altError: any) {
+            // Try POST without body
+            try {
+              const postUrl = `${selectedReport.api}?billCycle=${formData.billCycle}`;
+              data = await fetchWithErrorHandling(postUrl, { method: 'POST' });
+            } catch (finalError: any) {
+              throw new Error(`All request methods failed. Last error: ${finalError.message}`);
+            }
+          }
+        }
       }
       
-      const result = await response.json();
-      if (result.errorMessage) {
-        throw new Error(result.errorMessage);
+      if (data.errorMessage) {
+        throw new Error(data.errorMessage);
       }
+
+      console.log("Full API Response for debugging:", JSON.stringify(data, null, 2));
       
-      const dataKey = formData.tariffType === 'ordinary' ? 'OrdList' : 'BulkList';
-      setData(prev => ({
-        ...prev,
-        [formData.tariffType]: result[dataKey] || []
-      }));
+      let resultData = [];
+      if (formData.reportType === "ordinary") {
+        resultData = data.data?.OrdList || data.OrdList || [];
+      } else if (formData.reportType === "bulk") {
+        resultData = data.data?.BulkList || data.BulkList || [];
+      } else if (formData.reportType === "ordinary-block") {
+        // FIXED: Added the specific key that your API is returning
+        resultData = data.data?.OrdBlockwiseList || 
+                    data.OrdBlockwiseList ||
+                    data.data?.BlockList || 
+                    data.BlockList || 
+                    data.data?.OrdBlockList || 
+                    data.OrdBlockList ||
+                    data.data?.TariffBlockList || 
+                    data.TariffBlockList ||
+                    data.data?.tariffBlockList || 
+                    data.tariffBlockList ||
+                    data.data?.blockList ||
+                    data.blockList ||
+                    data.data?.list ||
+                    data.list ||
+                    data.data?.Data ||
+                    data.Data ||
+                    data.data?.results ||
+                    data.results ||
+                    [];
+                    
+        // If still empty, check if data itself is an array
+        if (!resultData || resultData.length === 0) {
+          if (Array.isArray(data.data)) {
+            resultData = data.data;
+          } else if (Array.isArray(data)) {
+            resultData = data;
+          }
+        }
+                    
+        console.log("All possible data paths checked");
+        console.log("data.data:", data.data);
+        console.log("data:", data);
+        console.log("Final extracted result data:", resultData);
+        console.log("Result data length:", resultData?.length);
+      }
+
+      // Debug: Log the complete structure to understand the response
+      if (formData.reportType === "ordinary-block") {
+        console.log("=== DEBUGGING ORDINARY-BLOCK API RESPONSE ===");
+        console.log("Complete response keys:", Object.keys(data));
+        if (data.data) {
+          console.log("data.data keys:", Object.keys(data.data));
+          console.log("data.data type:", typeof data.data);
+          console.log("data.data is array?:", Array.isArray(data.data));
+        }
+        console.log("Response structure:");
+        console.log(JSON.stringify(data, null, 2));
+      }
+
+      // If resultData is not an array, wrap it in an array
+      if (!Array.isArray(resultData)) {
+        if (resultData && typeof resultData === 'object') {
+          resultData = [resultData];
+        } else {
+          resultData = [];
+        }
+      }
+
+      console.log("Final resultData before setState:", resultData);
+      console.log("Final resultData length:", resultData.length);
+
+      setReportData(resultData);
+      setShowReport(true);
+      
+      // Scroll to report after a small delay
+      setTimeout(() => {
+        if (reportContainerRef.current) {
+          reportContainerRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     } catch (err: any) {
-      setError("Failed to fetch tariff data: " + err.message);
-      setData(prev => ({
-        ...prev,
-        [formData.tariffType]: []
-      }));
+      setReportError("Error fetching report: " + (err.message || err.toString()));
+      console.error("Full error details:", err);
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
-  // Calculate totals for the current data
-  const calculateTotals = () => {
-    const currentData = formData.tariffType === 'ordinary' ? data.ordinary : data.bulk;
-    
-    return currentData.reduce((acc, row) => {
-      acc.noAccts += parseInt(row.noAccts) || 0;
-      acc.kwhUnits += parseFloat(row.kwhUnits) || 0;
-      acc.kwhCharge += row.kwhCharge || 0;
-      acc.fixedCharge += row.fixedCharge || 0;
-      acc.taxCharge += row.taxCharge || 0;
-      
-      if (formData.tariffType === 'bulk') {
-        acc.kwoUnits += parseFloat(row.kwoUnits || '0') || 0;
-        acc.kwdUnits += parseFloat(row.kwdUnits || '0') || 0;
-        acc.kwpUnits += parseFloat(row.kwpUnits || '0') || 0;
-        acc.kvaUnits += parseFloat(row.kvaUnits || '0') || 0;
-        acc.kwoCharge += row.kwoCharge || 0;
-        acc.kwdCharge += row.kwdCharge || 0;
-        acc.kwpCharge += row.kwpCharge || 0;
-        acc.kvaCharge += row.kvaCharge || 0;
-        acc.facCharge += row.facCharge || 0;
-        acc.payments += row.payments || 0;
-      } else {
-        acc.fuelCharge += row.fuelCharge || 0;
-        acc.Charge += row.Charge || 0;
-      }
-      
-      return acc;
-    }, {
-      noAccts: 0,
-      kwoUnits: 0,
-      kwdUnits: 0,
-      kwpUnits: 0,
-      kwhUnits: 0,
-      kvaUnits: 0,
-      kwoCharge: 0,
-      kwdCharge: 0,
-      kwpCharge: 0,
-      kwhCharge: 0,
-      kvaCharge: 0,
-      fixedCharge: 0,
-      taxCharge: 0,
-      facCharge: 0,
-      payments: 0,
-      fuelCharge: 0,
-      Charge: 0
-    });
-  };
-
-  // Clear data and reset form
-  const closeReport = () => {
-    setData({
-      ordinary: [],
-      bulk: []
-    });
-    setError(null);
-  };
-
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchTariffData();
-  };
-
-  // Download as CSV
   const downloadAsCSV = () => {
-    const currentData = formData.tariffType === 'ordinary' ? data.ordinary : data.bulk;
-    if (currentData.length === 0) {
-      alert('No data available to download');
-      return;
-    }
-
-    // Helper function to properly escape CSV values
-    interface EscapeCsv {
-      (value: string | number | undefined | null): string;
-    }
-
-    const escapeCsv: EscapeCsv = (value) => {
-      if (value === undefined || value === null) return '';
-      // Convert to string if not already
-      const stringValue = typeof value === 'string' ? value : String(value);
-      // Escape quotes by doubling them
-      const escapedValue = stringValue.replace(/"/g, '""');
-      // Wrap in quotes if contains commas, quotes, or newlines
-      if (/[",\n\r]/.test(escapedValue)) {
-        return `"${escapedValue}"`;
-      }
-      return escapedValue;
-    };
-
-    // Format currency without commas for CSV
-    interface FormatCurrencyForCsv {
-      (value: number | undefined | null): string;
-    }
-
-    const formatCurrencyForCsv: FormatCurrencyForCsv = (value) => {
-      if (value === undefined || value === null) return '0.00';
-      return value.toFixed(2);
-    };
-
-    // Create CSV headers
-    const headers = formData.tariffType === 'ordinary' 
-      ? [
-          'Tariff', 'No of Accounts', 'kWh Units', 'kWh Charge',
-          'Fuel Charge', 'Tax Charge', 'Fixed Charge', 'Total Charge'
-        ]
-      : [
-          'Tariff', 'No of Accounts', 'kWo Units', 'kWd Units', 'kWp Units',
-          'kWh Units', 'kVA Units', 'kWo Charge', 'kWd Charge', 'kWp Charge',
-          'kWh Charge', 'kVA Charge', 'Fixed Charge', 'Tax Charge',
-          'FAC Charge', 'Payments'
-        ];
-
-    // Create data rows
-    const rows = currentData.map(row => {
-      if (formData.tariffType === 'ordinary') {
-        return [
-          escapeCsv(row.tariff),
-          escapeCsv(row.noAccts),
-          escapeCsv(row.kwhUnits),
-          escapeCsv(formatCurrencyForCsv(row.kwhCharge)),
-          escapeCsv(formatCurrencyForCsv(row.fuelCharge)),
-          escapeCsv(formatCurrencyForCsv(row.taxCharge)),
-          escapeCsv(formatCurrencyForCsv(row.fixedCharge)),
-          escapeCsv(formatCurrencyForCsv(row.Charge))
-        ];
+    if (!reportData.length) return;
+    
+    let headers: string[] = [];
+    let filename = "";
+    
+    // Set headers based on report type and actual data structure
+    if (formData.reportType === "ordinary") {
+      // Check if the ordinary data has range field (meaning it's block-wise structure)
+      if (reportData[0]?.range !== undefined) {
+        headers = ["Tariff", "Range", "No of Accounts", "KWH Units", "KWH Charge", "Fixed Charge", "Tax", "FAC", "Payments"];
       } else {
-        return [
-          escapeCsv(row.tariff),
-          escapeCsv(row.noAccts),
-          escapeCsv(row.kwoUnits || '0.00'),
-          escapeCsv(row.kwdUnits || '0.00'),
-          escapeCsv(row.kwpUnits || '0.00'),
-          escapeCsv(row.kwhUnits),
-          escapeCsv(row.kvaUnits || '0.00'),
-          escapeCsv(formatCurrencyForCsv(row.kwoCharge)),
-          escapeCsv(formatCurrencyForCsv(row.kwdCharge)),
-          escapeCsv(formatCurrencyForCsv(row.kwpCharge)),
-          escapeCsv(formatCurrencyForCsv(row.kwhCharge)),
-          escapeCsv(formatCurrencyForCsv(row.kvaCharge)),
-          escapeCsv(formatCurrencyForCsv(row.fixedCharge)),
-          escapeCsv(formatCurrencyForCsv(row.taxCharge)),
-          escapeCsv(formatCurrencyForCsv(row.facCharge)),
-          escapeCsv(formatCurrencyForCsv(row.payments))
-        ];
+        // Traditional ordinary structure
+        headers = ["Tariff", "No of Accounts", "KWH Units", "KWH Charge", "Fuel Charge", "Tax Charge", "Fixed Charge", "Total Charge"];
       }
-    });
+      filename = "Ordinary_Tariff_Report";
+    } else if (formData.reportType === "bulk") {
+      headers = ["Tariff", "No of Accounts", "KWO Units", "KWD Units", "KWP Units", "KWH Units", "KVA Units", 
+                 "KWO Charge", "KWD Charge", "KWP Charge", "KWH Charge", "KVA Charge", "Fixed Charge", "Tax Charge", "FAC Charge", "Payments"];
+      filename = "Bulk_Tariff_Report";
+    } else if (formData.reportType === "ordinary-block") {
+      // Always use block structure headers for ordinary-block
+      headers = ["Tariff", "Range", "No of Accounts", "KWH Units", "KWH Charge", "Fixed Charge", "Tax", "FAC", "Payments"];
+      filename = "Ordinary_Block_Tariff_Report";
+    }
 
-    // Add totals row
-    const totals = calculateTotals();
-    const totalsRow = formData.tariffType === 'ordinary'
-      ? [
-          'TOTAL',
-          escapeCsv(totals.noAccts),
-          escapeCsv(totals.kwhUnits.toFixed(2)),
-          escapeCsv(formatCurrencyForCsv(totals.kwhCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.fuelCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.taxCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.fixedCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.Charge))
-        ]
-      : [
-          'TOTAL',
-          escapeCsv(totals.noAccts),
-          escapeCsv(totals.kwoUnits.toFixed(2)),
-          escapeCsv(totals.kwdUnits.toFixed(2)),
-          escapeCsv(totals.kwpUnits.toFixed(2)),
-          escapeCsv(totals.kwhUnits.toFixed(2)),
-          escapeCsv(totals.kvaUnits.toFixed(2)),
-          escapeCsv(formatCurrencyForCsv(totals.kwoCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.kwdCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.kwpCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.kwhCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.kvaCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.fixedCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.taxCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.facCharge)),
-          escapeCsv(formatCurrencyForCsv(totals.payments))
-        ];
-
-    // Get bill cycle display name for filename
-    const billCycleDisplay = billCycleOptions.find(b => b.code === formData.billCycle)?.display || formData.billCycle;
-
-    // Combine all CSV content
+    // Create CSV content
     const csvContent = [
-      `"Tariff Block Wise Consumption - ${formData.tariffType === 'ordinary' ? 'Ordinary' : 'Bulk'}"`,
-      `"Bill Cycle: ${billCycleDisplay}"`,
+      `"${reportTypeOptions.find(r => r.value === formData.reportType)?.label} Report"`,
+      `"Bill Cycle: ${billCycleOptions.find(b => b.code === formData.billCycle)?.display}"`,
       "",
       headers.map(h => `"${h}"`).join(","),
-      ...rows.map(row => row.join(",")),
-      totalsRow.join(",")
-    ].join('\r\n');
+      ...reportData.map(row => {
+        if (formData.reportType === "ordinary") {
+          // Handle both traditional and block-wise ordinary data
+          if (row.range !== undefined) {
+            // Block-wise ordinary data
+            return [
+              row.tariff,
+              row.range || "",
+              row.noAccts,
+              row.kwhUnits,
+              formatCurrency(row.kwhCharge),
+              formatCurrency(row.fixedCharge),
+              formatCurrency(row.tax || row.taxCharge || 0),
+              formatCurrency(row.fac || row.facCharge || 0),
+              formatCurrency(row.payments)
+            ].map(cell => `"${cell}"`).join(",");
+          } else {
+            // Traditional ordinary data
+            return [
+              row.tariff?.trim(),
+              row.noAccts,
+              row.kwhUnits,
+              formatCurrency(row.kwhCharge),
+              formatCurrency(row.fuelCharge),
+              formatCurrency(row.taxCharge),
+              formatCurrency(row.fixedCharge),
+              formatCurrency(row.Charge)
+            ].map(cell => `"${cell}"`).join(",");
+          }
+        } else if (formData.reportType === "bulk") {
+          return [
+            row.tariff,
+            row.noAccts,
+            row.kwoUnits,
+            row.kwdUnits,
+            row.kwpUnits,
+            row.kwhUnits,
+            row.kvaUnits,
+            formatCurrency(row.kwoCharge),
+            formatCurrency(row.kwdCharge),
+            formatCurrency(row.kwpCharge),
+            formatCurrency(row.kwhCharge),
+            formatCurrency(row.kvaCharge),
+            formatCurrency(row.fixedCharge),
+            formatCurrency(row.taxCharge),
+            formatCurrency(row.facCharge),
+            formatCurrency(row.payments)
+          ].map(cell => `"${cell}"`).join(",");
+        } else if (formData.reportType === "ordinary-block") {
+          // Always use block structure for ordinary-block
+          return [
+            row.tariff,
+            row.range || "",
+            row.noAccts,
+            row.kwhUnits,
+            formatCurrency(row.kwhCharge),
+            formatCurrency(row.fixedCharge),
+            formatCurrency(row.tax || row.taxCharge || 0),
+            formatCurrency(row.fac || row.facCharge || 0),
+            formatCurrency(row.payments)
+          ].map(cell => `"${cell}"`).join(",");
+        }
+        return "";
+      })
+    ].join("\n");
 
-    // Create download link
-    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `Tariff_${formData.tariffType}_${formData.billCycle}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `${filename}_Cycle${formData.billCycle}_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    URL.revokeObjectURL(url);
   };
 
-  // Print as PDF
   const printPDF = () => {
+    if (!printRef.current) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-    
-    const currentData = formData.tariffType === 'ordinary' ? data.ordinary : data.bulk;
-    const totals = calculateTotals();
-    const billCycleDisplay = billCycleOptions.find(b => b.code === formData.billCycle)?.display || formData.billCycle;
-    
-    // Create table rows
-    const tableRows = currentData.map(row => {
-      if (formData.tariffType === 'ordinary') {
-        return `
-          <tr>
-            <td class="text-left">${row.tariff}</td>
-            <td class="text-right">${row.noAccts}</td>
-            <td class="text-right">${row.kwhUnits}</td>
-            <td class="text-right">${formatCurrency(row.kwhCharge)}</td>
-            <td class="text-right">${formatCurrency(row.fuelCharge)}</td>
-            <td class="text-right">${formatCurrency(row.taxCharge)}</td>
-            <td class="text-right">${formatCurrency(row.fixedCharge)}</td>
-            <td class="text-right">${formatCurrency(row.Charge)}</td>
-          </tr>
-        `;
-      } else {
-        return `
-          <tr>
-            <td class="text-left">${row.tariff}</td>
-            <td class="text-right">${row.noAccts}</td>
-            <td class="text-right">${row.kwoUnits || '0.00'}</td>
-            <td class="text-right">${row.kwdUnits || '0.00'}</td>
-            <td class="text-right">${row.kwpUnits || '0.00'}</td>
-            <td class="text-right">${row.kwhUnits}</td>
-            <td class="text-right">${row.kvaUnits || '0.00'}</td>
-            <td class="text-right">${formatCurrency(row.kwoCharge)}</td>
-            <td class="text-right">${formatCurrency(row.kwdCharge)}</td>
-            <td class="text-right">${formatCurrency(row.kwpCharge)}</td>
-            <td class="text-right">${formatCurrency(row.kwhCharge)}</td>
-            <td class="text-right">${formatCurrency(row.kvaCharge)}</td>
-            <td class="text-right">${formatCurrency(row.fixedCharge)}</td>
-            <td class="text-right">${formatCurrency(row.taxCharge)}</td>
-            <td class="text-right">${formatCurrency(row.facCharge)}</td>
-            <td class="text-right">${formatCurrency(row.payments)}</td>
-          </tr>
-        `;
-      }
-    }).join('');
-    
-    // Add totals row
-    let totalsRow = '';
-    if (formData.tariffType === 'ordinary') {
-      totalsRow = `
-        <tr class="total-row">
-          <td class="text-left font-bold">TOTAL</td>
-          <td class="text-right font-bold">${totals.noAccts}</td>
-          <td class="text-right font-bold">${totals.kwhUnits.toFixed(2)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.kwhCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.fuelCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.taxCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.fixedCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.Charge)}</td>
-        </tr>
-      `;
-    } else {
-      totalsRow = `
-        <tr class="total-row">
-          <td class="text-left font-bold">TOTAL</td>
-          <td class="text-right font-bold">${totals.noAccts}</td>
-          <td class="text-right font-bold">${totals.kwoUnits.toFixed(2)}</td>
-          <td class="text-right font-bold">${totals.kwdUnits.toFixed(2)}</td>
-          <td class="text-right font-bold">${totals.kwpUnits.toFixed(2)}</td>
-          <td class="text-right font-bold">${totals.kwhUnits.toFixed(2)}</td>
-          <td class="text-right font-bold">${totals.kvaUnits.toFixed(2)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.kwoCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.kwdCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.kwpCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.kwhCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.kvaCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.fixedCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.taxCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.facCharge)}</td>
-          <td class="text-right font-bold">${formatCurrency(totals.payments)}</td>
-        </tr>
-      `;
-    }
-    
-    // Create table headers
-    let tableHeaders = '';
-    if (formData.tariffType === 'ordinary') {
-      tableHeaders = `
-        <tr>
-          <th class="text-left">Tariff</th>
-          <th class="text-right">No of Accounts</th>
-          <th class="text-right">kWh Units</th>
-          <th class="text-right">kWh Charge</th>
-          <th class="text-right">Fuel Charge</th>
-          <th class="text-right">Tax Charge</th>
-          <th class="text-right">Fixed Charge</th>
-          <th class="text-right">Total Charge</th>
-        </tr>
-      `;
-    } else {
-      tableHeaders = `
-        <tr>
-          <th class="text-left">Tariff</th>
-          <th class="text-right">No of Accounts</th>
-          <th class="text-right">kWo Units</th>
-          <th class="text-right">kWd Units</th>
-          <th class="text-right">kWp Units</th>
-          <th class="text-right">kWh Units</th>
-          <th class="text-right">kVA Units</th>
-          <th class="text-right">kWo Charge</th>
-          <th class="text-right">kWd Charge</th>
-          <th class="text-right">kWp Charge</th>
-          <th class="text-right">kWh Charge</th>
-          <th class="text-right">kVA Charge</th>
-          <th class="text-right">Fixed Charge</th>
-          <th class="text-right">Tax Charge</th>
-          <th class="text-right">FAC Charge</th>
-          <th class="text-right">Payments</th>
-        </tr>
-      `;
-    }
     
     printWindow.document.write(`
       <html>
         <head>
-          <title>Tariff Block Wise Consumption - ${formData.tariffType === 'ordinary' ? 'Ordinary' : 'Bulk'}</title>
+          <title>${reportTypeOptions.find(r => r.value === formData.reportType)?.label} Report</title>
           <style>
             body { font-family: Arial; font-size: 10px; margin: 10mm; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { padding: 4px 6px; border: 1px solid #ddd; }
-            .text-left { text-align: left; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 2px 4px; border: 1px solid #ddd; }
             .text-right { text-align: right; }
             .header { font-weight: bold; margin-bottom: 5px; color: #7A0000; }
             .subheader { margin-bottom: 10px; }
             .footer { margin-top: 10px; font-size: 9px; }
-            .total-row { font-weight: bold; background-color: #f5f5f5; }
-            th { background-color: #f0f0f0; font-weight: bold; }
+            th { background-color: #f0f0f0; font-weight: bold; text-align: left; }
+            .text-center { text-align: center; }
           </style>
         </head>
         <body>
-          <div class="header">TARIFF BLOCK WISE CONSUMPTION - ${formData.tariffType === 'ordinary' ? 'ORDINARY' : 'BULK'}</div>
-          <div class="subheader">Bill Cycle: ${billCycleDisplay}</div>
-          <table>
-            <thead>
-              ${tableHeaders}
-            </thead>
-            <tbody>
-              ${tableRows}
-              ${totalsRow}
-            </tbody>
-          </table>
+          <div class="header">${reportTypeOptions.find(r => r.value === formData.reportType)?.label.toUpperCase()} REPORT</div>
+          <div class="subheader">Bill Cycle: ${billCycleOptions.find(b => b.code === formData.billCycle)?.display}</div>
+          ${printRef.current.innerHTML}
           <div class="footer">Generated on: ${new Date().toLocaleDateString()} | CEB@2025</div>
         </body>
       </html>
     `);
+    
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
@@ -556,10 +463,286 @@ const TariffBlockWiseConsumption = () => {
     }, 500);
   };
 
-  // Loading states
-  if (billCycleLoading) {
+  // UI helpers
+  const formatCurrency = (value: number): string => {
+    if (value === null || value === undefined) return "0.00";
+    const absValue = Math.abs(value);
+    const formatted = absValue.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    return value < 0 ? `(${formatted})` : formatted;
+  };
+
+  const handleClose = () => {
+    setShowReport(false);
+    setReportData([]);
+    setReportError(null);
+  };
+
+  const renderForm = () => (
+    <>
+      <h2 className={`text-xl font-bold mb-6 ${maroon}`}>Tariff Block Wise Consumption</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Tariff Type Radio Buttons */}
+        <div className="flex flex-col">
+          <label className={`${maroon} text-xs font-medium mb-2`}>Tariff Type</label>
+          <div className="space-y-2">
+            {reportTypeOptions.map((type) => (
+              <label key={type.value} className="flex items-center text-xs">
+                <input
+                  type="radio"
+                  name="reportType"
+                  value={type.value}
+                  checked={formData.reportType === type.value}
+                  onChange={handleInputChange}
+                  className="mr-2 text-[#7A0000] focus:ring-[#7A0000]"
+                />
+                {type.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Bill Cycle Dropdown */}
+        <div className="flex flex-col">
+          <label className={`${maroon} text-xs font-medium mb-1`}>Bill Cycle</label>
+          <select
+            name="billCycle"
+            value={formData.billCycle}
+            onChange={handleInputChange}
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-[#7A0000] focus:border-transparent"
+            required
+          >
+            {billCycleOptions.map((option) => (
+              <option 
+                key={option.code} 
+                value={option.code} 
+                className="text-xs py-1"
+              >
+                {option.display} - {option.code}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Select a bill cycle to view report data
+          </p>
+        </div>
+      </div>
+
+      {/* Search Button */}
+      <div className="w-full mt-6 flex justify-end">
+        <button
+          onClick={handleSearch}
+          disabled={reportLoading || !formData.billCycle || !formData.reportType}
+          className={`
+            px-6 py-2 rounded-md font-medium transition-opacity duration-300 shadow
+            ${maroonGrad} text-white
+            ${reportLoading ? "opacity-70 cursor-not-allowed" : "hover:opacity-90"}
+          `}
+        >
+          {reportLoading ? (
+            <span className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Loading...
+            </span>
+          ) : "Search"}
+        </button>
+      </div>
+    </>
+  );
+
+  const renderReportTable = () => {
+    if (!reportData.length && !reportLoading && !reportError) return null;
+
     return (
-      <div className={`text-center py-8 ${maroon} text-sm animate-pulse`}>
+      <div className="mt-8" ref={printRef}>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-lg font-semibold text-[#7A0000]">
+            {reportTypeOptions.find(r => r.value === formData.reportType)?.label} Report
+          </h3>
+          <div className="flex gap-2">
+            <button 
+              onClick={downloadAsCSV}
+              className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+              disabled={!reportData.length}
+            >
+              Export CSV
+            </button>
+            <button 
+              onClick={printPDF}
+              className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+              disabled={!reportData.length}
+            >
+              Print PDF
+            </button>
+          </div>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Bill Cycle: {billCycleOptions.find(b => b.code === formData.billCycle)?.display}
+        </p>
+
+        {reportLoading && (
+          <div className="text-center py-8 text-[#7A0000] text-sm animate-pulse">
+            Loading report data...
+          </div>
+        )}
+
+        {reportError && (
+          <div className="mt-6 text-red-600 bg-red-100 border border-red-300 p-4 rounded text-sm">
+            <strong>Error:</strong> {reportError}
+          </div>
+        )}
+
+        {!reportLoading && !reportError && reportData.length > 0 && (
+          <div className="overflow-x-auto">
+            {/* Ordinary Report Table */}
+            {formData.reportType === "ordinary" && (
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 px-2 py-1 text-left">Tariff</th>
+                    <th className="border border-gray-300 px-2 py-1 text-center">Range</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">No Accts</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Charge Rs.</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Fixed Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Tax</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Fac</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Payments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.map((row, index) => (
+                    <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <td className="border border-gray-300 px-2 py-1">{row.tariff}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-center">{row.range || ""}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseInt(row.noAccts || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwhUnits || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fixedCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.tax || row.taxCharge || 0)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fac || row.facCharge || 0)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.payments)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* Bulk Report Table */}
+            {formData.reportType === "bulk" && (
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 px-2 py-1 text-left">Tariff</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">No Accts</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWO Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWD Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWP Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KVA Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWO Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWD Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWP Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KVA Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Fixed Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Tax Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">FAC Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Payments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.map((row, index) => (
+                    <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <td className="border border-gray-300 px-2 py-1">{row.tariff}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseInt(row.noAccts || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwoUnits || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwdUnits || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwpUnits || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwhUnits || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kvaUnits || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwoCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwdCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwpCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kvaCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fixedCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.taxCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.facCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.payments)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* Ordinary Block Report Table - Fixed to always show block structure */}
+            {formData.reportType === "ordinary-block" && (
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 px-2 py-1 text-left">Tariff</th>
+                    <th className="border border-gray-300 px-2 py-1 text-center">Range</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">No Accts</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Units</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">KWH Charge Rs.</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Fixed Charge</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Tax</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">FAC</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right">Payments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.map((row, index) => (
+                    <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <td className="border border-gray-300 px-2 py-1">{row.tariff}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-center">{row.range || ""}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseInt(row.noAccts || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwhUnits || 0).toLocaleString()}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fixedCharge)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.tax || row.taxCharge || 0)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.fac || row.facCharge || 0)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.payments)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
+        {/* Show No Data Message */}
+        {!reportLoading && !reportError && reportData.length === 0 && showReport && (
+          <div className="text-center py-8 text-gray-500 text-sm">
+            No data available for the selected bill cycle and report type.
+          </div>
+        )}
+
+        {/* Close Button */}
+        {showReport && (
+          <div className="mt-6 flex justify-center">
+            <button 
+              onClick={handleClose}
+              className="px-6 py-2 bg-[#7A0000] hover:bg-[#A52A2A] rounded text-white font-medium"
+            >
+              Close Report
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Main render
+  if (loading) {
+    return (
+      <div className={`text-center py-8 ${maroon} text-sm animate-pulse font-sans`}>
         Loading bill cycle data...
       </div>
     );
@@ -580,244 +763,29 @@ const TariffBlockWiseConsumption = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
-      {/* Form Section */}
-      <div className="mb-4">
-        <h2 className={`text-xl font-bold mb-2 ${maroon}`}>Tariff Block Wise Consumption</h2>
-        <form onSubmit={handleSubmit} className="space-y-2">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            {/* Tariff Type Selection */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Tariff Type</label>
-              <div className="flex space-x-2">
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="tariffType"
-                    value="ordinary"
-                    checked={formData.tariffType === 'ordinary'}
-                    onChange={handleInputChange}
-                    className="text-[#7A0000] focus:ring-[#7A0000] w-3 h-3"
-                  />
-                  <span className="ml-1 text-xs text-gray-700">Ordinary</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="tariffType"
-                    value="bulk"
-                    checked={formData.tariffType === 'bulk'}
-                    onChange={handleInputChange}
-                    className="text-[#7A0000] focus:ring-[#7A0000] w-3 h-3"
-                  />
-                  <span className="ml-1 text-xs text-gray-700">Bulk</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Bill Cycle Dropdown - NOW WORKS LIKE FIRST COMPONENT */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Bill Cycle</label>
-              <select
-                name="billCycle"
-                value={formData.billCycle}
-                onChange={handleInputChange}
-                className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-[#7A0000] focus:border-transparent"
-                required
-              >
-                {billCycleOptions.map(cycle => (
-                  <option key={cycle.code} value={cycle.code} className="text-xs py-1">
-                    {cycle.display} - {cycle.code}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={loading || !formData.billCycle}
-              className={`px-3 py-1 rounded-md text-xs font-medium text-white ${maroonGrad} hover:opacity-90 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#7A0000] disabled:opacity-50`}
-            >
-              {loading ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Loading...
-                </span>
-              ) : "Search"}
-            </button>
-          </div>
-        </form>
+    <div className={`max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans`}>
+      {/* Always render form (will be hidden when report is shown) */}
+      <div className={showReport ? "hidden" : ""}>
+        {renderForm()}
       </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="mt-2 p-2 bg-red-50 text-red-700 border border-red-200 rounded text-xs">
-          {error}
+      {/* Show any report errors even when form is visible */}
+      {!showReport && reportError && (
+        <div className="mt-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded text-xs">
+          {reportError}
         </div>
       )}
 
-      {/* Results Section */}
-      <div className="mt-4">
-        {loading ? (
-          <div className={`text-center py-4 ${maroon} text-sm animate-pulse`}>
-            Loading tariff data...
-          </div>
-        ) : (
-          <>
-            {/* Action Buttons */}
-            {(data.ordinary.length > 0 || data.bulk.length > 0) && (
-              <div className="flex justify-end space-x-2 mb-2">
-                <button
-                  onClick={downloadAsCSV}
-                  className="px-2 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#7A0000]"
-                >
-                  Download CSV
-                </button>
-                <button
-                  onClick={printPDF}
-                  className="px-2 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-[#7A0000]"
-                >
-                  Print PDF
-                </button>
-              </div>
-            )}
-
-            {/* Ordinary Tariff Table */}
-            {formData.tariffType === 'ordinary' && data.ordinary.length > 0 && (
-              <div className="overflow-x-auto">
-                <h3 className="text-md font-semibold mb-1">Ordinary Tariff Data</h3>
-                <table className="min-w-full border border-gray-200 text-xs">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-2 py-1 text-left border">Tariff</th>
-                      <th className="px-2 py-1 text-right border">No of Accounts</th>
-                      <th className="px-2 py-1 text-right border">kWh Units</th>
-                      <th className="px-2 py-1 text-right border">kWh Charge</th>
-                      <th className="px-2 py-1 text-right border">Fuel Charge</th>
-                      <th className="px-2 py-1 text-right border">Tax Charge</th>
-                      <th className="px-2 py-1 text-right border">Fixed Charge</th>
-                      <th className="px-2 py-1 text-right border">Total Charge</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.ordinary.map((row, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-2 py-1 text-left border">{row.tariff}</td>
-                        <td className="px-2 py-1 text-right border">{row.noAccts}</td>
-                        <td className="px-2 py-1 text-right border">{row.kwhUnits}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.kwhCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.fuelCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.taxCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.fixedCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.Charge)}</td>
-                      </tr>
-                    ))}
-                    {/* Totals Row */}
-                    <tr className="bg-gray-100 font-semibold">
-                      <td className="px-2 py-1 text-left border">TOTAL</td>
-                      <td className="px-2 py-1 text-right border">{calculateTotals().noAccts}</td>
-                      <td className="px-2 py-1 text-right border">{calculateTotals().kwhUnits.toFixed(2)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().kwhCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().fuelCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().taxCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().fixedCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().Charge)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Close Report Button */}
-            {(data.ordinary.length > 0 || data.bulk.length > 0) && (
-              <div className="flex justify-center mt-4">
-                <button
-                  onClick={closeReport}
-                  className="px-4 py-2 bg-[#7A0000] hover:bg-[#A52A2A] rounded-md text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7A0000]"
-                >
-                  Close Report
-                </button>
-              </div>
-            )}
-
-            {/* Bulk Tariff Table */}
-            {formData.tariffType === 'bulk' && data.bulk.length > 0 && (
-              <div className="overflow-x-auto">
-                <h3 className="text-md font-semibold mb-1">Bulk Tariff Data</h3>
-                <table className="min-w-full border border-gray-200 text-xs">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-2 py-1 text-left border">Tariff</th>
-                      <th className="px-2 py-1 text-right border">No of Accounts</th>
-                      <th className="px-2 py-1 text-right border">kWo Units</th>
-                      <th className="px-2 py-1 text-right border">kWd Units</th>
-                      <th className="px-2 py-1 text-right border">kWp Units</th>
-                      <th className="px-2 py-1 text-right border">kWh Units</th>
-                      <th className="px-2 py-1 text-right border">kVA Units</th>
-                      <th className="px-2 py-1 text-right border">kWo Charge</th>
-                      <th className="px-2 py-1 text-right border">kWd Charge</th>
-                      <th className="px-2 py-1 text-right border">kWp Charge</th>
-                      <th className="px-2 py-1 text-right border">kWh Charge</th>
-                      <th className="px-2 py-1 text-right border">kVA Charge</th>
-                      <th className="px-2 py-1 text-right border">Fixed Charge</th>
-                      <th className="px-2 py-1 text-right border">Tax Charge</th>
-                      <th className="px-2 py-1 text-right border">FAC Charge</th>
-                      <th className="px-2 py-1 text-right border">Payments</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.bulk.map((row, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-2 py-1 text-left border">{row.tariff}</td>
-                        <td className="px-2 py-1 text-right border">{row.noAccts}</td>
-                        <td className="px-2 py-1 text-right border">{row.kwoUnits || '0.00'}</td>
-                        <td className="px-2 py-1 text-right border">{row.kwdUnits || '0.00'}</td>
-                        <td className="px-2 py-1 text-right border">{row.kwpUnits || '0.00'}</td>
-                        <td className="px-2 py-1 text-right border">{row.kwhUnits}</td>
-                        <td className="px-2 py-1 text-right border">{row.kvaUnits || '0.00'}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.kwoCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.kwdCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.kwpCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.kwhCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.kvaCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.fixedCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.taxCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.facCharge)}</td>
-                        <td className="px-2 py-1 text-right border">{formatCurrency(row.payments)}</td>
-                      </tr>
-                    ))}
-                    {/* Totals Row */}
-                    <tr className="bg-gray-100 font-semibold">
-                      <td className="px-2 py-1 text-left border">TOTAL</td>
-                      <td className="px-2 py-1 text-right border">{calculateTotals().noAccts}</td>
-                      <td className="px-2 py-1 text-right border">{calculateTotals().kwoUnits.toFixed(2)}</td>
-                      <td className="px-2 py-1 text-right border">{calculateTotals().kwdUnits.toFixed(2)}</td>
-                      <td className="px-2 py-1 text-right border">{calculateTotals().kwpUnits.toFixed(2)}</td>
-                      <td className="px-2 py-1 text-right border">{calculateTotals().kwhUnits.toFixed(2)}</td>
-                      <td className="px-2 py-1 text-right border">{calculateTotals().kvaUnits.toFixed(2)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().kwoCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().kwdCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().kwpCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().kwhCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().kvaCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().fixedCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().taxCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().facCharge)}</td>
-                      <td className="px-2 py-1 text-right border">{formatCurrency(calculateTotals().payments)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      {/* Report container with scrollable content */}
+      {showReport && (
+        <div 
+          ref={reportContainerRef}
+          className="mt-4 border border-gray-300 rounded-lg overflow-hidden"
+          style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}
+        >
+          {renderReportTable()}
+        </div>
+      )}
     </div>
   );
 };

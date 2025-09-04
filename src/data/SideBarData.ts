@@ -12,7 +12,7 @@ export const data = [
     name: "General",
     icon: MdPayment,
     subtopics: [
-      { id: 18, name: "Sales data for tariff" },
+      { id: 18, name: "Tariff Block Wise Consumption Report" },
       { id: 1, name: "Bill calculation" },
       { id: 2, name: "Amex customers" },
       { id: 3, name: "Listing of customers" },
@@ -51,7 +51,7 @@ export const data = [
     icon: FaBoxes,
     subtopics: [
        { id: 27, name: "Total Debtors Analysis" },
-      { id: 23, name: "Age analysis" },
+      { id: 23, name: "Debtors Age Analysis (Individual Customers)" },
       { id: 24, name: "Transaction analysis" },
       { id: 25, name: "Transaction analysis (incl. Prov. Data)" },
       { id: 26, name: "Age analysis for solar customer" },
@@ -137,7 +137,12 @@ export const data = [
     id: 8,
     name: "Inventory",
     icon: FaBoxes,
-    subtopics: [{ id: 59, name: "All Material Details" }],
+    subtopics: [{ id: 59, name: "All Material Details" },
+                  { id: 101, name: "Cost Center wise Quantity on Hand" },
+
+                { id: 100, name: "Average Consumptions" }
+              
+    ],
     path: "/report/inventory",
   },
   {
@@ -146,13 +151,42 @@ export const data = [
     icon: FaBalanceScale,
     subtopics: [{ id: 60, name: "Cost Center Trial Balance - End of Month/Year" },
                { id: 61, name: "Provintial Trial Balance - End of Month/Year" },
-                { id: 62, name: "Reagion Trial Balance - End of Month/Year" }
+                { id: 62, name: "Region Trial Balance - End of Month/Year" }
               
               ],
               
 
     path: "/report/trialBalance",
   },
+    {
+    id: 10,
+    name: "Income Expenditure",
+    icon: FaBalanceScale,
+    subtopics: [{ id: 90, name: "Cost Center Wise Income Expenditure" },
+              { id: 91, name: "Province Wise Income Expenditure" },
+           { id: 92, name: "Region Wise Income Expenditure" },
+           
+              ],
+              
+
+    path: "/report/IncomeExpenditure",
+  },
+
+
+
+  {
+    id: 11,
+    name: "Work In Progress",
+    icon: FaBalanceScale,
+    subtopics: [{ id: 108, name: "Cost Center Wise Work in Progress" },
+            
+              ],
+              
+
+    path: "/report/WorkInProgress",
+  },
+
+
 
   
 ];

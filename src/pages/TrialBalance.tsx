@@ -39,7 +39,7 @@ const TrialBalance = () => {
 
          case "Provintial Trial Balance - End of Month/Year":
         return <ProvintionalWiseTrial/>;
-         case "Reagion Trial Balance - End of Month/Year":
+         case "Region Trial Balance - End of Month/Year":
         return <ReagionTrial/>;
 
       default:

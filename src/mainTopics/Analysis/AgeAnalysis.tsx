@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from "recharts";
+
 
 // Interfaces
 interface Area {
@@ -44,6 +46,9 @@ interface Debtor {
   Months61Plus: number;
   ErrorMessage: string | null;
 }
+
+
+
 
 const AgeAnalysis: React.FC = () => {
   // Colors and styling
@@ -295,9 +300,11 @@ const AgeAnalysis: React.FC = () => {
 
       const url = `/misapi/api/debtors?custType=${formData.custType}&billCycle=${formData.billCycle}&areaCode=${formData.areaCode}&ageRange=${ageRange}`;
 
+
       // Increased timeout for Active customer reports
       const timeout = formData.custType === "A" ? 120000 : 60000; // 2 minutes for Active, 1 minute for others
       const data = await fetchWithErrorHandling(url, timeout);
+
 
       if (data.errorMessage) {
         throw new Error(data.errorMessage);

@@ -8,10 +8,12 @@ import Collections from "../pages/Collections";
 import TrialBalance from "../pages/TrialBalance";
 import BillingPayment from "../pages/BillingPayment";
 import SolarInformation from "../pages/SolarInformation";
+import IncomeExpenditure from "../pages/IncomeExpenditure";
 import ConsumptionAnalysis from "../pages/ConsumptionAnalysis";
 import BulkReporting from "../components/mainTopics/billing&payments/customerDetails/reports/BulkReporting";
 import OrdinaryReadingHistory from "../components/mainTopics/billing&payments/customerDetails/reports/OrdinaryReadingHistory";
 import TransactionHistoryReport from "../components/mainTopics/billing&payments/customerDetails/reports/TransactionHistoryReport";
+
 
 const ReportRoutes = () => (
   <>
@@ -111,8 +113,20 @@ const ReportRoutes = () => (
         </Layout>
       }
     />
-  </>
+    <Route
+      path="/report/IncomeExpenditure"
+      element={
+        <Layout>
+          <IncomeExpenditure />
+        </Layout>
+      }
+    />
 
-  
+
+      
+
+
+  </>
 );
+
 export default ReportRoutes;

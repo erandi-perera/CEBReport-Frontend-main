@@ -1,49 +1,41 @@
 import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
-import DebtorsAnalysis from "../mainTopics/Analysis/DebtorsAnalysis";
-import AgeAnalysis from "../mainTopics/Analysis/AgeAnalysis";
-import UnitAnalysis from "../mainTopics/Analysis/UnitAnalysis";
-
+import CostCenterIncomeExpenditure from "../mainTopics/IncomeExpenditure/CostCenterIncomeExpenditure";
+import ProvinceExpenditure from "../mainTopics/IncomeExpenditure/ProvinceExpenditure";
+import RegionExpenditure from "../mainTopics/IncomeExpenditure/RegionExpenditure";
 
 type Subtopic = {
   id: number;
   name: string;
 };
 
-const Analysis = () => {
+const IncomeExpenditure = () => {
   const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
   useEffect(() => {
-    // Get Analysis topic's subtopics directly from sidebarData
-    const analysisTopic = sidebarData.find(
-      (topic) => topic.name === "Analysis"
+    // Get Income Expenditure topic's subtopics directly from sidebarData
+    const topic = sidebarData.find(
+      (topic) => topic.name === "Income Expenditure"
     );
-    if (analysisTopic) {
-      setSubtopics(analysisTopic.subtopics);
+    if (topic) {
+      setSubtopics(topic.subtopics);
     }
   }, []);
 
   const toggleCard = (id: number) => {
-    if (expandedCard === id) {
-      setExpandedCard(null);
-    } else {
-      setExpandedCard(id);
-    }
+    setExpandedCard(expandedCard === id ? null : id);
   };
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-     
-      case "Total Debtors Analysis":
-     
-        return <DebtorsAnalysis/>;
-        case "Debtors Age Analysis (Individual Customers)":
-        return <AgeAnalysis/>;
-        
-         case "unit analysis":
-        return <UnitAnalysis/>;
+      case "Cost Center Wise Income Expenditure":
+        return <CostCenterIncomeExpenditure />;
+         case "Province Wise Income Expenditure":
+        return <ProvinceExpenditure />;
+         case "Region Wise Income Expenditure":
+        return <RegionExpenditure />;
       default:
         return (
           <div className="text-red-500 text-xs">
@@ -70,4 +62,4 @@ const Analysis = () => {
   );
 };
 
-export default Analysis;
+export default IncomeExpenditure;

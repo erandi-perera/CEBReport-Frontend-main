@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 const data = [
@@ -23,7 +23,7 @@ const UnitAnalysis = () => {
           label
           dataKey="value"
         >
-          {data.map((entry, index) => (
+          {data.map((_entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>

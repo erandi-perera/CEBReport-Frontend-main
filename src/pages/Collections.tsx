@@ -43,9 +43,16 @@ const Collections = () => {
       case "Written off account details":
       case "Receivable position":
       case "Unload loan information":
+
+      
+        
         return <div>{subtopicName} Content</div>;
-      case "Dishonoured cheques":
-        return <DishonouredCheques />;
+case "Dishonoured cheques":
+  return <DishonouredCheques />;
+
+
+
+
       default:
         return (
           <div className="text-red-500 text-xs">
