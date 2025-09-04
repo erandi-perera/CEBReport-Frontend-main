@@ -1,7 +1,6 @@
 import UserNavBar from "./components/layout/UserNavBar";
 import Sidebar from "./components/layout/Sidebar";
 import Navbar from "./components/layout/Navbar";
-import Footer from "./components/layout/Footer";
 import { useState } from "react";
 import { FaBars } from "react-icons/fa";
 
@@ -34,7 +33,7 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
 
       {/* Sidebar - Hidden on mobile by default */}
       <div
-        className={`fixed top-[100px] left-0 h-[calc(100vh-100px-40px)] z-30 bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+        className={`fixed top-[100px] left-0 h-[calc(100vh-100px-40px+40px)] z-30 bg-white shadow-lg transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 w-64 overflow-y-auto`}
       >
@@ -49,17 +48,14 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
           isSidebarOpen ? "lg:ml-64" : "lg:ml-0"
         }`}
       >
-        <main className="pt-[148px] px-4 pb-24">
-          <div className="max-w-7xl mx-auto relative z-20 ml-[350px]">
+        <main className="pt-[148px] px-4 pb-8">
+          <div className="max-w-7xl mx-auto relative z-20 ml-[320px]">
             {children}
           </div>
         </main>
       </div>
 
-      {/* Fixed Footer */}
-      <div className="fixed bottom-0 left-0 w-full z-40 bg-white border-t border-gray-200 shadow-lg">
-        <Footer />
-      </div>
+
 
       {/* Overlay for mobile when sidebar is open */}
       {isSidebarOpen && (

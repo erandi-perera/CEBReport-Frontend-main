@@ -54,7 +54,7 @@ const RegionTrial: React.FC = () => {
 
   // Get EPF Number from user context (Userno field)
   const epfNo = user?.Userno || "";
-  
+
   // Colors
   const maroon = "text-[#7A0000]";
   const maroonBg = "bg-[#7A0000]";
@@ -521,7 +521,7 @@ const RegionTrial: React.FC = () => {
           <h2>Region: ${trialData.regionName}</h2>
           <div class="header-info">
             Generated on: ${new Date().toLocaleDateString()} | Total Records: ${trialBalanceData.length}
-          </div>
+        </div>
         </div>
         
         <table>
@@ -585,8 +585,8 @@ const RegionTrial: React.FC = () => {
         epfNo={epfNo}
         user={user}
       />
-      
-      {/* Date Selection Modal */}
+
+        {/* Date Selection Modal */}
       <DateSelectionModal
         modalOpen={modalOpen}
         closeDateModal={closeDateModal}
@@ -595,8 +595,8 @@ const RegionTrial: React.FC = () => {
         maroon={maroon}
         maroonBg={maroonBg}
       />
-      
-      {/* Trial Balance Modal */}
+
+        {/* Trial Balance Modal */}
       <TrialBalanceModal
         trialModalOpen={trialModalOpen}
         closeTrialModal={closeTrialModal}

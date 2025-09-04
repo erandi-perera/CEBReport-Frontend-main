@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Fragment } from "react";
 import { Search, RotateCcw, Eye, X, Download, Printer, ChevronLeft } from "lucide-react";
 import { useUser } from "../../contexts/UserContext";
 
@@ -217,9 +217,9 @@ const RegionExpenditure: React.FC = () => {
       .filter(item => item.CatFlag === 'I')
       .reduce((sum, item) => sum + (item.Actual || 0), 0);
     
-    const expenditureTotal = incomeExpData
-      .filter(item => item.CatFlag === 'E')
-      .reduce((sum, item) => sum + (item.Actual || 0), 0);
+          const expenditureTotal = incomeExpData
+        .filter(item => item.CatFlag === 'X')
+        .reduce((sum, item) => sum + (item.Actual || 0), 0);
 
     return { incomeTotal, expenditureTotal, netTotal: incomeTotal - expenditureTotal };
   };
@@ -394,6 +394,15 @@ const RegionExpenditure: React.FC = () => {
     const expenditureData = incomeExpData.filter(item => item.CatFlag === 'E');
     const { incomeTotal, expenditureTotal, netTotal } = calculateTotals();
 
+    // Get unique Cost Centers from income data
+    const uniqueCostCenters = Array.from(new Set(incomeData.map(item => item.CostCtr)));
+
+    // Helper to get value for a specific cost center and category
+    const getValueForCostCenter = (catCode: string, costCenter: string, flag: string) => {
+      const item = incomeData.find(i => i.CatCode === catCode && i.CostCtr === costCenter && i.CatFlag === flag);
+      return item ? item.Actual || 0 : 0;
+    };
+
     return (
       <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
         <div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
@@ -454,34 +463,290 @@ const RegionExpenditure: React.FC = () => {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className={`${maroonBg} text-white`}>
-                      <th className="px-2 py-1 text-left">Title Code</th>
-                      <th className="px-2 py-1 text-left">Account</th>
-                      <th className="px-2 py-1 text-left">Category Name</th>
-                      <th className="px-2 py-1 text-left">Category Code</th>
-                      <th className="px-2 py-1 text-right">Actual Amount</th>
+                      <th className="px-2 py-1 text-left w-[15%]">ACCOUNT NO</th>
+                      <th className="px-2 py-1 text-left w-[20%]">ACCOUNTS</th>
+                      {uniqueCostCenters.map((costCenter) => (
+                        <th key={costCenter} className="px-2 py-1 text-right w-[5%]">
+                          {costCenter}
+                        </th>
+                      ))}
+                      <th className="px-2 py-1 text-right w-[5%] font-bold bg-[#7A0000] text-white">Company Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {/* Income Section */}
                     {incomeData.length > 0 && (
                       <>
-                        <tr className="category-header">
-                          <td colSpan={5} className="text-center font-bold bg-gray-100 text-[#7A0000]">
+                        <tr className="main-category-header">
+                          <td colSpan={uniqueCostCenters.length + 3} className="px-2 py-2 font-bold bg-[#7A0000] text-white text-center">
                             INCOME
                           </td>
                         </tr>
-                        {incomeData.map((item, index) => (
-                          <tr key={`income-${index}`} className="border-b hover:bg-gray-50">
-                            <td className="px-2 py-1 font-mono">{item.TitleCd?.trim()}</td>
-                            <td className="px-2 py-1 font-mono">{item.Account?.trim()}</td>
-                            <td className="px-2 py-1">{item.CatName?.trim()}</td>
-                            <td className="px-2 py-1 font-mono">{item.CatCode?.trim()}</td>
-                            <td className="px-2 py-1 text-right font-mono">{formatNumber(item.Actual)}</td>
-                          </tr>
-                        ))}
+                        
+                        {/* TURNOVER Category */}
+                        {(() => {
+                          const turnoverItems = incomeData.filter(item => 
+                            item.CatName?.toUpperCase().includes('TURNOVER') || 
+                            item.CatName?.toUpperCase().includes('ENERGY SALES') ||
+                            item.CatName?.toUpperCase().includes('ELECTRICITY SALES') ||
+                            item.CatName?.toUpperCase().includes('FIXED CHARGE') ||
+                            item.CatName?.toUpperCase().includes('FUEL SURCHARGE')
+                          );
+                          if (turnoverItems.length > 0) {
+                            return (
+                              <Fragment key="income-turnover">
+                                <tr className="sub-category-header">
+                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
+                                    TURNOVER
+                                  </td>
+                                </tr>
+                                {turnoverItems.map((item, index) => (
+                                  <tr key={`turnover-${index}`} className="border-b hover:bg-gray-50">
+                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
+                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
+                                    {uniqueCostCenters.map((costCenter) => (
+                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
+                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
+                                      </td>
+                                    ))}
+                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
+                                      {formatNumber(item.Actual || 0)}
+                                    </td>
+                                  </tr>
+                                ))}
+                                <tr className="subtotal-row">
+                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
+                                    SUB TOTAL OF - TURNOVER
+                                  </td>
+                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
+                                    {formatNumber(turnoverItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
+                                  </td>
+                                </tr>
+                              </Fragment>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* INTEREST INCOME Category */}
+                        {(() => {
+                          const interestItems = incomeData.filter(item => 
+                            item.CatName?.toUpperCase().includes('INTEREST') ||
+                            item.CatName?.toUpperCase().includes('LOAN')
+                          );
+                          if (interestItems.length > 0) {
+                            return (
+                              <Fragment key="income-interest">
+                                <tr className="sub-category-header">
+                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
+                                    INTEREST INCOME
+                                  </td>
+                                </tr>
+                                {interestItems.map((item, index) => (
+                                  <tr key={`interest-${index}`} className="border-b hover:bg-gray-50">
+                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
+                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
+                                    {uniqueCostCenters.map((costCenter) => (
+                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
+                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
+                                      </td>
+                                    ))}
+                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
+                                      {formatNumber(item.Actual || 0)}
+                                    </td>
+                                  </tr>
+                                ))}
+                                <tr className="subtotal-row">
+                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
+                                    SUB TOTAL OF - INTEREST INCOME
+                                  </td>
+                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
+                                    {formatNumber(interestItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
+                                  </td>
+                                </tr>
+                              </Fragment>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* DIVIDEND INCOME Category */}
+                        {(() => {
+                          const dividendItems = incomeData.filter(item => 
+                            item.CatName?.toUpperCase().includes('DIVIDEND') ||
+                            item.CatName?.toUpperCase().includes('FINE CHARGE')
+                          );
+                          if (dividendItems.length > 0) {
+                            return (
+                              <Fragment key="income-dividend">
+                                <tr className="sub-category-header">
+                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
+                                    DIVIDEND INCOME
+                                  </td>
+                                </tr>
+                                {dividendItems.map((item, index) => (
+                                  <tr key={`dividend-${index}`} className="border-b hover:bg-gray-50">
+                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
+                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
+                                    {uniqueCostCenters.map((costCenter) => (
+                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
+                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
+                                      </td>
+                                    ))}
+                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
+                                      {formatNumber(item.Actual || 0)}
+                                    </td>
+                                  </tr>
+                                ))}
+                                <tr className="subtotal-row">
+                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
+                                    SUB TOTAL OF - DIVIDEND INCOME
+                                  </td>
+                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
+                                    {formatNumber(dividendItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
+                                  </td>
+                                </tr>
+                              </Fragment>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* OVERHEAD RECOVERIES Category */}
+                        {(() => {
+                          const overheadItems = incomeData.filter(item => 
+                            item.CatName?.toUpperCase().includes('OVERHEAD RECOVERIES') ||
+                            item.CatName?.toUpperCase().includes('OVER HEAD RECOVERIES')
+                          );
+                          if (overheadItems.length > 0) {
+                            return (
+                              <Fragment key="income-overhead">
+                                <tr className="sub-category-header">
+                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
+                                    OVERHEAD RECOVERIES
+                                  </td>
+                                </tr>
+                                {overheadItems.map((item, index) => (
+                                  <tr key={`overhead-${index}`} className="border-b hover:bg-gray-50">
+                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
+                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
+                                    {uniqueCostCenters.map((costCenter) => (
+                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
+                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
+                                      </td>
+                                    ))}
+                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
+                                      {formatNumber(item.Actual || 0)}
+                                    </td>
+                                  </tr>
+                                ))}
+                                <tr className="subtotal-row">
+                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
+                                    SUB TOTAL OF - OVERHEAD RECOVERIES
+                                  </td>
+                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
+                                    {formatNumber(overheadItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
+                                  </td>
+                                </tr>
+                              </Fragment>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* PROFIT/LOSS ON DISPOSAL OF PPE Category */}
+                        {(() => {
+                          const ppeItems = incomeData.filter(item => 
+                            item.CatName?.toUpperCase().includes('PROFIT') ||
+                            item.CatName?.toUpperCase().includes('LOSS') ||
+                            item.CatName?.toUpperCase().includes('DISPOSAL') ||
+                            item.CatName?.toUpperCase().includes('PPE')
+                          );
+                          if (ppeItems.length > 0) {
+                            return (
+                              <Fragment key="income-ppe">
+                                <tr className="sub-category-header">
+                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
+                                    PROFIT/LOSS ON DISPOSAL OF PPE
+                                  </td>
+                                </tr>
+                                {ppeItems.map((item, index) => (
+                                  <tr key={`ppe-${index}`} className="border-b hover:bg-gray-50">
+                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
+                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
+                                    {uniqueCostCenters.map((costCenter) => (
+                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
+                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
+                                      </td>
+                                    ))}
+                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
+                                      {formatNumber(item.Actual || 0)}
+                                    </td>
+                                  </tr>
+                                ))}
+                                <tr className="subtotal-row">
+                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
+                                    SUB TOTAL OF - PROFIT/LOSS ON DISPOSAL OF PPE
+                                  </td>
+                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
+                                    {formatNumber(ppeItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
+                                  </td>
+                                </tr>
+                              </Fragment>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* MICSELANIOUS INCOME Category */}
+                        {(() => {
+                          const miscItems = incomeData.filter(item => 
+                            item.CatName?.toUpperCase().includes('MICSELANIOUS') ||
+                            item.CatName?.toUpperCase().includes('MISCELLANEOUS') ||
+                            item.CatName?.toUpperCase().includes('OTHER INCOME')
+                          );
+                          if (miscItems.length > 0) {
+                            return (
+                              <Fragment key="income-misc">
+                                <tr className="sub-category-header">
+                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
+                                    MICSELANIOUS INCOME
+                                  </td>
+                                </tr>
+                                {miscItems.map((item, index) => (
+                                  <tr key={`misc-${index}`} className="border-b hover:bg-gray-50">
+                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
+                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
+                                    {uniqueCostCenters.map((costCenter) => (
+                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
+                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
+                                      </td>
+                                    ))}
+                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
+                                      {formatNumber(item.Actual || 0)}
+                                    </td>
+                                  </tr>
+                                ))}
+                                <tr className="subtotal-row">
+                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
+                                    SUB TOTAL OF - MICSELANIOUS INCOME
+                                  </td>
+                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
+                                    {formatNumber(miscItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
+                                  </td>
+                                </tr>
+                              </Fragment>
+                            );
+                          }
+                          return null;
+                        })()}
+                        
+                        {/* Income Total */}
                         <tr className="category-total">
-                          <td colSpan={4} className="px-2 py-1 font-bold bg-gray-100">TOTAL INCOME</td>
-                          <td className="px-2 py-1 text-right font-mono bg-gray-100">
+                          <td colSpan={uniqueCostCenters.length + 2} className="px-2 py-1 font-bold bg-[#7A0000] text-white text-left">
+                            TOTAL INCOME
+                          </td>
+                          <td className="px-2 py-1 text-right font-mono bg-[#7A0000] text-white font-bold">
                             {formatNumber(incomeTotal)}
                           </td>
                         </tr>
