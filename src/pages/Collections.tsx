@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
+import DishonouredCheques from "../mainTopics/Collections/DishonouredCheques";
 
 type Subtopic = {
   id: number;
@@ -42,8 +43,9 @@ const Collections = () => {
       case "Written off account details":
       case "Receivable position":
       case "Unload loan information":
-      case "Dishonoured cheques":
         return <div>{subtopicName} Content</div>;
+      case "Dishonoured cheques":
+        return <DishonouredCheques />;
       default:
         return (
           <div className="text-red-500 text-xs">
