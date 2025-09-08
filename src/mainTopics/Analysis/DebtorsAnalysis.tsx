@@ -22,6 +22,10 @@ interface DebtorSummary {
   Month02: number;
   Month03: number;
   Month04: number;
+  Month01Percent?: number;
+  Month02Percent?: number;
+  Month03Percent?: number;
+  Month04Percent?: number;
   ErrorMessage: string | null;
 }
 
@@ -90,6 +94,20 @@ const DebtorsAnalysis: React.FC = () => {
       display: cycle,
       code: (maxCycleNum - index).toString()
     }));
+  };
+
+  // Function to calculate percentages for each row
+  const calculatePercentages = (data: DebtorSummary[]): DebtorSummary[] => {
+    return data.map(row => {
+      const totDebtors = row.TotDebtors || 0;
+      return {
+        ...row,
+        Month01Percent: totDebtors !== 0 ? parseFloat(((Math.abs(row.Month01 || 0) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
+        Month02Percent: totDebtors !== 0 ? parseFloat(((Math.abs(row.Month02 || 0) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
+        Month03Percent: totDebtors !== 0 ? parseFloat(((Math.abs(row.Month03 || 0) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
+        Month04Percent: totDebtors !== 0 ? parseFloat(((Math.abs(row.Month04 || 0) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
+      };
+    });
   };
 
   const fetchWithErrorHandling = async (url: string) => {
@@ -206,7 +224,7 @@ const DebtorsAnalysis: React.FC = () => {
   };
 
   const calculateTotals = (data: DebtorSummary[]) => {
-    return data.reduce((acc, row) => {
+    const totals = data.reduce((acc, row) => {
       acc.TotDebtors = (acc.TotDebtors || 0) + (row.TotDebtors || 0);
       acc.Month01 = (acc.Month01 || 0) + (row.Month01 || 0);
       acc.Month02 = (acc.Month02 || 0) + (row.Month02 || 0);
@@ -223,6 +241,16 @@ const DebtorsAnalysis: React.FC = () => {
       Month04: 0,
       ErrorMessage: null
     });
+
+    // Calculate percentages for totals
+    const totDebtors = totals.TotDebtors || 0;
+    return {
+      ...totals,
+      Month01Percent: totDebtors !== 0 ? parseFloat(((Math.abs(totals.Month01) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
+      Month02Percent: totDebtors !== 0 ? parseFloat(((Math.abs(totals.Month02) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
+      Month03Percent: totDebtors !== 0 ? parseFloat(((Math.abs(totals.Month03) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
+      Month04Percent: totDebtors !== 0 ? parseFloat(((Math.abs(totals.Month04) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
+    };
   };
 
   const fetchDebtorsData = async () => {
@@ -251,7 +279,8 @@ const DebtorsAnalysis: React.FC = () => {
         const ordinaryResult = await ordinaryResponse.json();
         if (ordinaryResult.ErrorMessage) throw new Error(ordinaryResult.ErrorMessage);
         
-        results.ordinary = Array.isArray(ordinaryResult) ? ordinaryResult : ordinaryResult.data || [];
+        const rawOrdinaryData = Array.isArray(ordinaryResult) ? ordinaryResult : ordinaryResult.data || [];
+        results.ordinary = calculatePercentages(rawOrdinaryData);
       }
 
       if (showBulk) {
@@ -264,7 +293,8 @@ const DebtorsAnalysis: React.FC = () => {
         const bulkResult = await bulkResponse.json();
         if (bulkResult.ErrorMessage) throw new Error(bulkResult.ErrorMessage);
         
-        results.bulk = Array.isArray(bulkResult) ? bulkResult : bulkResult.data || [];
+        const rawBulkData = Array.isArray(bulkResult) ? bulkResult : bulkResult.data || [];
+        results.bulk = calculatePercentages(rawBulkData);
       }
 
       setData(results);
@@ -307,25 +337,53 @@ const DebtorsAnalysis: React.FC = () => {
     const combinedData = [...(formData.showOrdinary ? data.ordinary : []), ...(formData.showBulk ? data.bulk : [])];
     if (!combinedData.length) return;
     
-    const headers = ["Type", "Customer Type", "Total Debtors (LKR)", "Month 01 (LKR)", "Month 02 (LKR)", "Month 03 (LKR)", "Month 04 (LKR)"];
+    const headers = ["Type", "Customer Type", "Total Debtors (LKR)", "0_1 Month (LKR)", "% Total", "1_2 Month (LKR)", "% Total", "2_3 Month (LKR)", "% Total", ">3 Month (LKR)", "% Total"];
     const rows = combinedData.map(row => [
       row.Type,
       row.CustType,
       row.TotDebtors ?? 0,
       row.Month01 ?? 0,
+      `${row.Month01Percent ?? 0}`,
       row.Month02 ?? 0,
+      `${row.Month02Percent ?? 0}`,
       row.Month03 ?? 0,
-      row.Month04 ?? 0
+      `${row.Month03Percent ?? 0}`,
+      row.Month04 ?? 0,
+      `${row.Month04Percent ?? 0}`
     ]);
     
     if (formData.showOrdinary && data.ordinary.length > 0) {
       const ordinaryTotal = calculateTotals(data.ordinary);
-      rows.push(["Ordinary Total", "", ordinaryTotal.TotDebtors, ordinaryTotal.Month01, ordinaryTotal.Month02, ordinaryTotal.Month03, ordinaryTotal.Month04]);
+      rows.push([
+        "Ordinary Total", 
+        "", 
+        ordinaryTotal.TotDebtors, 
+        ordinaryTotal.Month01, 
+        `${ordinaryTotal.Month01Percent}`,
+        ordinaryTotal.Month02, 
+        `${ordinaryTotal.Month02Percent}`,
+        ordinaryTotal.Month03, 
+        `${ordinaryTotal.Month03Percent}`,
+        ordinaryTotal.Month04, 
+        `${ordinaryTotal.Month04Percent}`
+      ]);
     }
     
     if (formData.showBulk && data.bulk.length > 0) {
       const bulkTotal = calculateTotals(data.bulk);
-      rows.push(["Bulk Total", "", bulkTotal.TotDebtors, bulkTotal.Month01, bulkTotal.Month02, bulkTotal.Month03, bulkTotal.Month04]);
+      rows.push([
+        "Bulk Total", 
+        "", 
+        bulkTotal.TotDebtors, 
+        bulkTotal.Month01, 
+        `${bulkTotal.Month01Percent}`,
+        bulkTotal.Month02, 
+        `${bulkTotal.Month02Percent}`,
+        bulkTotal.Month03, 
+        `${bulkTotal.Month03Percent}`,
+        bulkTotal.Month04, 
+        `${bulkTotal.Month04Percent}`
+      ]);
     }
     
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
@@ -365,8 +423,7 @@ const DebtorsAnalysis: React.FC = () => {
           </style>
         </head>
         <body>
-          <div class="header">DEBTORS SUMMARY - ${formData.option} (Cycle: ${formData.cycle})</div>
-          ${formData.areaCode ? `<div class="subheader">${getCodeLabel()}: ${formData.areaCode}</div>` : ''}
+          
           ${printRef.current.innerHTML}
           <div class="footer">Generated on: ${new Date().toLocaleDateString()} | CEB@2025</div>
         </body>
@@ -588,13 +645,18 @@ const DebtorsAnalysis: React.FC = () => {
           error={error}
           loading={loading}
           columns={[
-            { label: "Customer Type", accessor: "CustType", className: "text-left w-[20%]" },
-            { label: "Total Debtors (LKR)", accessor: "TotDebtors", className: "text-right w-[16%]", format: formatCurrency },
-            { label: "01 Month (LKR)", accessor: "Month01", className: "text-right w-[16%]", format: formatCurrency },
-            { label: "02 Months (LKR)", accessor: "Month02", className: "text-right w-[16%]", format: formatCurrency },
-            { label: "03 Months (LKR)", accessor: "Month03", className: "text-right w-[16%]", format: formatCurrency },
-            { label: "04 Months (LKR)", accessor: "Month04", className: "text-right w-[16%]", format: formatCurrency },
+            { label: "Customer Type", accessor: "CustType", className: "text-left w-[10%]" },
+            { label: "Total Debtors (LKR)", accessor: "TotDebtors", className: "text-right w-[10%]", format: formatCurrency },
+            { label: "0_1 Month (LKR)", accessor: "Month01", className: "text-right w-[10%]", format: formatCurrency },
+            { label: "% Total", accessor: "Month01Percent", className: "text-right w-[8%]", format: (value: number) => `${value}` },
+            { label: "1_2 Months (LKR)", accessor: "Month02", className: "text-right w-[10%]", format: formatCurrency },
+            { label: "% Total", accessor: "Month02Percent", className: "text-right w-[8%]", format: (value: number) => `${value}` },
+            { label: "2_3 Months (LKR)", accessor: "Month03", className: "text-right w-[10%]", format: formatCurrency },
+            { label: "% Total", accessor: "Month03Percent", className: "text-right w-[8%]", format: (value: number) => `${value}` },
+            { label: ">3 Months (LKR)", accessor: "Month04", className: "text-right w-[10%]", format: formatCurrency },
+            { label: "% Total", accessor: "Month04Percent", className: "text-right w-[8%]", format: (value: number) => `${value}` },
           ]}
+
           formatCurrency={formatCurrency}
           calculateTotals={calculateTotals}
           preparePieChartData={preparePieChartData}
@@ -602,6 +664,10 @@ const DebtorsAnalysis: React.FC = () => {
           downloadAsCSV={downloadAsCSV}
           printPDF={printPDF}
           chartColors={chartColors}
+          areas={areas}
+          regionCodes={regionCodes}
+          provinceCodes={provinceCodes}
+          billCycleOptions={billCycleOptions}
         />
       </div>
     </div>

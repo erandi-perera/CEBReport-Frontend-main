@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
+
+import SolarProgressClarificationBulk from "../mainTopics/SolarInformation/SolarProgressClarificationBulk";
+import SolarProgressClarificationOrdinary from "../mainTopics/SolarInformation/SolarConnectionDetailsBulk";
+
 import SolarForm from "../mainTopics/Solar/SolarForm";
+
 
 type Subtopic = {
   id: number;
@@ -40,7 +45,9 @@ const SolarInformation = () => {
       case "Solar payment information – Bulk":
       case "Solar connection details (incl. Reading and usage) - retail":
       case "Solar connection details (incl. Reading and usage) - bulk":
+        return <SolarProgressClarificationOrdinary />;
       case "Solar progress clarification – Bulk":
+        return <SolarProgressClarificationBulk />;
       case "Solar customer information":
 
       default:

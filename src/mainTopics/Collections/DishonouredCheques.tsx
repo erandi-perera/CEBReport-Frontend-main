@@ -186,6 +186,7 @@ const DishonouredCheques: React.FC = () => {
                     cheque.print,
                     cheque.email,
                 ],
+
                 getTotals: (cheques: DishonouredCheque[]) => [
                     "",
                     "",
@@ -203,6 +204,7 @@ const DishonouredCheques: React.FC = () => {
                     "",
                     "",
                 ],
+
             },
             All: {
                 headers: [
@@ -239,6 +241,7 @@ const DishonouredCheques: React.FC = () => {
                     cheque.print,
                     cheque.email,
                 ],
+
                 getTotals: (cheques: DishonouredCheque[]) => [
                     "",
                     "",
@@ -256,12 +259,15 @@ const DishonouredCheques: React.FC = () => {
                     "",
                     "",
                 ],
+
             },
         };
 
         const config =
             columnConfigs[selectedOption as keyof typeof columnConfigs] ||
             columnConfigs["All"];
+
+
         const { headers, getRowData, getTotals } = config;
 
         const rows = cheques.map(getRowData);
@@ -270,6 +276,7 @@ const DishonouredCheques: React.FC = () => {
         if (cheques.length > 1) {
             rows.push(getTotals(cheques));
         }
+
 
         let csvContent = [
             `Dishonoured Cheques Report`,
