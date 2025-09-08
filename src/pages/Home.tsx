@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import { 
   Zap, 
-  Shield, 
-  BarChart3
+  Shield
 } from "lucide-react";
 
 const Home: React.FC = () => {
@@ -17,8 +15,6 @@ const Home: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const maroon = "text-[#7A0000]";
-  const maroonBg = "bg-[#7A0000]";
   const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Search, RotateCcw, Eye, X, Download, Printer } from "lucide-react";
+import { Search, RotateCcw, Eye, X, Download, Printer, ChevronLeft } from "lucide-react";
 import { useUser } from "../../contexts/UserContext";
 
 interface Department {
@@ -67,11 +67,8 @@ const CostCenterIncomeExpenditure: React.FC = () => {
   // Paginated departments
   const paginatedDepartments = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  // Helper function to convert flag values
-  const convertCatFlag = (flag: string): string => {
-    return flag === "X" ? "E" : flag; // Convert X to E, keep I as I
-  };
 
+  
   // Fetch departments
   useEffect(() => {
     const fetchData = async () => {
@@ -662,7 +659,16 @@ const CostCenterIncomeExpenditure: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="p-5 border-t flex justify-center">
+          <div className="p-5 border-t flex justify-center gap-3">
+            <button
+              onClick={() => {
+                setIncomeExpModalOpen(false);
+                setShowDateSelection(true);
+              }}
+              className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+            >
+              <ChevronLeft className="w-4 h-4" /> Back to Date Selection
+            </button>
             <button
               onClick={closeIncomeExpModal}
               className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`} 

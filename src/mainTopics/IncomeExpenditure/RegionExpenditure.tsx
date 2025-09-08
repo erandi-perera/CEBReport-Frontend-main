@@ -1,5 +1,5 @@
-import React, { useEffect, useState, Fragment } from "react";
-import { Search, RotateCcw, Eye, X, Download, Printer, ChevronLeft } from "lucide-react";
+import React, { useEffect, useState, Fragment, useMemo } from "react";
+import { Search, RotateCcw, Eye, X, ChevronLeft, Download, Printer } from "lucide-react";
 import { useUser } from "../../contexts/UserContext";
 
 interface Company {
@@ -201,7 +201,7 @@ const RegionExpenditure: React.FC = () => {
     return monthNames[monthNum - 1] || "";
   };
 
-  // Updated formatNumber function
+  // Format number function
   const formatNumber = (num: number): string => {
     if (isNaN(num)) return "0.00";
     const formatted = new Intl.NumberFormat('en-US', { 
@@ -217,9 +217,9 @@ const RegionExpenditure: React.FC = () => {
       .filter(item => item.CatFlag === 'I')
       .reduce((sum, item) => sum + (item.Actual || 0), 0);
     
-          const expenditureTotal = incomeExpData
-        .filter(item => item.CatFlag === 'X')
-        .reduce((sum, item) => sum + (item.Actual || 0), 0);
+    const expenditureTotal = incomeExpData
+      .filter(item => item.CatFlag === 'X')
+      .reduce((sum, item) => sum + (item.Actual || 0), 0);
 
     return { incomeTotal, expenditureTotal, netTotal: incomeTotal - expenditureTotal };
   };
@@ -227,146 +227,523 @@ const RegionExpenditure: React.FC = () => {
   // Escape CSV field function
   const escapeCSVField = (field: string | number): string => {
     const stringField = String(field);
+    // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
     if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
       return '"' + stringField.replace(/"/g, '""') + '"';
     }
     return stringField;
   };
 
-  // Download as CSV
+  // Download as CSV function
   const downloadAsCSV = () => {
     if (!incomeExpData || incomeExpData.length === 0) return;
     
-    const headers = [
-      "Title Code", "Account", "Category Name", "Category Code", 
-      "Actual Amount", "Company Name", "Cost Center"
+    // Transform data to Excel format
+    const transformDataToExcelFormat = () => {
+      const result: any = {
+        income: {},
+        expenditure: {}
+      };
+
+      incomeExpData.forEach(item => {
+        const category = item.CatFlag === 'I' ? 'income' : 'expenditure';
+        const catCode = item.CatCode?.trim() || 'UNCATEGORIZED';
+        const account = item.Account?.trim() || '';
+        const costCenter = item.CostCtr?.trim() || 'DEFAULT';
+        
+        if (!result[category][catCode]) {
+          result[category][catCode] = {
+            accounts: {},
+            description: catCode
+          };
+        }
+        
+        if (!result[category][catCode].accounts[account]) {
+          result[category][catCode].accounts[account] = {
+            description: item.CatName?.trim() || '',
+            values: {},
+            total: 0
+          };
+        }
+        
+        result[category][catCode].accounts[account].values[costCenter] = item.Actual || 0;
+        result[category][catCode].accounts[account].total += item.Actual || 0;
+      });
+      
+      return result;
+    };
+
+    const excelData = transformDataToExcelFormat();
+    
+    // Get unique cost centers
+    const uniqueCostCenters = Array.from(new Set(
+      incomeExpData.map(item => item.CostCtr?.trim()).filter(Boolean)
+    )).sort();
+    
+    // Create headers matching Excel structure
+    const headers = ['', '', 'ACCOUNTS', '', ...uniqueCostCenters, 'Company Total'];
+    
+    // Create data rows with proper CSV formatting
+    const dataRows = [];
+    
+    // Process Income section
+    dataRows.push(['', '', 'INCOME', '', ...Array(uniqueCostCenters.length + 1).fill('')]);
+    
+    Object.entries(excelData.income).forEach(([catCode, categoryData]: [string, any]) => {
+      // Category header
+      dataRows.push(['', '', catCode, '', ...Array(uniqueCostCenters.length + 1).fill('')]);
+      
+      // Account rows
+      Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
+        const row = [
+          '', // Empty column
+          escapeCSVField(accountCode),
+          escapeCSVField(accountData.description),
+          '', // Empty column
+        ];
+        
+        // Add values for each cost center
+        uniqueCostCenters.forEach(costCenter => {
+          row.push(escapeCSVField(formatNumber(accountData.values[costCenter] || 0)));
+        });
+        
+        // Add account total
+        row.push(escapeCSVField(formatNumber(accountData.total)));
+        
+        dataRows.push(row);
+      });
+      
+      // Category subtotal
+      const subtotalRow = [
+        '', '', `SUB TOTAL OF - ${catCode}`, '', 
+        ...Array(uniqueCostCenters.length).fill(''),
+        escapeCSVField(formatNumber(Object.values(categoryData.accounts).reduce((sum: number, account: any) => 
+          sum + account.total, 0
+        )))
+      ];
+      dataRows.push(subtotalRow);
+    });
+    
+    // Income total
+    const incomeTotal = Object.values(excelData.income).reduce((sum: number, category: any) => {
+      return sum + Object.values(category.accounts).reduce((accSum: number, account: any) => 
+        accSum + account.total, 0
+      );
+    }, 0);
+    
+    const incomeTotalRow = [
+      '', '', 'Total :Income', '', 
+      ...Array(uniqueCostCenters.length).fill(''),
+      escapeCSVField(formatNumber(incomeTotal))
     ];
+    dataRows.push(incomeTotalRow);
     
-    const dataRows = incomeExpData.map(item => [
-      escapeCSVField(item.TitleCd?.trim() || ""),
-      escapeCSVField(item.Account?.trim() || ""),
-      escapeCSVField(item.CatName?.trim() || ""),
-      escapeCSVField(item.CatCode?.trim() || ""),
-      escapeCSVField(formatNumber(item.Actual)),
-      escapeCSVField(item.CompName?.trim() || ""),
-      escapeCSVField(item.CostCtr?.trim() || "")
-    ]);
+    // Process Expenditure section
+    dataRows.push(['', '', 'EXPENDITURE', '', ...Array(uniqueCostCenters.length + 1).fill('')]);
     
-    const { incomeTotal, expenditureTotal, netTotal } = calculateTotals();
+    Object.entries(excelData.expenditure).forEach(([catCode, categoryData]: [string, any]) => {
+      // Category header
+      dataRows.push(['', '', catCode, '', ...Array(uniqueCostCenters.length + 1).fill('')]);
+      
+      // Account rows
+      Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
+        const row = [
+          '', // Empty column
+          escapeCSVField(accountCode),
+          escapeCSVField(accountData.description),
+          '', // Empty column
+        ];
+        
+        // Add values for each cost center
+        uniqueCostCenters.forEach(costCenter => {
+          row.push(escapeCSVField(formatNumber(accountData.values[costCenter] || 0)));
+        });
+        
+        // Add account total
+        row.push(escapeCSVField(formatNumber(accountData.total)));
+        
+        dataRows.push(row);
+      });
+      
+      // Category subtotal
+      const subtotalRow = [
+        '', '', `SUB TOTAL OF - ${catCode}`, '', 
+        ...Array(uniqueCostCenters.length).fill(''),
+        escapeCSVField(formatNumber(Object.values(categoryData.accounts).reduce((sum: number, account: any) => 
+          sum + account.total, 0
+        )))
+      ];
+      dataRows.push(subtotalRow);
+    });
     
-    const summaryRows = [];
-    summaryRows.push(["", "", "", "", "", "", ""]);
-    summaryRows.push(["", "", "", "TOTAL INCOME", escapeCSVField(formatNumber(incomeTotal)), "", ""]);
-    summaryRows.push(["", "", "", "TOTAL EXPENDITURE", escapeCSVField(formatNumber(expenditureTotal)), "", ""]);
-    summaryRows.push(["", "", "", "NET TOTAL", escapeCSVField(formatNumber(netTotal)), "", ""]);
+    // Expenditure total
+    const expenditureTotal = Object.values(excelData.expenditure).reduce((sum: number, category: any) => {
+      return sum + Object.values(category.accounts).reduce((accSum: number, account: any) => 
+        accSum + account.total, 0
+      );
+    }, 0);
     
+    const expenditureTotalRow = [
+      '', '', 'Total :Expenditure', '', 
+      ...Array(uniqueCostCenters.length).fill(''),
+      escapeCSVField(formatNumber(expenditureTotal))
+    ];
+    dataRows.push(expenditureTotalRow);
+    
+    // Net total
+    const netTotal = incomeTotal - expenditureTotal;
+    const netTotalRow = [
+      '', '', 'Income Over Expenditure', '', 
+      ...Array(uniqueCostCenters.length).fill(''),
+      escapeCSVField(formatNumber(netTotal))
+    ];
+    dataRows.push(netTotalRow);
+    
+    // Create CSV content
     const csvContent = [
       headers.join(","),
-      ...dataRows.map(row => row.join(",")),
-      ...summaryRows.map(row => row.join(","))
+      ...dataRows.map(row => row.join(","))
     ].join("\n");
     
+    // Create download link
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `IncomeExpenditure_${selectedCompany?.compId}_${getMonthName(selectedMonth)}_${selectedYear}.csv`;
+    link.download = `RegionIncomeExpenditure_${selectedCompany?.compId}_${getMonthName(selectedMonth)}_${selectedYear}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  // Print PDF
+  // Print PDF function
   const printPDF = () => {
     if (!incomeExpData || incomeExpData.length === 0) return;
 
-    const { incomeTotal, expenditureTotal, netTotal } = calculateTotals();
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const incomeData = incomeExpData.filter(item => item.CatFlag === 'I');
-    const expenditureData = incomeExpData.filter(item => item.CatFlag === 'E');
+    // Transform data to Excel format
+    const transformDataToExcelFormat = () => {
+      const result: any = {
+        income: {},
+        expenditure: {}
+      };
 
-    const generateTableRows = (data: IncomeExpenditureData[]) => {
-      return data.map(row => `
-        <tr>
-          <td style="padding: 6px; border: 1px solid #ddd;">${row.Account?.trim() || ''}</td>
-          <td style="padding: 6px; border: 1px solid #ddd;">${row.CatName?.trim() || ''}</td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(row.Actual)}</td>
-          <td style="padding: 6px; border: 1px solid #ddd;">${row.CatCode?.trim() || ''}</td>
-        </tr>
-      `).join('');
+      incomeExpData.forEach(item => {
+        const category = item.CatFlag === 'I' ? 'income' : 'expenditure';
+        const catCode = item.CatCode?.trim() || 'UNCATEGORIZED';
+        const account = item.Account?.trim() || '';
+        const costCenter = item.CostCtr?.trim() || 'DEFAULT';
+        
+        if (!result[category][catCode]) {
+          result[category][catCode] = {
+            accounts: {},
+            description: catCode
+          };
+        }
+        
+        if (!result[category][catCode].accounts[account]) {
+          result[category][catCode].accounts[account] = {
+            description: item.CatName?.trim() || '',
+            values: {},
+            total: 0
+          };
+        }
+        
+        result[category][catCode].accounts[account].values[costCenter] = item.Actual || 0;
+        result[category][catCode].accounts[account].total += item.Actual || 0;
+      });
+      
+      return result;
     };
 
+    const excelData = transformDataToExcelFormat();
+    
+    // Get unique cost centers
+    const uniqueCostCenters = Array.from(new Set(
+      incomeExpData.map(item => item.CostCtr?.trim()).filter(Boolean)
+    )).sort();
+
+    // Generate table rows HTML
+    let tableRowsHTML = '';
+    
+    // Income section
+    tableRowsHTML += `
+      <tr class="category-header">
+        <td colspan="${uniqueCostCenters.length + 4}" style="text-align: center; font-weight: bold; background-color: #7A0000; color: white;">INCOME</td>
+      </tr>
+    `;
+    
+    Object.entries(excelData.income).forEach(([catCode, categoryData]: [string, any]) => {
+      // Category header
+      tableRowsHTML += `
+        <tr>
+          <td colspan="${uniqueCostCenters.length + 4}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f5f5f5;">${catCode}</td>
+        </tr>
+      `;
+      
+      // Account rows
+      Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
+        tableRowsHTML += `
+          <tr>
+            <td style="padding: 6px; border: 1px solid #ddd;"></td>
+            <td style="padding: 6px; border: 1px solid #ddd; font-family: monospace;">${accountCode}</td>
+            <td style="padding: 6px; border: 1px solid #ddd;">${accountData.description}</td>
+        `;
+        
+        // Add values for each cost center
+        uniqueCostCenters.forEach(costCenter => {
+          tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(accountData.values[costCenter] || 0)}</td>`;
+        });
+        
+        // Add account total
+        tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; background-color: #f9f9f9;">${formatNumber(accountData.total)}</td>`;
+        
+        tableRowsHTML += `</tr>`;
+      });
+      
+      // Category subtotal
+      const categoryTotal = Object.values(categoryData.accounts).reduce((sum: number, account: any) => 
+        sum + account.total, 0
+      );
+      
+      tableRowsHTML += `
+        <tr>
+          <td colspan="3" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #e6f3ff;">SUB TOTAL OF - ${catCode}</td>
+      `;
+      
+      // Add empty cells for cost centers
+      uniqueCostCenters.forEach(() => {
+        tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #e6f3ff;"></td>`;
+      });
+      
+      tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #e6f3ff; font-weight: bold;">${formatNumber(categoryTotal)}</td>`;
+      tableRowsHTML += `</tr>`;
+    });
+    
+    // Income total
+    const incomeTotal = Object.values(excelData.income).reduce((sum: number, category: any) => {
+      return sum + Object.values(category.accounts).reduce((accSum: number, account: any) => 
+        accSum + account.total, 0
+      );
+    }, 0);
+    
+    tableRowsHTML += `
+      <tr class="category-total">
+        <td colspan="3" style="padding: 6px; border: 1px solid #ddd; background-color: #7A0000; color: white; font-weight: bold;">Total :Income</td>
+    `;
+    
+    // Add empty cells for cost centers
+    uniqueCostCenters.forEach(() => {
+      tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #7A0000;"></td>`;
+    });
+    
+    tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #7A0000; color: white; font-weight: bold;">${formatNumber(incomeTotal)}</td>`;
+    tableRowsHTML += `</tr>`;
+    
+    // Expenditure section
+    tableRowsHTML += `
+      <tr class="category-header">
+        <td colspan="${uniqueCostCenters.length + 4}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">EXPENDITURE</td>
+      </tr>
+    `;
+    
+    Object.entries(excelData.expenditure).forEach(([catCode, categoryData]: [string, any]) => {
+      // Category header
+      tableRowsHTML += `
+        <tr>
+          <td colspan="${uniqueCostCenters.length + 4}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f5f5f5;">${catCode}</td>
+        </tr>
+      `;
+      
+      // Account rows
+      Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
+        tableRowsHTML += `
+          <tr>
+            <td style="padding: 6px; border: 1px solid #ddd;"></td>
+            <td style="padding: 6px; border: 1px solid #ddd; font-family: monospace;">${accountCode}</td>
+            <td style="padding: 6px; border: 1px solid #ddd;">${accountData.description}</td>
+        `;
+        
+        // Add values for each cost center
+        uniqueCostCenters.forEach(costCenter => {
+          tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(accountData.values[costCenter] || 0)}</td>`;
+        });
+        
+        // Add account total
+        tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; background-color: #f9f9f9;">${formatNumber(accountData.total)}</td>`;
+        
+        tableRowsHTML += `</tr>`;
+      });
+      
+      // Category subtotal
+      const categoryTotal = Object.values(categoryData.accounts).reduce((sum: number, account: any) => 
+        sum + account.total, 0
+      );
+      
+      tableRowsHTML += `
+        <tr>
+          <td colspan="3" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #e6f3ff;">SUB TOTAL OF - ${catCode}</td>
+      `;
+      
+      // Add empty cells for cost centers
+      uniqueCostCenters.forEach(() => {
+        tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #e6f3ff;"></td>`;
+      });
+      
+      tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #e6f3ff; font-weight: bold;">${formatNumber(categoryTotal)}</td>`;
+      tableRowsHTML += `</tr>`;
+    });
+    
+    // Expenditure total
+    const expenditureTotal = Object.values(excelData.expenditure).reduce((sum: number, category: any) => {
+      return sum + Object.values(category.accounts).reduce((accSum: number, account: any) => 
+        accSum + account.total, 0
+      );
+    }, 0);
+    
+    tableRowsHTML += `
+      <tr class="category-total">
+        <td colspan="3" style="padding: 6px; border: 1px solid #ddd; background-color: #f5f5f5; font-weight: bold;">Total :Expenditure</td>
+    `;
+    
+    // Add empty cells for cost centers
+    uniqueCostCenters.forEach(() => {
+      tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #f5f5f5;"></td>`;
+    });
+    
+    tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f5f5f5; font-weight: bold;">${formatNumber(expenditureTotal)}</td>`;
+    tableRowsHTML += `</tr>`;
+    
+    // Net total
+    const netTotal = incomeTotal - expenditureTotal;
+    tableRowsHTML += `
+      <tr style="background-color: #7A0000; color: white; font-weight: bold;">
+        <td colspan="3" style="padding: 8px; border: 1px solid #7A0000;">Income Over Expenditure</td>
+    `;
+    
+    // Add empty cells for cost centers
+    uniqueCostCenters.forEach(() => {
+      tableRowsHTML += `<td style="padding: 8px; border: 1px solid #7A0000;"></td>`;
+    });
+    
+    tableRowsHTML += `<td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(netTotal)}</td>`;
+    tableRowsHTML += `</tr>`;
+
+    // Create the HTML content for printing
     const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Income & Expenditure Report - ${getMonthName(selectedMonth)}/${selectedYear}</title>
+        <title>Region Income & Expenditure - ${getMonthName(selectedMonth)} ${selectedYear}</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; color: #333; }
-          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #7A0000; padding-bottom: 15px; }
-          .header h1 { color: #7A0000; font-size: 18px; margin: 0; font-weight: bold; }
-          .header h2 { color: #7A0000; font-size: 14px; margin: 5px 0; }
-          .header-info { margin-top: 10px; font-size: 12px; color: #666; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th { background-color: #7A0000; color: white; font-weight: bold; text-align: center; padding: 8px; border: 1px solid #7A0000; }
-          .section-header { background-color: #f5f5f5; color: #7A0000; font-weight: bold; text-align: center; padding: 8px; }
-          .total-row { background-color: #f9f9f9; font-weight: bold; }
-          .net-total { background-color: #7A0000; color: white; font-weight: bold; }
-          .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #666; border-top: 1px solid #ddd; padding-top: 15px; }
-          @media print { body { margin: 0; } .header { page-break-inside: avoid; } table { page-break-inside: auto; } tr { page-break-inside: avoid; } }
+          body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            font-size: 12px;
+            color: #333;
+          }
+          
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #7A0000;
+            padding-bottom: 15px;
+          }
+          
+          .header h1 {
+            color: #7A0000;
+            font-size: 18px;
+            margin: 0;
+            font-weight: bold;
+          }
+          
+          .header h2 {
+            color: #7A0000;
+            font-size: 14px;
+            margin: 5px 0;
+          }
+          
+          .header-info {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+          }
+          
+          th {
+            background-color: #f5f5f5;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px;
+            border: 1px solid #ddd;
+          }
+          
+          td {
+            padding: 6px;
+            border: 1px solid #ddd;
+          }
+          
+          .category-header td {
+            text-align: center;
+            font-weight: bold;
+            background-color: #7A0000;
+            color: white;
+          }
+          
+          .category-total td {
+            background-color: #7A0000;
+            color: white;
+            font-weight: bold;
+          }
+          
+          .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+          }
+          
+          @media print {
+            body { margin: 0; }
+            .header { page-break-inside: avoid; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; }
+          }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>INCOME & EXPENDITURE REPORT - ${getMonthName(selectedMonth).toUpperCase()}/${selectedYear}</h1>
-          <h2>Company: ${selectedCompany?.compId} - ${selectedCompany?.CompName?.trim()}</h2>
+          <h1>CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT - PERIOD ENDED OF ${getMonthName(selectedMonth).toUpperCase()} / ${selectedYear}</h1>
+          <h2>Province/Company: ${selectedCompany?.compId} / ${selectedCompany?.CompName}</h2>
           <div class="header-info">
-            Generated on: ${new Date().toLocaleDateString()} | Total Records: ${incomeExpData.length}
+            Currency: LKR | Generated on: ${new Date().toLocaleDateString()} | Total Records: ${incomeExpData.length}
           </div>
         </div>
         
         <table>
           <thead>
             <tr>
-              <th style="width: 15%;">Account</th>
-              <th style="width: 45%;">Category Name</th>
-              <th style="width: 20%;">Actual Amount</th>
-              <th style="width: 20%;">Category Code</th>
+              <th style="width: 5%;"></th>
+              <th style="width: 10%;"></th>
+              <th style="width: 25%;">ACCOUNTS</th>
+              <th style="width: 10%;"></th>
+              ${uniqueCostCenters.map(cc => `<th style="width: 8%;">${cc}</th>`).join('')}
+              <th style="width: 10%;">Company Total</th>
             </tr>
           </thead>
           <tbody>
-            ${incomeData.length > 0 ? `
-              <tr class="section-header">
-                <td colspan="4">INCOME</td>
-              </tr>
-              ${generateTableRows(incomeData)}
-              <tr class="total-row">
-                <td colspan="2" style="padding: 8px; border: 1px solid #ddd;">Total Income</td>
-                <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(incomeTotal)}</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"></td>
-              </tr>
-            ` : ''}
-            
-            ${expenditureData.length > 0 ? `
-              <tr class="section-header">
-                <td colspan="4">EXPENDITURE</td>
-              </tr>
-              ${generateTableRows(expenditureData)}
-              <tr class="total-row">
-                <td colspan="2" style="padding: 8px; border: 1px solid #ddd;">Total Expenditure</td>
-                <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(expenditureTotal)}</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"></td>
-              </tr>
-            ` : ''}
-            
-            <tr class="net-total">
-              <td colspan="2" style="padding: 8px; border: 1px solid #7A0000;">NET TOTAL</td>
-              <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(netTotal)}</td>
-              <td style="padding: 8px; border: 1px solid #7A0000;"></td>
-            </tr>
+            ${tableRowsHTML}
           </tbody>
         </table>
         
@@ -377,9 +754,11 @@ const RegionExpenditure: React.FC = () => {
       </html>
     `;
 
+    // Write content to the new window and print
     printWindow.document.write(htmlContent);
     printWindow.document.close();
     
+    // Wait for content to load then print
     printWindow.onload = () => {
       printWindow.print();
       printWindow.close();
@@ -390,31 +769,72 @@ const RegionExpenditure: React.FC = () => {
   const IncomeExpenditureModal = () => {
     if (!incomeExpModalOpen || !selectedCompany) return null;
     
-    const incomeData = incomeExpData.filter(item => item.CatFlag === 'I');
-    const expenditureData = incomeExpData.filter(item => item.CatFlag === 'E');
+    // Transform the flat API data into hierarchical structure like Excel
+    const transformDataToExcelFormat = () => {
+      const result: any = {
+        income: {},
+        expenditure: {}
+      };
+
+      // Process all data items
+      incomeExpData.forEach(item => {
+        const category = item.CatFlag === 'I' ? 'income' : 'expenditure';
+        const catCode = item.CatCode?.trim() || 'UNCATEGORIZED';
+        const account = item.Account?.trim() || '';
+        const costCenter = item.CostCtr?.trim() || 'DEFAULT';
+        
+        // Initialize category if not exists
+        if (!result[category][catCode]) {
+          result[category][catCode] = {
+            accounts: {},
+            description: catCode
+          };
+        }
+        
+        // Initialize account if not exists
+        if (!result[category][catCode].accounts[account]) {
+          result[category][catCode].accounts[account] = {
+            description: item.CatName?.trim() || '',
+            values: {},
+            total: 0
+          };
+        }
+        
+        // Add value for this cost center
+        result[category][catCode].accounts[account].values[costCenter] = item.Actual || 0;
+        result[category][catCode].accounts[account].total += item.Actual || 0;
+      });
+      
+      return result;
+    };
+
+    const excelData = transformDataToExcelFormat();
     const { incomeTotal, expenditureTotal, netTotal } = calculateTotals();
 
-    // Get unique Cost Centers from income data
-    const uniqueCostCenters = Array.from(new Set(incomeData.map(item => item.CostCtr)));
-
-    // Helper to get value for a specific cost center and category
-    const getValueForCostCenter = (catCode: string, costCenter: string, flag: string) => {
-      const item = incomeData.find(i => i.CatCode === catCode && i.CostCtr === costCenter && i.CatFlag === flag);
-      return item ? item.Actual || 0 : 0;
-    };
+    // Get all unique cost centers for column headers
+    const uniqueCostCenters = useMemo(() => {
+      const centers = new Set<string>();
+      incomeExpData.forEach(item => {
+        if (item.CostCtr?.trim()) {
+          centers.add(item.CostCtr.trim());
+        }
+      });
+      return Array.from(centers).sort();
+    }, [incomeExpData]);
 
     return (
       <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
-        <div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
+        <div className="bg-white w-full max-w-7xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
           <div className="p-5 border-b">
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h2 className="text-base font-bold text-gray-800">
-                  REGION INCOME & EXPENDITURE - {getMonthName(selectedMonth).toUpperCase()} {selectedYear}
+                  CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT - PERIOD ENDED OF {getMonthName(selectedMonth)} / {selectedYear}
                 </h2>
                 <h3 className={`text-sm ${maroon}`}>
-                  Company: {selectedCompany.compId} - {selectedCompany.CompName}
+                  Province/Company: {selectedCompany.compId} / {selectedCompany.CompName}
                 </h3>
+                <p className="text-xs text-gray-600">Currency: LKR</p>
               </div>
               <div className="flex gap-2">
                 <button
@@ -433,7 +853,7 @@ const RegionExpenditure: React.FC = () => {
             </div>
             {incomeExpError && (
               <div className="text-red-600 text-xs mt-2 text-center">
-                {incomeExpError.includes("JSON.parse") ? "Data format error" : incomeExpError}
+                {incomeExpError}
               </div>
             )}
           </div>
@@ -452,7 +872,7 @@ const RegionExpenditure: React.FC = () => {
                 </div>
                 <h3 className="text-lg font-medium text-gray-700 mb-2">No Financial Data Available</h3>
                 <p className="text-gray-500 text-center max-w-md">
-                  We couldn't find any income or expenditure records for <strong>{selectedCompany.CompName}</strong> in {getMonthName(selectedMonth)} {selectedYear}.
+                  We couldn't find any consolidated income or expenditure records for <strong>{selectedCompany.CompName}</strong> in {getMonthName(selectedMonth)} {selectedYear}.
                 </p>
                 <p className="text-xs text-gray-400 mt-2">
                   Try selecting a different month or year, or contact your administrator if you believe this is an error.
@@ -460,329 +880,246 @@ const RegionExpenditure: React.FC = () => {
               </div>
             ) : (
               <div className="w-full overflow-x-auto text-xs">
+                {/* Table Header */}
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className={`${maroonBg} text-white`}>
-                      <th className="px-2 py-1 text-left w-[15%]">ACCOUNT NO</th>
-                      <th className="px-2 py-1 text-left w-[20%]">ACCOUNTS</th>
+                    <tr>
+                      <th className="px-2 py-1 text-left w-[5%] border border-gray-300 bg-gray-100"></th>
+                      <th className="px-2 py-1 text-left w-[10%] border border-gray-300 bg-gray-100"></th>
+                      <th className="px-2 py-1 text-left w-[25%] border border-gray-300 bg-gray-100">ACCOUNTS</th>
+                      <th className="px-2 py-1 text-left w-[10%] border border-gray-300 bg-gray-100"></th>
                       {uniqueCostCenters.map((costCenter) => (
-                        <th key={costCenter} className="px-2 py-1 text-right w-[5%]">
+                        <th key={costCenter} className="px-2 py-1 text-center w-[8%] border border-gray-300 bg-gray-100 font-bold">
                           {costCenter}
                         </th>
                       ))}
-                      <th className="px-2 py-1 text-right w-[5%] font-bold bg-[#7A0000] text-white">Company Total</th>
+                      <th className="px-2 py-1 text-center w-[10%] border border-gray-300 bg-gray-100 font-bold">Company Total</th>
                     </tr>
                   </thead>
+                  
                   <tbody>
-                    {/* Income Section */}
-                    {incomeData.length > 0 && (
-                      <>
-                        <tr className="main-category-header">
-                          <td colSpan={uniqueCostCenters.length + 3} className="px-2 py-2 font-bold bg-[#7A0000] text-white text-center">
-                            INCOME
-                          </td>
-                        </tr>
-                        
-                        {/* TURNOVER Category */}
-                        {(() => {
-                          const turnoverItems = incomeData.filter(item => 
-                            item.CatName?.toUpperCase().includes('TURNOVER') || 
-                            item.CatName?.toUpperCase().includes('ENERGY SALES') ||
-                            item.CatName?.toUpperCase().includes('ELECTRICITY SALES') ||
-                            item.CatName?.toUpperCase().includes('FIXED CHARGE') ||
-                            item.CatName?.toUpperCase().includes('FUEL SURCHARGE')
-                          );
-                          if (turnoverItems.length > 0) {
-                            return (
-                              <Fragment key="income-turnover">
-                                <tr className="sub-category-header">
-                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
-                                    TURNOVER
-                                  </td>
-                                </tr>
-                                {turnoverItems.map((item, index) => (
-                                  <tr key={`turnover-${index}`} className="border-b hover:bg-gray-50">
-                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
-                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
-                                    {uniqueCostCenters.map((costCenter) => (
-                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
-                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
-                                      </td>
-                                    ))}
-                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
-                                      {formatNumber(item.Actual || 0)}
-                                    </td>
-                                  </tr>
-                                ))}
-                                <tr className="subtotal-row">
-                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
-                                    SUB TOTAL OF - TURNOVER
-                                  </td>
-                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
-                                    {formatNumber(turnoverItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
-                                  </td>
-                                </tr>
-                              </Fragment>
-                            );
-                          }
-                          return null;
-                        })()}
-
-                        {/* INTEREST INCOME Category */}
-                        {(() => {
-                          const interestItems = incomeData.filter(item => 
-                            item.CatName?.toUpperCase().includes('INTEREST') ||
-                            item.CatName?.toUpperCase().includes('LOAN')
-                          );
-                          if (interestItems.length > 0) {
-                            return (
-                              <Fragment key="income-interest">
-                                <tr className="sub-category-header">
-                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
-                                    INTEREST INCOME
-                                  </td>
-                                </tr>
-                                {interestItems.map((item, index) => (
-                                  <tr key={`interest-${index}`} className="border-b hover:bg-gray-50">
-                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
-                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
-                                    {uniqueCostCenters.map((costCenter) => (
-                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
-                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
-                                      </td>
-                                    ))}
-                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
-                                      {formatNumber(item.Actual || 0)}
-                                    </td>
-                                  </tr>
-                                ))}
-                                <tr className="subtotal-row">
-                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
-                                    SUB TOTAL OF - INTEREST INCOME
-                                  </td>
-                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
-                                    {formatNumber(interestItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
-                                  </td>
-                                </tr>
-                              </Fragment>
-                            );
-                          }
-                          return null;
-                        })()}
-
-                        {/* DIVIDEND INCOME Category */}
-                        {(() => {
-                          const dividendItems = incomeData.filter(item => 
-                            item.CatName?.toUpperCase().includes('DIVIDEND') ||
-                            item.CatName?.toUpperCase().includes('FINE CHARGE')
-                          );
-                          if (dividendItems.length > 0) {
-                            return (
-                              <Fragment key="income-dividend">
-                                <tr className="sub-category-header">
-                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
-                                    DIVIDEND INCOME
-                                  </td>
-                                </tr>
-                                {dividendItems.map((item, index) => (
-                                  <tr key={`dividend-${index}`} className="border-b hover:bg-gray-50">
-                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
-                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
-                                    {uniqueCostCenters.map((costCenter) => (
-                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
-                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
-                                      </td>
-                                    ))}
-                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
-                                      {formatNumber(item.Actual || 0)}
-                                    </td>
-                                  </tr>
-                                ))}
-                                <tr className="subtotal-row">
-                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
-                                    SUB TOTAL OF - DIVIDEND INCOME
-                                  </td>
-                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
-                                    {formatNumber(dividendItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
-                                  </td>
-                                </tr>
-                              </Fragment>
-                            );
-                          }
-                          return null;
-                        })()}
-
-                        {/* OVERHEAD RECOVERIES Category */}
-                        {(() => {
-                          const overheadItems = incomeData.filter(item => 
-                            item.CatName?.toUpperCase().includes('OVERHEAD RECOVERIES') ||
-                            item.CatName?.toUpperCase().includes('OVER HEAD RECOVERIES')
-                          );
-                          if (overheadItems.length > 0) {
-                            return (
-                              <Fragment key="income-overhead">
-                                <tr className="sub-category-header">
-                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
-                                    OVERHEAD RECOVERIES
-                                  </td>
-                                </tr>
-                                {overheadItems.map((item, index) => (
-                                  <tr key={`overhead-${index}`} className="border-b hover:bg-gray-50">
-                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
-                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
-                                    {uniqueCostCenters.map((costCenter) => (
-                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
-                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
-                                      </td>
-                                    ))}
-                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
-                                      {formatNumber(item.Actual || 0)}
-                                    </td>
-                                  </tr>
-                                ))}
-                                <tr className="subtotal-row">
-                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
-                                    SUB TOTAL OF - OVERHEAD RECOVERIES
-                                  </td>
-                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
-                                    {formatNumber(overheadItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
-                                  </td>
-                                </tr>
-                              </Fragment>
-                            );
-                          }
-                          return null;
-                        })()}
-
-                        {/* PROFIT/LOSS ON DISPOSAL OF PPE Category */}
-                        {(() => {
-                          const ppeItems = incomeData.filter(item => 
-                            item.CatName?.toUpperCase().includes('PROFIT') ||
-                            item.CatName?.toUpperCase().includes('LOSS') ||
-                            item.CatName?.toUpperCase().includes('DISPOSAL') ||
-                            item.CatName?.toUpperCase().includes('PPE')
-                          );
-                          if (ppeItems.length > 0) {
-                            return (
-                              <Fragment key="income-ppe">
-                                <tr className="sub-category-header">
-                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
-                                    PROFIT/LOSS ON DISPOSAL OF PPE
-                                  </td>
-                                </tr>
-                                {ppeItems.map((item, index) => (
-                                  <tr key={`ppe-${index}`} className="border-b hover:bg-gray-50">
-                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
-                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
-                                    {uniqueCostCenters.map((costCenter) => (
-                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
-                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
-                                      </td>
-                                    ))}
-                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
-                                      {formatNumber(item.Actual || 0)}
-                                    </td>
-                                  </tr>
-                                ))}
-                                <tr className="subtotal-row">
-                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
-                                    SUB TOTAL OF - PROFIT/LOSS ON DISPOSAL OF PPE
-                                  </td>
-                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
-                                    {formatNumber(ppeItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
-                                  </td>
-                                </tr>
-                              </Fragment>
-                            );
-                          }
-                          return null;
-                        })()}
-
-                        {/* MICSELANIOUS INCOME Category */}
-                        {(() => {
-                          const miscItems = incomeData.filter(item => 
-                            item.CatName?.toUpperCase().includes('MICSELANIOUS') ||
-                            item.CatName?.toUpperCase().includes('MISCELLANEOUS') ||
-                            item.CatName?.toUpperCase().includes('OTHER INCOME')
-                          );
-                          if (miscItems.length > 0) {
-                            return (
-                              <Fragment key="income-misc">
-                                <tr className="sub-category-header">
-                                  <td colSpan={uniqueCostCenters.length + 3} className="px-4 py-1 font-bold bg-gray-100 text-black text-left">
-                                    MICSELANIOUS INCOME
-                                  </td>
-                                </tr>
-                                {miscItems.map((item, index) => (
-                                  <tr key={`misc-${index}`} className="border-b hover:bg-gray-50">
-                                    <td className="px-2 py-1 text-left font-mono">{item.Account?.trim()}</td>
-                                    <td className="px-6 py-1 text-left">{item.CatCode?.trim()} {item.CatName?.trim()}</td>
-                                    {uniqueCostCenters.map((costCenter) => (
-                                      <td key={costCenter} className="px-2 py-1 text-right font-mono">
-                                        {formatNumber(getValueForCostCenter(item.CatCode?.trim() || '', costCenter, 'I'))}
-                                      </td>
-                                    ))}
-                                    <td className="px-2 py-1 text-right font-mono font-bold bg-gray-100">
-                                      {formatNumber(item.Actual || 0)}
-                                    </td>
-                                  </tr>
-                                ))}
-                                <tr className="subtotal-row">
-                                  <td colSpan={uniqueCostCenters.length + 2} className="px-4 py-2 font-bold bg-blue-100 text-blue-800 text-left border-t-2 border-blue-300">
-                                    SUB TOTAL OF - MICSELANIOUS INCOME
-                                  </td>
-                                  <td className="px-2 py-2 text-right font-mono font-bold bg-blue-100 text-blue-800 border-t-2 border-blue-300">
-                                    {formatNumber(miscItems.reduce((sum, item) => sum + (item.Actual || 0), 0))}
-                                  </td>
-                                </tr>
-                              </Fragment>
-                            );
-                          }
-                          return null;
-                        })()}
-                        
-                        {/* Income Total */}
-                        <tr className="category-total">
-                          <td colSpan={uniqueCostCenters.length + 2} className="px-2 py-1 font-bold bg-[#7A0000] text-white text-left">
-                            TOTAL INCOME
-                          </td>
-                          <td className="px-2 py-1 text-right font-mono bg-[#7A0000] text-white font-bold">
-                            {formatNumber(incomeTotal)}
-                          </td>
-                        </tr>
-                      </>
-                    )}
+                    {/* INCOME SECTION */}
+                    <tr className="bg-[#7A0000] text-white">
+                      <td colSpan={3 + uniqueCostCenters.length + 1} className="px-2 py-1 text-center font-bold">
+                        INCOME
+                      </td>
+                    </tr>
                     
-                    {/* Expenditure Section */}
-                    {expenditureData.length > 0 && (
-                      <>
-                        <tr className="category-header">
-                          <td colSpan={5} className="text-center font-bold bg-gray-100 text-[#7A0000]">
-                            EXPENDITURE
+                    {/* Process Income Categories */}
+                    {Object.entries(excelData.income).map(([catCode, categoryData]: [string, any]) => (
+                      <Fragment key={`income-${catCode}`}>
+                        {/* Category Header Row */}
+                        <tr>
+                          <td className="px-2 py-1 border border-gray-300"></td>
+                          <td className="px-2 py-1 border border-gray-300"></td>
+                          <td colSpan={2 + uniqueCostCenters.length + 1} className="px-2 py-1 border border-gray-300 font-bold bg-gray-50">
+                            {catCode}
                           </td>
                         </tr>
-                        {expenditureData.map((item, index) => (
-                          <tr key={`exp-${index}`} className="border-b hover:bg-gray-50">
-                            <td className="px-2 py-1 font-mono">{item.TitleCd?.trim()}</td>
-                            <td className="px-2 py-1 font-mono">{item.Account?.trim()}</td>
-                            <td className="px-2 py-1">{item.CatName?.trim()}</td>
-                            <td className="px-2 py-1 font-mono">{item.CatCode?.trim()}</td>
-                            <td className="px-2 py-1 text-right font-mono">{formatNumber(item.Actual)}</td>
+                        
+                        {/* Account Rows */}
+                        {Object.entries(categoryData.accounts).map(([accountCode, accountData]: [string, any]) => (
+                          <tr key={`income-${catCode}-${accountCode}`} className="hover:bg-gray-50">
+                            <td className="px-2 py-1 border border-gray-300"></td>
+                            <td className="px-2 py-1 border border-gray-300 font-mono">{accountCode}</td>
+                            <td colSpan={2} className="px-2 py-1 border border-gray-300">{accountData.description}</td>
+                            
+                            {/* Cost Center Values */}
+                            {uniqueCostCenters.map(costCenter => (
+                              <td key={costCenter} className="px-2 py-1 border border-gray-300 text-right font-mono">
+                                {formatNumber(accountData.values[costCenter] || 0)}
+                              </td>
+                            ))}
+                            
+                            {/* Account Total */}
+                            <td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold bg-gray-100">
+                              {formatNumber(accountData.total)}
+                            </td>
                           </tr>
                         ))}
-                        <tr className="category-total">
-                          <td colSpan={4} className="px-2 py-1 font-bold bg-gray-100">TOTAL EXPENDITURE</td>
-                          <td className="px-2 py-1 text-right font-mono bg-gray-100">
-                            {formatNumber(expenditureTotal)}
+                        
+                        {/* Category Subtotal */}
+                        <tr className="bg-blue-50">
+                          <td colSpan={3} className="px-2 py-1 border border-gray-300 font-bold">
+                            SUB TOTAL OF - {catCode}
+                          </td>
+                          <td className="px-2 py-1 border border-gray-300"></td>
+                          
+                          {/* Cost Center Subtotals */}
+                          {uniqueCostCenters.map(costCenter => {
+                            const subtotal = Object.values(categoryData.accounts).reduce((sum: number, account: any) => 
+                              sum + (account.values[costCenter] || 0), 0
+                            );
+                            return (
+                              <td key={costCenter} className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+                                {formatNumber(subtotal)}
+                              </td>
+                            );
+                          })}
+                          
+                          {/* Category Total */}
+                          <td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+                            {formatNumber(Object.values(categoryData.accounts).reduce((sum: number, account: any) => 
+                              sum + account.total, 0
+                            ))}
                           </td>
                         </tr>
-                      </>
-                    )}
+                      </Fragment>
+                    ))}
                     
-                    {/* Net Total */}
-                    <tr className="border-t-2 border-gray-800 bg-gray-200 font-bold">
-                      <td colSpan={4} className="px-2 py-1">NET TOTAL</td>
-                      <td className="px-2 py-1 text-right font-mono">
+                    {/* Total Income */}
+                    <tr className="bg-[#7A0000] text-white">
+                      <td colSpan={3} className="px-2 py-1 border border-gray-300 font-bold">
+                        Total :Income
+                      </td>
+                      <td className="px-2 py-1 border border-gray-300"></td>
+                      
+                      {/* Cost Center Income Totals */}
+                      {uniqueCostCenters.map(costCenter => {
+                        const costCenterTotal = Object.values(excelData.income).reduce((sum: number, category: any) => {
+                          return sum + Object.values(category.accounts).reduce((accSum: number, account: any) => 
+                            accSum + (account.values[costCenter] || 0), 0
+                          );
+                        }, 0);
+                        return (
+                          <td key={costCenter} className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+                            {formatNumber(costCenterTotal)}
+                          </td>
+                        );
+                      })}
+                      
+                      {/* Grand Total Income */}
+                      <td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+                        {formatNumber(incomeTotal)}
+                      </td>
+                    </tr>
+                    
+                    {/* EXPENDITURE SECTION */}
+                    <tr className="bg-gray-200">
+                      <td colSpan={3 + uniqueCostCenters.length + 1} className="px-2 py-1 text-center font-bold">
+                        EXPENDITURE
+                      </td>
+                    </tr>
+                    
+                    {/* Process Expenditure Categories */}
+                    {Object.entries(excelData.expenditure).map(([catCode, categoryData]: [string, any]) => (
+                      <Fragment key={`expenditure-${catCode}`}>
+                        {/* Category Header Row */}
+                        <tr>
+                          <td className="px-2 py-1 border border-gray-300"></td>
+                          <td className="px-2 py-1 border border-gray-300"></td>
+                          <td colSpan={2 + uniqueCostCenters.length + 1} className="px-2 py-1 border border-gray-300 font-bold bg-gray-50">
+                            {catCode}
+                          </td>
+                        </tr>
+                        
+                        {/* Account Rows */}
+                        {Object.entries(categoryData.accounts).map(([accountCode, accountData]: [string, any]) => (
+                          <tr key={`expenditure-${catCode}-${accountCode}`} className="hover:bg-gray-50">
+                            <td className="px-2 py-1 border border-gray-300"></td>
+                            <td className="px-2 py-1 border border-gray-300 font-mono">{accountCode}</td>
+                            <td colSpan={2} className="px-2 py-1 border border-gray-300">{accountData.description}</td>
+                            
+                            {/* Cost Center Values */}
+                            {uniqueCostCenters.map(costCenter => (
+                              <td key={costCenter} className="px-2 py-1 border border-gray-300 text-right font-mono">
+                                {formatNumber(accountData.values[costCenter] || 0)}
+                              </td>
+                            ))}
+                            
+                            {/* Account Total */}
+                            <td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold bg-gray-100">
+                              {formatNumber(accountData.total)}
+                            </td>
+                          </tr>
+                        ))}
+                        
+                        {/* Category Subtotal */}
+                        <tr className="bg-blue-50">
+                          <td colSpan={3} className="px-2 py-1 border border-gray-300 font-bold">
+                            SUB TOTAL OF - {catCode}
+                          </td>
+                          <td className="px-2 py-1 border border-gray-300"></td>
+                          
+                          {/* Cost Center Subtotals */}
+                          {uniqueCostCenters.map(costCenter => {
+                            const subtotal = Object.values(categoryData.accounts).reduce((sum: number, account: any) => 
+                              sum + (account.values[costCenter] || 0), 0
+                            );
+                            return (
+                              <td key={costCenter} className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+                                {formatNumber(subtotal)}
+                              </td>
+                            );
+                          })}
+                          
+                          {/* Category Total */}
+                          <td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+                            {formatNumber(Object.values(categoryData.accounts).reduce((sum: number, account: any) => 
+                              sum + account.total, 0
+                            ))}
+                          </td>
+                        </tr>
+                      </Fragment>
+                    ))}
+                    
+                    {/* Total Expenditure */}
+                    <tr className="bg-gray-200">
+                      <td colSpan={3} className="px-2 py-1 border border-gray-300 font-bold">
+                        Total :Expenditure
+                      </td>
+                      <td className="px-2 py-1 border border-gray-300"></td>
+                      
+                      {/* Cost Center Expenditure Totals */}
+                      {uniqueCostCenters.map(costCenter => {
+                        const costCenterTotal = Object.values(excelData.expenditure).reduce((sum: number, category: any) => {
+                          return sum + Object.values(category.accounts).reduce((accSum: number, account: any) => 
+                            accSum + (account.values[costCenter] || 0), 0
+                          );
+                        }, 0);
+                        return (
+                          <td key={costCenter} className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+                            {formatNumber(costCenterTotal)}
+                          </td>
+                        );
+                      })}
+                      
+                      {/* Grand Total Expenditure */}
+                      <td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+                        {formatNumber(expenditureTotal)}
+                      </td>
+                    </tr>
+                    
+                    {/* NET TOTAL */}
+                    <tr className="bg-[#7A0000] text-white">
+                      <td colSpan={3} className="px-2 py-1 border border-gray-300 font-bold">
+                        Income Over Expenditure
+                      </td>
+                      <td className="px-2 py-1 border border-gray-300"></td>
+                      
+                      {/* Cost Center Net Totals */}
+                      {uniqueCostCenters.map(costCenter => {
+                        const incomeTotal = Object.values(excelData.income).reduce((sum: number, category: any) => {
+                          return sum + Object.values(category.accounts).reduce((accSum: number, account: any) => 
+                            accSum + (account.values[costCenter] || 0), 0
+                          );
+                        }, 0);
+                        
+                        const expenditureTotal = Object.values(excelData.expenditure).reduce((sum: number, category: any) => {
+                          return sum + Object.values(category.accounts).reduce((accSum: number, account: any) => 
+                            accSum + (account.values[costCenter] || 0), 0
+                          );
+                        }, 0);
+                        
+                        return (
+                          <td key={costCenter} className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+                            {formatNumber(incomeTotal - expenditureTotal)}
+                          </td>
+                        );
+                      })}
+                      
+                      {/* Grand Net Total */}
+                      <td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
                         {formatNumber(netTotal)}
                       </td>
                     </tr>
@@ -819,7 +1156,7 @@ const RegionExpenditure: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className={`text-xl font-bold ${maroon}`}>
-            Region Income & Expenditure
+            Region Income & Expenditure Report
             <span className="ml-2 text-xs text-gray-500">(Total: {filteredCompanies.length})</span>
           </h2>
           {epfNo && (
@@ -1031,7 +1368,7 @@ const RegionExpenditure: React.FC = () => {
                 onClick={fetchIncomeExpenditureData}
                 className="flex items-center gap-2 px-4 py-2 bg-[#7A0000] text-white rounded hover:brightness-110 text-sm"
               >
-                View Income & Expenditure
+                View Consolidated Report
               </button>
             </div>
           </div>
