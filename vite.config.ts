@@ -33,19 +33,25 @@ export default defineConfig({
       //   rewrite: (path) => path.replace(/^\/debtorsapi/, "") // <-- fix added here
       // },
       "/provincetrial": {
-        target: "http://localhost:44381", 
+        target: "http://localhost:44381",
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/provincetrial/, "") // <-- fix added here
 
       },
 
- "/debtorsage": {
-  target: "http://localhost:44381", 
-  changeOrigin: true,
-  secure: false,
-  rewrite: (path) => path.replace(/^\/debtorsage/, "")
-},
+      "/debtorsage": {
+        target: "http://localhost:44381",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/debtorsage/, "")
+      },
+
+      '/solarapi': {
+        target: 'http://localhost:44381',
+        changeOrigin: true,
+        secure: false
+      }
 
 
     },

@@ -395,44 +395,245 @@ const DebtorsAnalysis: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const printPDF = () => {
-    if (!printRef.current) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Debtors Summary</title>
-          <style>
-            body { font-family: Arial; font-size: 10px; margin: 10mm; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { padding: 2px 4px; border: 1px solid #ddd; }
-            .text-left { text-align: left; }
-            .text-right { text-align: right; }
-            .header { font-weight: bold; margin-bottom: 5px; }
-            .subheader { margin-bottom: 10px; }
-            .footer { margin-top: 10px; font-size: 9px; }
-            .total-row { font-weight: bold; background-color: #f5f5f5; }
-            th { background-color: #f0f0f0; font-weight: bold; text-align: left; }
-            .chart-container { width: 100%; margin: 20px 0; }
-            .chart-title { font-weight: bold; text-align: center; margin-bottom: 10px; }
-            .chart-divider { border-left: 1px solid #ddd; margin: 0 20px; }
-          </style>
-        </head>
-        <body>
-          
-          ${printRef.current.innerHTML}
-          <div class="footer">Generated on: ${new Date().toLocaleDateString()} | CEB@2025</div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 500);
+  // Updated printPDF function for DebtorsAnalysis.tsx
+// Replace the existing printPDF function with this implementation
+
+const printPDF = () => {
+  if (!printRef.current) return;
+
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  // Generate header content based on selection
+  const getHeaderContent = () => {
+    let optionText = "";
+    switch (formData.option) {
+      case "A":
+        const area = areas.find(a => a.AreaCode === formData.areaCode);
+        optionText = `Area: <span class="bold">${area?.AreaName || formData.areaCode} (${formData.areaCode})</span>`;
+        break;
+      case "D":
+        const region = regionCodes.find(r => r.code === formData.areaCode);
+        optionText = `Region: <span class="bold">${region?.name || formData.areaCode} (${formData.areaCode})</span>`;
+        break;
+      case "P":
+        const province = provinceCodes.find(p => p.code === formData.areaCode);
+        optionText = `Province: <span class="bold">${province?.name || formData.areaCode} (${formData.areaCode})</span>`;
+        break;
+      case "E":
+        optionText = "Analysis for: <span class='bold'>All CEB</span>";
+        break;
+      default:
+        optionText = "";
+    }
+    
+    const cycleOption = billCycleOptions.find(c => c.code === formData.cycle);
+    const cycleText = `Bill Cycle: <span class="bold">${cycleOption?.display || formData.cycle} - ${formData.cycle}</span>`;
+    
+    return `${optionText}<br>${cycleText}`;
   };
+
+  // Generate table content for PDF
+  const generateTableContent = () => {
+    let tableContent = "";
+
+    // Ordinary Debtors Table
+    if (formData.showOrdinary && data.ordinary.length > 0) {
+      const ordinaryTotal = calculateTotals(data.ordinary);
+      
+      tableContent += `
+        <div class="section-title">ORDINARY DEBTORS</div>
+        <table>
+          <thead>
+            <tr>
+              <th class="text-left">Customer Type</th>
+              <th class="text-right">Total Debtors (LKR)</th>
+              <th class="text-right">0-1 Month (LKR)</th>
+              <th class="text-right">% Total</th>
+              <th class="text-right">1-2 Months (LKR)</th>
+              <th class="text-right">% Total</th>
+              <th class="text-right">2-3 Months (LKR)</th>
+              <th class="text-right">% Total</th>
+              <th class="text-right">&gt;3 Months (LKR)</th>
+              <th class="text-right">% Total</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      data.ordinary.forEach(row => {
+        tableContent += `
+          <tr>
+            <td class="text-left">${row.CustType}</td>
+            <td class="text-right">${formatCurrency(row.TotDebtors)}</td>
+            <td class="text-right">${formatCurrency(row.Month01)}</td>
+            <td class="text-right">${row.Month01Percent || 0}</td>
+            <td class="text-right">${formatCurrency(row.Month02)}</td>
+            <td class="text-right">${row.Month02Percent || 0}</td>
+            <td class="text-right">${formatCurrency(row.Month03)}</td>
+            <td class="text-right">${row.Month03Percent || 0}</td>
+            <td class="text-right">${formatCurrency(row.Month04)}</td>
+            <td class="text-right">${row.Month04Percent || 0}</td>
+          </tr>
+        `;
+      });
+      
+      // Add total row
+      tableContent += `
+          <tr class="total-row">
+            <td class="text-left"><strong>TOTAL</strong></td>
+            <td class="text-right"><strong>${formatCurrency(ordinaryTotal.TotDebtors)}</strong></td>
+            <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month01)}</strong></td>
+            <td class="text-right"><strong>${ordinaryTotal.Month01Percent || 0}</strong></td>
+            <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month02)}</strong></td>
+            <td class="text-right"><strong>${ordinaryTotal.Month02Percent || 0}</strong></td>
+            <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month03)}</strong></td>
+            <td class="text-right"><strong>${ordinaryTotal.Month03Percent || 0}</strong></td>
+            <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month04)}</strong></td>
+            <td class="text-right"><strong>${ordinaryTotal.Month04Percent || 0}</strong></td>
+          </tr>
+          </tbody>
+        </table>
+      `;
+    }
+
+    // Bulk Debtors Table
+    if (formData.showBulk && data.bulk.length > 0) {
+      const bulkTotal = calculateTotals(data.bulk);
+      
+      if (tableContent) tableContent += `<div class="table-spacer"></div>`;
+      
+      tableContent += `
+        <div class="section-title">BULK DEBTORS</div>
+        <table>
+          <thead>
+            <tr>
+              <th class="text-left">Customer Type</th>
+              <th class="text-right">Total Debtors (LKR)</th>
+              <th class="text-right">0-1 Month (LKR)</th>
+              <th class="text-right">% Total</th>
+              <th class="text-right">1-2 Months (LKR)</th>
+              <th class="text-right">% Total</th>
+              <th class="text-right">2-3 Months (LKR)</th>
+              <th class="text-right">% Total</th>
+              <th class="text-right">&gt;3 Months (LKR)</th>
+              <th class="text-right">% Total</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      data.bulk.forEach(row => {
+        tableContent += `
+          <tr>
+            <td class="text-left">${row.CustType}</td>
+            <td class="text-right">${formatCurrency(row.TotDebtors)}</td>
+            <td class="text-right">${formatCurrency(row.Month01)}</td>
+            <td class="text-right">${row.Month01Percent || 0}</td>
+            <td class="text-right">${formatCurrency(row.Month02)}</td>
+            <td class="text-right">${row.Month02Percent || 0}</td>
+            <td class="text-right">${formatCurrency(row.Month03)}</td>
+            <td class="text-right">${row.Month03Percent || 0}</td>
+            <td class="text-right">${formatCurrency(row.Month04)}</td>
+            <td class="text-right">${row.Month04Percent || 0}</td>
+          </tr>
+        `;
+      });
+      
+      // Add total row
+      tableContent += `
+          <tr class="total-row">
+            <td class="text-left"><strong>TOTAL</strong></td>
+            <td class="text-right"><strong>${formatCurrency(bulkTotal.TotDebtors)}</strong></td>
+            <td class="text-right"><strong>${formatCurrency(bulkTotal.Month01)}</strong></td>
+            <td class="text-right"><strong>${bulkTotal.Month01Percent || 0}</strong></td>
+            <td class="text-right"><strong>${formatCurrency(bulkTotal.Month02)}</strong></td>
+            <td class="text-right"><strong>${bulkTotal.Month02Percent || 0}</strong></td>
+            <td class="text-right"><strong>${formatCurrency(bulkTotal.Month03)}</strong></td>
+            <td class="text-right"><strong>${bulkTotal.Month03Percent || 0}</strong></td>
+            <td class="text-right"><strong>${formatCurrency(bulkTotal.Month04)}</strong></td>
+            <td class="text-right"><strong>${bulkTotal.Month04Percent || 0}</strong></td>
+          </tr>
+          </tbody>
+        </table>
+      `;
+    }
+
+    return tableContent;
+  };
+
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Debtors Analysis Report</title>
+        <style>
+          body { font-family: Arial; font-size: 10px; margin: 10mm; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+          th, td { padding: 2px 4px; border: 1px solid #ddd; font-size: 10px;}
+          .text-left { text-align: left; }
+          .text-right { text-align: right; }
+          .header { 
+            font-weight: bold; 
+            margin-bottom: 5px; 
+            color: #7A0000;
+            font-size: 12px;
+          }
+          .subheader { 
+            margin-bottom: 12px; 
+            font-size: 11px;
+          }
+          .section-title {
+            font-weight: bold;
+            color: #7A0000;
+            font-size: 11px;
+            margin: 15px 0 8px 0;
+          }
+          .footer { 
+            margin-top: 10px; 
+            font-size: 9px; 
+            color: #666;
+          }
+          .total-row { 
+            font-weight: bold; 
+            background-color: #f5f5f5; 
+          }
+          .table-spacer {
+            margin: 20px 0;
+          }
+          th { 
+            background-color: #f0f0f0; 
+            font-weight: bold; 
+            text-align: left; 
+            font-size: 9px;
+          }
+          tr:nth-child(even) {
+            background-color: #f9f9f9;
+          }
+          .bold {
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">DEBTORS ANALYSIS REPORT</div>
+        <div class="subheader">
+          ${getHeaderContent()}
+        </div>
+        ${generateTableContent()}
+        <div class="footer">
+          Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | CEB@2025
+        </div>
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 500);
+};
 
   // Function to render the appropriate dropdown based on selected option
   const renderCodeDropdown = () => {
