@@ -125,7 +125,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
             setAreaError(null);
             try {
                 // Using the same API endpoint pattern as AgeAnalysis
-                const areaData = await fetchWithErrorHandling("/bulkapi/areas");
+                const areaData = await fetchWithErrorHandling("/misapi/solarapi/areas");
                 setAreas(areaData.data || []);
             } catch (err: any) {
                 console.error("Error fetching areas:", err);
@@ -144,7 +144,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
             setIsLoadingProvinces(true);
             setProvinceError(null);
             try {
-                const provinceData = await fetchWithErrorHandling("/bulkapi/province");
+                const provinceData = await fetchWithErrorHandling("/misapi/solarapi/province");
                 setProvinces(provinceData.data || []);
             } catch (err: any) {
                 console.error("Error fetching provinces:", err);
@@ -163,7 +163,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
             setIsLoadingDivisions(true);
             setDivisionError(null);
             try {
-                const divisionData = await fetchWithErrorHandling("/bulkapi/region");
+                const divisionData = await fetchWithErrorHandling("/misapi/solarapi/region");
                 setDivisions(divisionData.data || []);
             } catch (err: any) {
                 console.error("Error fetching divisions:", err);
@@ -182,7 +182,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
             setIsLoadingBillCycles(true);
             setBillCycleError(null);
             try {
-                const maxCycleData = await fetchWithErrorHandling("/bulkapi/billcycle/max");
+                const maxCycleData = await fetchWithErrorHandling("/misapi/solarapi/billcycle/max");
                 if (maxCycleData.data && maxCycleData.data.BillCycles?.length > 0) {
                     const options = generateBillCycleOptions(
                         maxCycleData.data.BillCycles,
@@ -302,8 +302,8 @@ const SolarProgressClarificationBulk: React.FC = () => {
 
         const selectionInfo = selectedOption === "Entire CEB"
             ? "Entire CEB"
-            : selectedOption === "Area" 
-                ? `${selectedOption}: ${selectedAreaName}` 
+            : selectedOption === "Area"
+                ? `${selectedOption}: ${selectedAreaName}`
                 : `${selectedOption}: ${inputValue}`;
 
         csvContent = [
@@ -435,23 +435,23 @@ const SolarProgressClarificationBulk: React.FC = () => {
             const regionKey = item.Region;
             const provinceKey = `${item.Region}-${item.Province}`;
             const areaKey = `${item.Region}-${item.Province}-${item.Area}`;
-            
+
             if (!acc.regionCounts[regionKey]) acc.regionCounts[regionKey] = 0;
             if (!acc.provinceCounts[provinceKey]) acc.provinceCounts[provinceKey] = 0;
             if (!acc.areaCounts[areaKey]) acc.areaCounts[areaKey] = 0;
-            
+
             acc.regionCounts[regionKey]++;
             acc.provinceCounts[provinceKey]++;
             acc.areaCounts[areaKey]++;
-            
+
             acc.items.push({ ...item, index });
             return acc;
-        }, { 
-    regionCounts: {} as Record<string, number>, 
-    provinceCounts: {} as Record<string, number>, 
-    areaCounts: {} as Record<string, number>, 
-    items: [] as any[]
-});
+        }, {
+            regionCounts: {} as Record<string, number>,
+            provinceCounts: {} as Record<string, number>,
+            areaCounts: {} as Record<string, number>,
+            items: [] as any[]
+        });
 
         let currentRegion = '';
         let currentProvince = '';
@@ -482,21 +482,21 @@ const SolarProgressClarificationBulk: React.FC = () => {
                         const regionKey = item.Region;
                         const provinceKey = `${item.Region}-${item.Province}`;
                         const areaKey = `${item.Region}-${item.Province}-${item.Area}`;
-                        
+
                         // Check if we need to show region cell
                         const showRegion = currentRegion !== regionKey;
                         if (showRegion) {
                             currentRegion = regionKey;
                             regionRowsRemaining = groupedData.regionCounts[regionKey];
                         }
-                        
+
                         // Check if we need to show province cell
                         const showProvince = currentProvince !== provinceKey;
                         if (showProvince) {
                             currentProvince = provinceKey;
                             provinceRowsRemaining = groupedData.provinceCounts[provinceKey];
                         }
-                        
+
                         // Check if we need to show area cell
                         const showArea = currentArea !== areaKey;
                         if (showArea) {
@@ -543,23 +543,23 @@ const SolarProgressClarificationBulk: React.FC = () => {
             const regionKey = item.Region;
             const provinceKey = `${item.Region}-${item.Province}`;
             const areaKey = `${item.Region}-${item.Province}-${item.Area}`;
-            
+
             if (!acc.regionCounts[regionKey]) acc.regionCounts[regionKey] = 0;
             if (!acc.provinceCounts[provinceKey]) acc.provinceCounts[provinceKey] = 0;
             if (!acc.areaCounts[areaKey]) acc.areaCounts[areaKey] = 0;
-            
+
             acc.regionCounts[regionKey]++;
             acc.provinceCounts[provinceKey]++;
             acc.areaCounts[areaKey]++;
-            
+
             acc.items.push({ ...item, index });
             return acc;
-        }, { 
-    regionCounts: {} as Record<string, number>, 
-    provinceCounts: {} as Record<string, number>, 
-    areaCounts: {} as Record<string, number>, 
-    items: [] as any[]
-});
+        }, {
+            regionCounts: {} as Record<string, number>,
+            provinceCounts: {} as Record<string, number>,
+            areaCounts: {} as Record<string, number>,
+            items: [] as any[]
+        });
         let currentRegion = '';
         let currentProvince = '';
         let currentArea = '';
@@ -584,21 +584,21 @@ const SolarProgressClarificationBulk: React.FC = () => {
                         const regionKey = item.Region;
                         const provinceKey = `${item.Region}-${item.Province}`;
                         const areaKey = `${item.Region}-${item.Province}-${item.Area}`;
-                        
+
                         // Check if we need to show region cell
                         const showRegion = currentRegion !== regionKey;
                         if (showRegion) {
                             currentRegion = regionKey;
                             regionRowsRemaining = groupedData.regionCounts[regionKey];
                         }
-                        
+
                         // Check if we need to show province cell
                         const showProvince = currentProvince !== provinceKey;
                         if (showProvince) {
                             currentProvince = provinceKey;
                             provinceRowsRemaining = groupedData.provinceCounts[provinceKey];
                         }
-                        
+
                         // Check if we need to show area cell
                         const showArea = currentArea !== areaKey;
                         if (showArea) {
@@ -658,7 +658,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
             }
 
             // Build API URL
-            
+
             const typeCode = selectedOption === "Entire CEB" ? "" : inputValue;
             let reportTypeParam = "";
 
@@ -672,7 +672,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
                 reportTypeParam = "Region"; // Assuming "Division" maps to "Region" in the API
             }
 
-            endpoint = `/bulkapi/solar-progress/${reportType}?billCycle=${billCycleValue}&reportType=${reportTypeParam}`;
+            endpoint = `/misapi/solarapi/solar-progress/${reportType}?billCycle=${billCycleValue}&reportType=${reportTypeParam}`;
 
             // Only add typeCode parameter if it's not Entire CEB
             if (selectedOption !== "Entire CEB") {
@@ -1108,10 +1108,10 @@ const SolarProgressClarificationBulk: React.FC = () => {
                                 {reportType === "detailed" ? "Solar Progress Detailed Report" : "Solar Progress Summary Report"}
                             </h2>
                             <p className="text-sm text-gray-600 mt-1">
-                                {selectedOption === "Entire CEB" 
-                                    ? "Entire CEB" 
-                                    : selectedOption === "Area" 
-                                        ? `${selectedOption}: ${selectedAreaName}` 
+                                {selectedOption === "Entire CEB"
+                                    ? "Entire CEB"
+                                    : selectedOption === "Area"
+                                        ? `${selectedOption}: ${selectedAreaName}`
                                         : `${selectedOption}: ${inputValue}`} | Bill Cycle: {selectedBillCycleDisplay}
                             </p>
                         </div>
@@ -1158,7 +1158,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => setReportVisible(false)}
-                                className="px-4 py-1.5 bg-white border border-gray-300 text-xs rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
+                                className="px-4 py-1.5 bg-[#7A0000] hover:bg-[#A52A2A] text-xs rounded-md text-white flex items-center"
                             >
                                 <svg
                                     className="w-4 h-4 mr-1"
@@ -1171,11 +1171,12 @@ const SolarProgressClarificationBulk: React.FC = () => {
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
                                         strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
+                                        d="M15 19l-7-7 7-7"
                                     />
                                 </svg>
-                                Close
+                                Back
                             </button>
+
                         </div>
                     </div>
 
