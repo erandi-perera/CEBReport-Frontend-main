@@ -21,11 +21,6 @@ interface StockBalancesTableProps {
 }
 
 const StockBalancesTable: React.FC<StockBalancesTableProps> = ({ matCd, stockBalances, printPDF, downloadAsCSV }) => {
-  const totalCommittedCost = stockBalances.reduce(
-    (sum, row) => sum + (typeof row.CommittedCost === "number" ? row.CommittedCost : 0),
-    0
-  );
-
   // Format numbers with commas and 2 decimal places
   const formatNumber = (value: number | undefined): string => {
     if (typeof value === "number") {
@@ -99,20 +94,7 @@ const StockBalancesTable: React.FC<StockBalancesTableProps> = ({ matCd, stockBal
           data={formattedStockBalances}
           rowKey={(_, idx) => idx}
         />
-        {/* Total row */}
-        {stockBalances.length > 0 && (
-          <div className="w-full bg-gray-50 border-t border-gray-200 text-[11px]">
-            <div className="flex">
-              <div className="flex-1 px-2 py-2 font-semibold text-right">Total Quantity On Hand:</div>
-              <div className="w-[16%] px-2 py-2 font-mono font-bold text-right">
-                {totalCommittedCost.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Removed the total row as requested */}
       </div>
     </div>
   );

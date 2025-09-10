@@ -186,7 +186,25 @@ const DishonouredCheques: React.FC = () => {
                     cheque.print,
                     cheque.email,
                 ],
-                
+
+                getTotals: (cheques: DishonouredCheque[]) => [
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "TOTAL:",
+                    "",
+                    formatCurrency(cheques.reduce((sum, c) => sum + c.surcharge, 0)),
+                    formatCurrency(cheques.reduce((sum, c) => sum + c.postage, 0)),
+                    formatCurrency(cheques.reduce((sum, c) => sum + c.bankCharge, 0)),
+                    formatCurrency(cheques.reduce((sum, c) => sum + c.paidAmount, 0)),
+                    "",
+                    "",
+                    "",
+                    "",
+                ],
+
             },
             All: {
                 headers: [
@@ -223,16 +241,42 @@ const DishonouredCheques: React.FC = () => {
                     cheque.print,
                     cheque.email,
                 ],
-                
+
+                getTotals: (cheques: DishonouredCheque[]) => [
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "TOTAL:",
+                    "",
+                    formatCurrency(cheques.reduce((sum, c) => sum + c.surcharge, 0)),
+                    formatCurrency(cheques.reduce((sum, c) => sum + c.postage, 0)),
+                    formatCurrency(cheques.reduce((sum, c) => sum + c.bankCharge, 0)),
+                    formatCurrency(cheques.reduce((sum, c) => sum + c.paidAmount, 0)),
+                    "",
+                    "",
+                    "",
+                    "",
+                ],
+
             },
         };
 
         const config =
             columnConfigs[selectedOption as keyof typeof columnConfigs] ||
             columnConfigs["All"];
-        const { headers, getRowData } = config;
+
+
+        const { headers, getRowData, getTotals } = config;
 
         const rows = cheques.map(getRowData);
+
+        // Add totals row if multiple cheques
+        if (cheques.length > 1) {
+            rows.push(getTotals(cheques));
+        }
+
 
         let csvContent = [
             `Dishonoured Cheques Report`,
