@@ -61,6 +61,14 @@ export default defineConfig({
   rewrite: (path) => path.replace(/^\/quantityhand/, "")
 },
 
+"/workingprogress": {
+  target: "http://localhost:44381", 
+  changeOrigin: true,
+  secure: false,
+  rewrite: (path) => path.replace(/^\/workingprogress/, "")
+},
+
+
 
 
     },

@@ -167,9 +167,7 @@ export const data = [
            { id: 92, name: "Region Wise Income Expenditure" },
            
               ],
-              
-
-    path: "/report/IncomeExpenditure",
+              path: "/report/IncomeExpenditure",
   },
 
 
@@ -178,11 +176,7 @@ export const data = [
     id: 11,
     name: "Work In Progress",
     icon: FaBalanceScale,
-    subtopics: [{ id: 108, name: "Cost Center Wise Work in Progress" },
-            
-              ],
-              
-
+    subtopics: [{ id: 108, name: "Cost Center Wise Work in Progress" }],
     path: "/report/WorkInProgress",
   },
 

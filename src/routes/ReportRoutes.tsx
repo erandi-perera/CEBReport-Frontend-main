@@ -10,6 +10,7 @@ import BillingPayment from "../pages/BillingPayment";
 import SolarInformation from "../pages/SolarInformation";
 import IncomeExpenditure from "../pages/IncomeExpenditure";
 import ConsumptionAnalysis from "../pages/ConsumptionAnalysis";
+import WorkInProgress from "../pages/WorkInProgress";
 import BulkReporting from "../components/mainTopics/billing&payments/customerDetails/reports/BulkReporting";
 import OrdinaryReadingHistory from "../components/mainTopics/billing&payments/customerDetails/reports/OrdinaryReadingHistory";
 import TransactionHistoryReport from "../components/mainTopics/billing&payments/customerDetails/reports/TransactionHistoryReport";
@@ -118,6 +119,14 @@ const ReportRoutes = () => (
       element={
         <Layout>
           <IncomeExpenditure />
+        </Layout>
+      }
+    />
+    <Route
+      path="/report/WorkInProgress"
+      element={
+        <Layout>
+          <WorkInProgress />
         </Layout>
       }
     />

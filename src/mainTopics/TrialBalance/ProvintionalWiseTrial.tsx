@@ -127,7 +127,7 @@ const ProvintionalWiseTrial: React.FC = () => {
     setTrialLoading(true);
     setTrialError(null);
     try {
-      const apiUrl = `/misapi/api/trialbalance?companyId=${selectedCompany.compId}&month=${selectedMonth}&year=${selectedYear}`;
+      const apiUrl = `/provincetrial/api/trialbalance?companyId=${selectedCompany.compId}&month=${selectedMonth}&year=${selectedYear}`;
      
       const response = await fetch(apiUrl, {
         credentials: 'include',
@@ -209,9 +209,9 @@ const ProvintionalWiseTrial: React.FC = () => {
    
     // Use TitleFlag first, then fall back to AccountCode pattern
     if (titleFlag === 'A' || firstChar === '1') return 'Assets';
+    if (titleFlag === 'E' || firstChar === '5' || firstChar === '6') return 'Expenditure';
     if (titleFlag === 'L' || firstChar === '2' || firstChar === '3') return 'Liabilities';
     if (titleFlag === 'R' || firstChar === '4') return 'Revenue';
-    if (titleFlag === 'E' || firstChar === '5' || firstChar === '6') return 'Expenditure';
    
     return 'Other';
   };
@@ -228,8 +228,9 @@ const ProvintionalWiseTrial: React.FC = () => {
       'Other': {}
     };
 
-    // Initialize all cost centers for each category
-    Object.keys(categoryTotals).forEach(category => {
+    // Initialize all cost centers for each category in correct order
+    const categoryOrder = ['Assets', 'Expenditure', 'Liabilities', 'Revenue', 'Other'];
+    categoryOrder.forEach(category => {
       costCenters.forEach(cc => {
         categoryTotals[category][cc] = 0;
       });
@@ -309,9 +310,9 @@ const ProvintionalWiseTrial: React.FC = () => {
       return numValue < 0 ? `(${formatted})` : formatted;
     };
 
-    // Sort grouped data by category
+    // Sort grouped data by category in correct order: Assets, Expenditure, Liabilities, Revenue, Other
     const sortedEntries = Object.values(grouped).sort((a, b) => {
-      const categoryOrder: { [key: string]: number } = { 'Assets': 1, 'Liabilities': 2, 'Revenue': 3, 'Expenditure': 4, 'Other': 5 };
+      const categoryOrder: { [key: string]: number } = { 'Assets': 1, 'Expenditure': 2, 'Liabilities': 3, 'Revenue': 4, 'Other': 5 };
       const aCat = getCategory(a.AccountCode, a.TitleFlag);
       const bCat = getCategory(b.AccountCode, b.TitleFlag);
       return (categoryOrder[aCat] || 6) - (categoryOrder[bCat] || 6);
@@ -336,11 +337,23 @@ const ProvintionalWiseTrial: React.FC = () => {
     sortedEntries.forEach((row, index) => {
       const rowCategory = getCategory(row.AccountCode, row.TitleFlag);
       
-      // Add category header if category changes
+      // Add enhanced category header if category changes
       if (rowCategory !== currentCategory) {
         currentCategory = rowCategory;
         csvRows.push(['']); // Empty row for spacing
-        csvRows.push([`=== ${rowCategory.toUpperCase()} ===`]); // Category separator
+        
+        // Get category info for CSV
+        const getCategoryInfo = (cat: string) => {
+          switch (cat) {
+            case 'Assets': return '🏦 ASSETS';
+            case 'Expenditure': return '💸 EXPENDITURE';
+            case 'Liabilities': return '📋 LIABILITIES';
+            case 'Revenue': return '💰 REVENUE';
+            default: return '📊 OTHER - Miscellaneous accounts';
+          }
+        };
+        
+        csvRows.push([`=== ${getCategoryInfo(rowCategory)} ===`]); // Enhanced category separator
       }
       
       // Calculate row total
@@ -360,11 +373,21 @@ const ProvintionalWiseTrial: React.FC = () => {
       const isLastInCategory = nextIndex >= sortedEntries.length || 
                               getCategory(sortedEntries[nextIndex].AccountCode, sortedEntries[nextIndex].TitleFlag) !== currentCategory;
       
-      // Add category total if this is the last row of the category
+      // Add enhanced category total if this is the last row of the category
       if (isLastInCategory) {
+        const getCategoryIcon = (cat: string) => {
+          switch (cat) {
+            case 'Assets': return '🏦';
+            case 'Expenditure': return '💸';
+            case 'Liabilities': return '📋';
+            case 'Revenue': return '💰';
+            default: return '📊';
+          }
+        };
+        
         const categoryTotalRow = [
           '',
-          `TOTAL ${rowCategory.toUpperCase()}`,
+          `${getCategoryIcon(rowCategory)} TOTAL ${rowCategory.toUpperCase()}`,
           ...costCenters.map(cc => formatNumberCSV(categoryTotals[rowCategory][cc] || 0)),
           formatNumberCSV(categoryTotals[rowCategory]['total'] || 0)
         ];
@@ -433,19 +456,32 @@ const ProvintionalWiseTrial: React.FC = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    // Generate table rows HTML for each category
+    // Generate table rows HTML for each category in correct order
     let tableRowsHTML = '';
    
-    ['Assets', 'Liabilities', 'Revenue', 'Expenditure', 'Other'].forEach(category => {
+    ['Assets', 'Expenditure', 'Liabilities', 'Revenue', 'Other'].forEach(category => {
       const categoryRows = Object.values(grouped).filter(row =>
         getCategory(row.AccountCode, row.TitleFlag) === category
       );
      
       if (categoryRows.length > 0) {
-        // Category header
+        // Enhanced Category header
+        const getCategoryInfo = (cat: string) => {
+          switch (cat) {
+            case 'Assets': return { icon: '🏦', desc: 'ASSETS - What the company owns' };
+            case 'Expenditure': return { icon: '💸', desc: 'EXPENDITURE - What the company spends' };
+            case 'Liabilities': return { icon: '📋', desc: 'LIABILITIES - What the company owes' };
+            case 'Revenue': return { icon: '💰', desc: 'REVENUE - What the company earns' };
+            default: return { icon: '📊', desc: 'OTHER - Miscellaneous accounts' };
+          }
+        };
+        const categoryInfo = getCategoryInfo(category);
+        
         tableRowsHTML += `
           <tr class="category-header">
-            <td colspan="${costCenters.length + 3}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">${category.toUpperCase()}</td>
+            <td colspan="${costCenters.length + 3}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000; border-top: 2px solid #7A0000; border-bottom: 2px solid #7A0000; padding: 8px;">
+              ${categoryInfo.icon} ${categoryInfo.desc}
+            </td>
           </tr>
         `;
        
@@ -464,10 +500,12 @@ const ProvintionalWiseTrial: React.FC = () => {
           `;
         });
        
-        // Category total
+        // Enhanced Category total
         tableRowsHTML += `
           <tr class="category-total">
-            <td colspan="2" style="padding: 6px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">TOTAL ${category.toUpperCase()}</td>
+            <td colspan="2" style="padding: 6px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold; color: #7A0000; border-top: 2px solid #7A0000;">
+              ${categoryInfo.icon} TOTAL ${category.toUpperCase()}
+            </td>
             ${costCenters.map(cc => `
               <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
                 ${formatNumber(categoryTotals[category][cc])}
@@ -918,19 +956,35 @@ const ProvintionalWiseTrial: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {['Assets', 'Liabilities', 'Revenue', 'Expenditure', 'Other'].map(category => {
+                    {['Assets', 'Expenditure', 'Liabilities', 'Revenue', 'Other'].map(category => {
                       const categoryRows = Object.values(grouped).filter(row =>
                         getCategory(row.AccountCode, row.TitleFlag) === category
                       );
                      
                       if (categoryRows.length === 0) return null;
                      
+                      // Get category icon and description
+                      const getCategoryInfo = (cat: string) => {
+                        switch (cat) {
+                          case 'Assets': return { icon: '🏦', desc: 'ASSETS' };
+                          case 'Expenditure': return { icon: '💸', desc: 'EXPENDITURE' };
+                          case 'Liabilities': return { icon: '📋', desc: 'LIABILITIES' };
+                          case 'Revenue': return { icon: '💰', desc: 'REVENUE' };
+                          default: return { icon: '📊', desc: 'OTHER - Miscellaneous accounts' };
+                        }
+                      };
+                     
+                      const categoryInfo = getCategoryInfo(category);
+                     
                       return (
                         <React.Fragment key={category}>
-                          {/* Category Header */}
-                          <tr className="bg-gray-100 border-t border-b border-gray-300">
-                            <td colSpan={costCenters.length + 3} className="px-2 py-1 font-medium text-center text-[#7A0000]">
-                              {category.toUpperCase()}
+                          {/* Enhanced Category Header */}
+                          <tr className="bg-gradient-to-r from-gray-100 to-gray-200 border-t-2 border-b-2 border-[#7A0000]">
+                            <td colSpan={costCenters.length + 3} className="px-3 py-2 font-bold text-center text-[#7A0000] text-sm">
+                              <div className="flex items-center justify-center gap-2">
+                                <span className="text-lg">{categoryInfo.icon}</span>
+                                <span>{categoryInfo.desc}</span>
+                              </div>
                             </td>
                           </tr>
                          
@@ -953,10 +1007,15 @@ const ProvintionalWiseTrial: React.FC = () => {
                             );
                           })}
                          
-                          {/* Category Total Row */}
-                          <tr className="bg-gray-100 font-bold border-t">
-                            <td className="px-2 py-1 sticky left-0 bg-gray-100"></td>
-                            <td className="px-2 py-1 sticky left-0 bg-gray-100">TOTAL {category.toUpperCase()}</td>
+                          {/* Enhanced Category Total Row */}
+                          <tr className="bg-gradient-to-r from-gray-200 to-gray-300 font-bold border-t-2 border-[#7A0000]">
+                            <td className="px-2 py-1 sticky left-0 bg-gray-200"></td>
+                            <td className="px-2 py-1 sticky left-0 bg-gray-200 text-[#7A0000]">
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm">{categoryInfo.icon}</span>
+                                <span>TOTAL {category.toUpperCase()}</span>
+                              </div>
+                            </td>
                             {costCenters.map((cc) => (
                               <td key={cc} className="px-2 py-1 text-right font-mono">
                                 {formatNumber(categoryTotals[category][cc])}
