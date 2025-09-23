@@ -51,6 +51,19 @@ export default defineConfig({
         target: 'http://localhost:44381',
         changeOrigin: true,
         secure: false
+      },
+      '/workprogress': {
+        target: 'http://localhost:44381',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/workprogress/, "")
+      },
+
+      '/materials': {
+        target: 'http://localhost:44381',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/materials/, "")
       }
 
 

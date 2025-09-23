@@ -110,11 +110,11 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
             </div>
             {deptLoading ? (
               <div className="text-center p-4 text-sm text-gray-500 animate-pulse">
-                Loading departments...
+                Loading cost centers...
               </div>
             ) : filteredDepartments.length === 0 ? (
               <div className="text-center p-4 text-sm text-gray-600 bg-gray-100 rounded">
-                {departments.length === 0 ? "No departments found." : "No departments match your search."}
+                {departments.length === 0 ? "No cost centers found." : "No cost centers match your search."}
               </div>
             ) : (
               <div className="overflow-x-auto rounded-lg border border-gray-200">

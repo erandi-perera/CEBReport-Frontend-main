@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FaSearch, FaSyncAlt, FaEye, FaDownload, FaPrint, FaTimes } from "react-icons/fa";
+import { ChevronLeft } from "lucide-react";
 import { useUser } from "../../contexts/UserContext";
 
 interface Company {
@@ -30,7 +31,6 @@ const ProvintionalWiseTrial: React.FC = () => {
   const [filtered, setFiltered] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 9;
 
@@ -93,7 +93,6 @@ const ProvintionalWiseTrial: React.FC = () => {
        
         setData(final);
         setFiltered(final);
-        setLastUpdated(new Date());
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -127,7 +126,7 @@ const ProvintionalWiseTrial: React.FC = () => {
     setTrialLoading(true);
     setTrialError(null);
     try {
-      const apiUrl = `/misapi/api/trialbalance?companyId=${selectedCompany.compId}&month=${selectedMonth}&year=${selectedYear}`;
+      const apiUrl = `/provincetrial/api/trialbalance?companyId=${selectedCompany.compId}&month=${selectedMonth}&year=${selectedYear}`;
      
       const response = await fetch(apiUrl, {
         credentials: 'include',
@@ -209,9 +208,9 @@ const ProvintionalWiseTrial: React.FC = () => {
    
     // Use TitleFlag first, then fall back to AccountCode pattern
     if (titleFlag === 'A' || firstChar === '1') return 'Assets';
+    if (titleFlag === 'E' || firstChar === '5' || firstChar === '6') return 'Expenditure';
     if (titleFlag === 'L' || firstChar === '2' || firstChar === '3') return 'Liabilities';
     if (titleFlag === 'R' || firstChar === '4') return 'Revenue';
-    if (titleFlag === 'E' || firstChar === '5' || firstChar === '6') return 'Expenditure';
    
     return 'Other';
   };
@@ -228,8 +227,9 @@ const ProvintionalWiseTrial: React.FC = () => {
       'Other': {}
     };
 
-    // Initialize all cost centers for each category
-    Object.keys(categoryTotals).forEach(category => {
+    // Initialize all cost centers for each category in correct order
+    const categoryOrder = ['Assets', 'Expenditure', 'Liabilities', 'Revenue', 'Other'];
+    categoryOrder.forEach(category => {
       costCenters.forEach(cc => {
         categoryTotals[category][cc] = 0;
       });
@@ -309,9 +309,9 @@ const ProvintionalWiseTrial: React.FC = () => {
       return numValue < 0 ? `(${formatted})` : formatted;
     };
 
-    // Sort grouped data by category
+    // Sort grouped data by category in correct order: Assets, Expenditure, Liabilities, Revenue, Other
     const sortedEntries = Object.values(grouped).sort((a, b) => {
-      const categoryOrder: { [key: string]: number } = { 'Assets': 1, 'Liabilities': 2, 'Revenue': 3, 'Expenditure': 4, 'Other': 5 };
+      const categoryOrder: { [key: string]: number } = { 'Assets': 1, 'Expenditure': 2, 'Liabilities': 3, 'Revenue': 4, 'Other': 5 };
       const aCat = getCategory(a.AccountCode, a.TitleFlag);
       const bCat = getCategory(b.AccountCode, b.TitleFlag);
       return (categoryOrder[aCat] || 6) - (categoryOrder[bCat] || 6);
@@ -336,11 +336,23 @@ const ProvintionalWiseTrial: React.FC = () => {
     sortedEntries.forEach((row, index) => {
       const rowCategory = getCategory(row.AccountCode, row.TitleFlag);
       
-      // Add category header if category changes
+      // Add enhanced category header if category changes
       if (rowCategory !== currentCategory) {
         currentCategory = rowCategory;
         csvRows.push(['']); // Empty row for spacing
-        csvRows.push([`=== ${rowCategory.toUpperCase()} ===`]); // Category separator
+        
+        // Get category info for CSV
+        const getCategoryInfo = (cat: string) => {
+          switch (cat) {
+            case 'Assets': return '🏦 ASSETS';
+            case 'Expenditure': return '💸 EXPENDITURE';
+            case 'Liabilities': return '📋 LIABILITIES';
+            case 'Revenue': return '💰 REVENUE';
+            default: return '📊 OTHER - Miscellaneous accounts';
+          }
+        };
+        
+        csvRows.push([`=== ${getCategoryInfo(rowCategory)} ===`]); // Enhanced category separator
       }
       
       // Calculate row total
@@ -360,11 +372,21 @@ const ProvintionalWiseTrial: React.FC = () => {
       const isLastInCategory = nextIndex >= sortedEntries.length || 
                               getCategory(sortedEntries[nextIndex].AccountCode, sortedEntries[nextIndex].TitleFlag) !== currentCategory;
       
-      // Add category total if this is the last row of the category
+      // Add enhanced category total if this is the last row of the category
       if (isLastInCategory) {
+        const getCategoryIcon = (cat: string) => {
+          switch (cat) {
+            case 'Assets': return '🏦';
+            case 'Expenditure': return '💸';
+            case 'Liabilities': return '📋';
+            case 'Revenue': return '💰';
+            default: return '📊';
+          }
+        };
+        
         const categoryTotalRow = [
           '',
-          `TOTAL ${rowCategory.toUpperCase()}`,
+          `${getCategoryIcon(rowCategory)} TOTAL ${rowCategory.toUpperCase()}`,
           ...costCenters.map(cc => formatNumberCSV(categoryTotals[rowCategory][cc] || 0)),
           formatNumberCSV(categoryTotals[rowCategory]['total'] || 0)
         ];
@@ -433,19 +455,32 @@ const ProvintionalWiseTrial: React.FC = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    // Generate table rows HTML for each category
+    // Generate table rows HTML for each category in correct order
     let tableRowsHTML = '';
    
-    ['Assets', 'Liabilities', 'Revenue', 'Expenditure', 'Other'].forEach(category => {
+    ['Assets', 'Expenditure', 'Liabilities', 'Revenue', 'Other'].forEach(category => {
       const categoryRows = Object.values(grouped).filter(row =>
         getCategory(row.AccountCode, row.TitleFlag) === category
       );
      
       if (categoryRows.length > 0) {
-        // Category header
+        // Enhanced Category header
+        const getCategoryInfo = (cat: string) => {
+          switch (cat) {
+            case 'Assets': return { icon: '🏦', desc: 'ASSETS - What the company owns' };
+            case 'Expenditure': return { icon: '💸', desc: 'EXPENDITURE - What the company spends' };
+            case 'Liabilities': return { icon: '📋', desc: 'LIABILITIES - What the company owes' };
+            case 'Revenue': return { icon: '💰', desc: 'REVENUE - What the company earns' };
+            default: return { icon: '📊', desc: 'OTHER - Miscellaneous accounts' };
+          }
+        };
+        const categoryInfo = getCategoryInfo(category);
+        
         tableRowsHTML += `
           <tr class="category-header">
-            <td colspan="${costCenters.length + 3}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">${category.toUpperCase()}</td>
+            <td colspan="${costCenters.length + 3}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000; border-top: 2px solid #7A0000; border-bottom: 2px solid #7A0000; padding: 8px;">
+              ${categoryInfo.icon} ${categoryInfo.desc}
+            </td>
           </tr>
         `;
        
@@ -464,10 +499,12 @@ const ProvintionalWiseTrial: React.FC = () => {
           `;
         });
        
-        // Category total
+        // Enhanced Category total
         tableRowsHTML += `
           <tr class="category-total">
-            <td colspan="2" style="padding: 6px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">TOTAL ${category.toUpperCase()}</td>
+            <td colspan="2" style="padding: 6px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold; color: #7A0000; border-top: 2px solid #7A0000;">
+              ${categoryInfo.icon} TOTAL ${category.toUpperCase()}
+            </td>
             ${costCenters.map(cc => `
               <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">
                 ${formatNumber(categoryTotals[category][cc])}
@@ -639,26 +676,7 @@ const ProvintionalWiseTrial: React.FC = () => {
     <>
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 className={`text-xl font-bold ${maroon}`}>
-            Company Details
-            <span className="ml-2 text-xs text-gray-500">(Total: {filtered.length})</span>
-          </h2>
-          {epfNo && (
-            <div className="text-xs text-gray-600 mt-1 space-y-1">
-              <p>
-                EPF Number: <span className="font-mono font-medium">{epfNo}</span>
-              </p>
-              {user?.Name && (
-                <p>
-                  User: <span className="font-medium">{user.Name}</span>
-                </p>
-              )}
-            </div>
-          )}
         </div>
-        {lastUpdated && (
-          <p className="text-[10px] text-gray-400">Last updated: {lastUpdated.toLocaleString()}</p>
-        )}
       </div>
 
       <div className="flex flex-wrap gap-3 justify-end mb-4">
@@ -699,20 +717,6 @@ const ProvintionalWiseTrial: React.FC = () => {
         </div>
       )}
 
-      {/* No EPF Number State */}
-      {!loading && !epfNo && (
-        <div className="text-center py-8">
-          <div className="text-gray-400 mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-700 mb-2">Authentication Required</h3>
-          <p className="text-gray-500 text-center max-w-md">
-            No EPF number available. Please <strong>login again</strong> to access this feature.
-          </p>
-        </div>
-      )}
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -720,11 +724,11 @@ const ProvintionalWiseTrial: React.FC = () => {
         </div>
       )}
 
-      {!loading && !error && epfNo && filtered.length === 0 && (
+      {!loading && !error && filtered.length === 0 && (
         <div className="text-gray-600 bg-gray-100 p-4 rounded">No companies found.</div>
       )}
 
-      {!loading && !error && epfNo && filtered.length > 0 && (
+      {!loading && !error && filtered.length > 0 && (
         <>
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <div className="max-h-[70vh] overflow-y-auto">
@@ -839,7 +843,7 @@ const ProvintionalWiseTrial: React.FC = () => {
               onClick={() => setShowDateSelection(false)}
               className="bg-gray-500 text-white py-2 px-6 rounded hover:brightness-110 text-sm"
             >
-              Back
+              Back to Home
             </button>
             <button
               onClick={fetchTrialBalanceData}
@@ -864,29 +868,13 @@ const ProvintionalWiseTrial: React.FC = () => {
       <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
         <div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
           <div className="p-5 border-b">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <h2 className="text-base font-bold text-gray-800">
-                  MONTHLY TRIAL BALANCE - {getMonthName(selectedMonth).toUpperCase()} {selectedYear}
-                </h2>
-                <h3 className={`text-sm ${maroon}`}>
-                  Company: {selectedCompany.compId} - {selectedCompany.CompName}
-                </h3>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={downloadAsCSV}
-                  className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 text-xs"
-                >
-                  <FaDownload className="w-3 h-3" /> Export CSV
-                </button>
-                <button
-                  onClick={printPDF}
-                  className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 text-xs"
-                >
-                  <FaPrint className="w-3 h-3" /> Print PDF
-                </button>
-              </div>
+            <div className="space-y-1">
+              <h2 className="text-base font-bold text-gray-800">
+                MONTHLY TRIAL BALANCE - {getMonthName(selectedMonth).toUpperCase()} {selectedYear}
+              </h2>
+              <h3 className={`text-sm ${maroon}`}>
+                Company: {selectedCompany.compId} - {selectedCompany.CompName}
+              </h3>
             </div>
             {trialError && (
               <div className="text-red-600 text-xs mt-2 text-center">
@@ -905,8 +893,43 @@ const ProvintionalWiseTrial: React.FC = () => {
                 No data found
               </div>
             ) : (
-              <div className="w-full overflow-x-auto text-xs">
-                <table className="w-full border-collapse">
+              <div>
+                {/* Buttons section above table */}
+                <div className="flex justify-between items-center mb-2">
+                  <div></div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={downloadAsCSV}
+                      className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                    >
+                      <FaDownload className="w-3 h-3" /> CSV
+                    </button>
+                    <button
+                      onClick={printPDF}
+                      className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
+                    >
+                      <FaPrint className="w-3 h-3" /> PDF
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTrialModalOpen(false);
+                        setShowDateSelection(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Back to Date Selection
+                    </button>
+                    <button
+                      onClick={closeTrialModal}
+                      className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`} 
+                    >
+                      Back To Home
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="w-full overflow-x-auto text-xs">
+                  <table className="w-full border-collapse">
                   <thead>
                     <tr className={`${maroonBg} text-white`}>
                       <th className="px-2 py-1 text-left sticky left-0 bg-[#7A0000] z-10">Account</th>
@@ -918,19 +941,35 @@ const ProvintionalWiseTrial: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {['Assets', 'Liabilities', 'Revenue', 'Expenditure', 'Other'].map(category => {
+                    {['Assets', 'Expenditure', 'Liabilities', 'Revenue', 'Other'].map(category => {
                       const categoryRows = Object.values(grouped).filter(row =>
                         getCategory(row.AccountCode, row.TitleFlag) === category
                       );
                      
                       if (categoryRows.length === 0) return null;
                      
+                      // Get category icon and description
+                      const getCategoryInfo = (cat: string) => {
+                        switch (cat) {
+                          case 'Assets': return { icon: '🏦', desc: 'ASSETS' };
+                          case 'Expenditure': return { icon: '💸', desc: 'EXPENDITURE' };
+                          case 'Liabilities': return { icon: '📋', desc: 'LIABILITIES' };
+                          case 'Revenue': return { icon: '💰', desc: 'REVENUE' };
+                          default: return { icon: '📊', desc: 'OTHER - Miscellaneous accounts' };
+                        }
+                      };
+                     
+                      const categoryInfo = getCategoryInfo(category);
+                     
                       return (
                         <React.Fragment key={category}>
-                          {/* Category Header */}
-                          <tr className="bg-gray-100 border-t border-b border-gray-300">
-                            <td colSpan={costCenters.length + 3} className="px-2 py-1 font-medium text-center text-[#7A0000]">
-                              {category.toUpperCase()}
+                          {/* Enhanced Category Header */}
+                          <tr className="bg-gradient-to-r from-gray-100 to-gray-200 border-t-2 border-b-2 border-[#7A0000]">
+                            <td colSpan={costCenters.length + 3} className="px-3 py-2 font-bold text-center text-[#7A0000] text-sm">
+                              <div className="flex items-center justify-center gap-2">
+                                <span className="text-lg">{categoryInfo.icon}</span>
+                                <span>{categoryInfo.desc}</span>
+                              </div>
                             </td>
                           </tr>
                          
@@ -953,10 +992,15 @@ const ProvintionalWiseTrial: React.FC = () => {
                             );
                           })}
                          
-                          {/* Category Total Row */}
-                          <tr className="bg-gray-100 font-bold border-t">
-                            <td className="px-2 py-1 sticky left-0 bg-gray-100"></td>
-                            <td className="px-2 py-1 sticky left-0 bg-gray-100">TOTAL {category.toUpperCase()}</td>
+                          {/* Enhanced Category Total Row */}
+                          <tr className="bg-gradient-to-r from-gray-200 to-gray-300 font-bold border-t-2 border-[#7A0000]">
+                            <td className="px-2 py-1 sticky left-0 bg-gray-200"></td>
+                            <td className="px-2 py-1 sticky left-0 bg-gray-200 text-[#7A0000]">
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm">{categoryInfo.icon}</span>
+                                <span>TOTAL {category.toUpperCase()}</span>
+                              </div>
+                            </td>
                             {costCenters.map((cc) => (
                               <td key={cc} className="px-2 py-1 text-right font-mono">
                                 {formatNumber(categoryTotals[category][cc])}
@@ -987,17 +1031,10 @@ const ProvintionalWiseTrial: React.FC = () => {
                       </td>
                     </tr>
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             )}
-          </div>
-          <div className="p-5 border-t flex justify-center">
-            <button
-              onClick={closeTrialModal}
-              className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
-            >
-              Back To Home
-            </button>
           </div>
         </div>
       </div>

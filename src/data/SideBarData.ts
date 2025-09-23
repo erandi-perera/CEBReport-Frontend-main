@@ -137,7 +137,7 @@ export const data = [
     id: 8,
     name: "Inventory",
     icon: FaBoxes,
-    subtopics: [{ id: 59, name: "All Material Details" },
+    subtopics: [{ id: 59, name: "Material Details" },
                   { id: 101, name: "Cost Center wise Quantity on Hand" },
 
                 { id: 100, name: "Average Consumptions" }
@@ -167,9 +167,7 @@ export const data = [
            { id: 92, name: "Region Wise Income Expenditure" },
            
               ],
-              
-
-    path: "/report/IncomeExpenditure",
+              path: "/report/IncomeExpenditure",
   },
 
 
@@ -178,10 +176,10 @@ export const data = [
     id: 11,
     name: "Work In Progress",
     icon: FaBalanceScale,
-    subtopics: [{ id: 108, name: "Cost Center Wise Work in Progress" },
-            
-              ],
-              
+    subtopics: [
+                { id: 109, name: "Cost Center Wise Work In Progress With Age Analysis" }
+    ],
+    
 
     path: "/report/WorkInProgress",
   },

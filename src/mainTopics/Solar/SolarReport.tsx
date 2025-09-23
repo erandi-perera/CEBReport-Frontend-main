@@ -124,6 +124,7 @@ const ReportDisplay: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200">
+      
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-[#7A0000]">
           Solar Customer Report
@@ -132,7 +133,7 @@ const ReportDisplay: React.FC = () => {
           onClick={() => navigate("/report-form")}
           className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50"
         >
-          Back to Form
+          Back to Home
         </button>
       </div>
 

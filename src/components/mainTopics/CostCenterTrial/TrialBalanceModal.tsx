@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { FaDownload, FaPrint } from "react-icons/fa";
+import { ChevronLeft } from "lucide-react";
 
 interface TrialBalanceData {
   AcCd: string;
@@ -54,6 +55,27 @@ const TrialBalanceModal: React.FC<TrialBalanceModalProps> = ({
 }) => {
   const printRef = useRef<HTMLDivElement>(null);
   const { categoryTotals, grandTotals } = calculateTotals();
+
+  // Get category icon and description
+  const getCategoryIcon = (category: string): string => {
+    switch (category) {
+      case 'Assets': return '🏦';
+      case 'Expenditure': return '💸';
+      case 'Liabilities': return '📋';
+      case 'Revenue': return '💰';
+      default: return '📊';
+    }
+  };
+
+  const getCategoryDescription = (category: string): string => {
+    switch (category) {
+      case 'Assets': return 'ASSETS';
+      case 'Expenditure': return 'EXPENDITURE';
+      case 'Liabilities': return 'LIABILITIES';
+      case 'Revenue': return 'REVENUE';
+      default: return 'OTHER';
+    }
+  };
   if (!trialModalOpen) return null;
   return (
     <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
@@ -68,18 +90,30 @@ const TrialBalanceModal: React.FC<TrialBalanceModalProps> = ({
                 Cost Center- {trialData.costctr} - {trialData.deptName}
               </h3>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-2">
               <button
                 onClick={downloadAsCSV}
-                className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 text-xs"
+                className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
               >
-                <FaDownload className="w-3 h-3" /> Export CSV
+                <FaDownload className="w-3 h-3" /> CSV
               </button>
               <button
                 onClick={printPDF}
-                className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 text-xs"
+                className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
               >
-                <FaPrint className="w-3 h-3" /> Print PDF
+                <FaPrint className="w-3 h-3" /> PDF
+              </button>
+              <button
+                onClick={goBack}
+                className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+              >
+                <ChevronLeft className="w-4 h-4" /> Back to Date Selection
+              </button>
+              <button
+                onClick={closeTrialModal}
+                className={`px-3 py-1.5 text-xs ${maroonBg} text-white rounded hover:brightness-110`} 
+              >
+                Back To Home
               </button>
             </div>
           </div>
@@ -122,8 +156,13 @@ const TrialBalanceModal: React.FC<TrialBalanceModalProps> = ({
                     return (
                       <React.Fragment key={index}>
                         {showCategoryHeader && (
-                          <tr className="bg-gray-100 border-t border-b border-gray-300">
-                            <td colSpan={6} className="px-2 py-1 font-medium">{currentCategory}</td>
+                          <tr className="bg-gradient-to-r from-gray-100 to-gray-200 border-t-2 border-b-2 border-[#7A0000]">
+                            <td colSpan={6} className="px-3 py-2 font-bold text-center text-[#7A0000] text-sm">
+                              <div className="flex items-center justify-center gap-2">
+                                <span className="text-lg">{getCategoryIcon(currentCategory)}</span>
+                                <span>{getCategoryDescription(currentCategory)}</span>
+                              </div>
+                            </td>
                           </tr>
                         )}
                         <tr className="border-b hover:bg-gray-50">
@@ -135,13 +174,13 @@ const TrialBalanceModal: React.FC<TrialBalanceModalProps> = ({
                           <td className="px-1 py-0.5 text-right font-mono">{formatNumber(row.ClSbal)}</td>
                         </tr>
                         {showCategoryTotal && (
-                          <tr className="bg-gray-100 font-medium border-t">
-                            <td className="px-1 py-0.5 text-xs print:hidden" colSpan={1}>Total {currentCategory}</td>
-                            <td className="px-1 py-0.5 text-xs" colSpan={1}></td>
-                            <td className="px-1 py-0.5 text-right font-mono">{formatNumber(categoryTotals[row.AcCd.charAt(0).toUpperCase()].opening)}</td>
-                            <td className="px-1 py-0.5 text-right font-mono">{formatNumber(categoryTotals[row.AcCd.charAt(0).toUpperCase()].debit)}</td>
-                            <td className="px-1 py-0.5 text-right font-mono">{formatNumber(categoryTotals[row.AcCd.charAt(0).toUpperCase()].credit)}</td>
-                            <td className="px-1 py-0.5 text-right font-mono">{formatNumber(categoryTotals[row.AcCd.charAt(0).toUpperCase()].closing)}</td>
+                          <tr className="bg-gradient-to-r from-gray-200 to-gray-300 font-bold border-t-2 border-[#7A0000]">
+                            <td className="px-2 py-1 text-xs print:hidden" colSpan={1}>Total {getCategoryDescription(currentCategory)}</td>
+                            <td className="px-2 py-1 text-xs" colSpan={1}></td>
+                            <td className="px-2 py-1 text-right font-mono">{formatNumber(categoryTotals[row.AcCd.charAt(0).toUpperCase()].opening)}</td>
+                            <td className="px-2 py-1 text-right font-mono">{formatNumber(categoryTotals[row.AcCd.charAt(0).toUpperCase()].debit)}</td>
+                            <td className="px-2 py-1 text-right font-mono">{formatNumber(categoryTotals[row.AcCd.charAt(0).toUpperCase()].credit)}</td>
+                            <td className="px-2 py-1 text-right font-mono">{formatNumber(categoryTotals[row.AcCd.charAt(0).toUpperCase()].closing)}</td>
                           </tr>
                         )}
                       </React.Fragment>
@@ -163,20 +202,6 @@ const TrialBalanceModal: React.FC<TrialBalanceModalProps> = ({
           )}
         </div>
         <div className="p-5 border-t no-print flex flex-col items-center">
-          {/* New Back button to go to previous page */}
-          <button
-            onClick={goBack}
-            className={`px-4 py-1.5 text-sm bg-gray-500 text-white rounded hover:brightness-110 mb-2`}
-            style={{ marginBottom: '0.5rem' }}
-          >
-            Back
-          </button>
-          <button
-            onClick={closeTrialModal}
-            className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110 mb-2`} 
-          >
-            Back To Home
-          </button>
           <div className="text-xs text-gray-500">
             Generated on: {new Date().toLocaleDateString()} | CEB@2025
           </div>

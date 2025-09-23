@@ -203,13 +203,13 @@ const RegionTrial: React.FC = () => {
 
   const formatNumber = (num: number): string => {
     // Handle undefined, null, or NaN values
-    if (num === undefined || num === null || isNaN(num)) return "0.00";
+    if (num === undefined || num === null || isNaN(num)) return "-";
     
     // Convert to number if it's a string
     const numValue = typeof num === 'string' ? parseFloat(num) : num;
     
     // Handle zero values
-    if (numValue === 0) return "0.00";
+    if (numValue === 0) return "-";
     
     // Get absolute value for formatting
     const absValue = Math.abs(numValue);
@@ -280,7 +280,7 @@ const RegionTrial: React.FC = () => {
       [`Generated on: ${new Date().toLocaleDateString()}`],
       [`Total Records: ${trialBalanceData.length}`],
       [''], // Empty row for spacing
-      ['Account Code', 'Account Name', 'Title Flag', 'Cost Center', 'Company Name', 'Department ID', 'Opening Balance', 'Debit Amount', 'Credit Amount', 'Closing Balance']
+      ['Account Code', 'Account Name', 'Title Flag', 'Cost Center', 'Company Name', 'Cost Center Code', 'Opening Balance', 'Debit Amount', 'Credit Amount', 'Closing Balance']
     ];
 
     // Process data with category grouping
@@ -532,7 +532,7 @@ const RegionTrial: React.FC = () => {
               <th>Title Flag</th>
               <th>Cost Center</th>
               <th>Company Name</th>
-              <th>Department ID</th>
+              <th>Cost Center Code</th>
               <th>Opening Balance</th>
               <th>Debit Amount</th>
               <th>Credit Amount</th>

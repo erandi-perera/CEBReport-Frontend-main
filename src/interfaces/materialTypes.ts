@@ -33,7 +33,8 @@ export type StockBalance = {
   DeptId: string;
   MatNm: string;
   UnitPrice: number;
-  CommittedCost: number;
+  QtyOnHand: number;
+  CommittedCost?: number;
   ReorderQty: number;
   UomCd: string;
   ErrorMessage: string | null;

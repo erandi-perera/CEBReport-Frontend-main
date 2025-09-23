@@ -1,25 +1,25 @@
 import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
-import MaterialMaster from "../mainTopics/inventory/MaterialMaster";
 import SubtopicCard from "../components/shared/SubtopicCard";
-import AverageConsumptions from "../mainTopics/inventory/AverageConsumptions";
-import CostCenterQuantityHnad from "../mainTopics/inventory/CostCenterQuantityHnad";
+import AgeAnalysisCostCenter from "../mainTopics/WorkInProgress/AgeAnalysisCostCenter";
+
+
 type Subtopic = {
   id: number;
   name: string;
 };
 
-const Inventory = () => {
+const WorkInProgress = () => {
   const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
   useEffect(() => {
-    // Get Inventory topic's subtopics directly from sidebarData
-    const inventoryTopic = sidebarData.find(
-      (topic) => topic.name === "Inventory"
+    
+    const analysisTopic = sidebarData.find(
+      (topic) => topic.name === "Work In Progress"
     );
-    if (inventoryTopic) {
-      setSubtopics(inventoryTopic.subtopics);
+    if (analysisTopic) {
+      setSubtopics(analysisTopic.subtopics);
     }
   }, []);
 
@@ -33,14 +33,10 @@ const Inventory = () => {
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-      case "Material Details":
-        return <MaterialMaster />;
-        case "Cost Center wise Quantity on Hand":
-          return <CostCenterQuantityHnad />;
-
-        case "Average Consumptions":
-        return <AverageConsumptions />;
-
+        case "Cost Center Wise Work In Progress With Age Analysis":
+        return <AgeAnalysisCostCenter/>;
+    
+        
         
       default:
         return (
@@ -68,4 +64,4 @@ const Inventory = () => {
   );
 };
 
-export default Inventory;
+export default WorkInProgress;

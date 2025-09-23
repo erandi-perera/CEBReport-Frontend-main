@@ -48,20 +48,20 @@ const AgeAnalysisReport: React.FC<AgeAnalysisReportProps> = ({
         <h3 className="text-lg font-semibold text-[#7A0000]">
           Debtors Age Analysis – {getCustomerTypeDisplay()} Customers
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-2">
           <button 
             onClick={onDownloadCSV}
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+            className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
             disabled={!debtors.length}
           >
-            Export CSV
+            CSV
           </button>
           <button 
             onClick={onPrintPDF}
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+            className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
             disabled={!debtors.length}
           >
-            Print PDF
+            PDF
           </button>
           <button 
             onClick={onBackToForm}
