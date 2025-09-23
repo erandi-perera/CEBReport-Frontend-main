@@ -1055,6 +1055,7 @@ const AgeAnalysis: React.FC = () => {
             >
               PDF
             </button>
+
             <button
               onClick={() => setShowChart(!showChart)}
               className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm text-white"
@@ -1065,7 +1066,7 @@ const AgeAnalysis: React.FC = () => {
             </button>
             <button
               onClick={handleBack}
-              className="px-3 py-1 bg-[#7A0000] hover:bg-[#A52A2A] rounded text-sm text-white"
+              className="px-4 py-1.5 bg-[#7A0000] hover:bg-[#A52A2A] text-xs rounded-md text-white flex items-center"
             >
               Back to Form
             </button>

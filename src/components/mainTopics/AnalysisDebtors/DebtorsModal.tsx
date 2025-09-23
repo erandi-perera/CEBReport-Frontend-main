@@ -110,8 +110,9 @@ const DebtorsModal: React.FC<DebtorsModalProps> = ({
               <button onClick={printPDF} className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition">
                 PDF
               </button>
-              <button onClick={() => setShowModal(false)} className="px-3 py-1.5 text-xs bg-[#7A0000] text-white rounded hover:brightness-110">
-                Back to form
+              <button onClick={() => setShowModal(false)} className="px-4 py-1.5 bg-[#7A0000] hover:bg-[#A52A2A] text-xs rounded-md text-white flex items-center"
+              >
+                Back to Form
               </button>
             </div>
           </div>
