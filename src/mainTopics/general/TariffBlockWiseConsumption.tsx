@@ -7,7 +7,15 @@ interface BillCycleOption {
   isSynthetic?: boolean; // Flag to identify frontend-generated cycles
 }
 
-
+interface OrdinaryTOUModel {
+  tariff: string;
+  kwhpUnits: string;
+  kwhdUnits: string;
+  kwhoUnits: string;
+  kwhpCharge: number;
+  kwhdCharge: number;
+  kwhoCharge: number;
+}
 
 
 const TariffBlockWiseConsumption: React.FC = () => {
@@ -24,6 +32,7 @@ const TariffBlockWiseConsumption: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any[]>([]);
+  const [touData, setTouData] = useState<OrdinaryTOUModel[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
@@ -177,6 +186,7 @@ const TariffBlockWiseConsumption: React.FC = () => {
     setReportLoading(true);
     setReportError(null);
     setReportData([]);
+    setTouData([]);
     
     try {
       const selectedReport = reportTypeOptions.find(r => r.value === formData.reportType);
@@ -233,6 +243,23 @@ const TariffBlockWiseConsumption: React.FC = () => {
       let resultData = [];
       if (formData.reportType === "ordinary") {
         resultData = data.data?.OrdList || data.OrdList || [];
+        // Fetch TOU data for ordinary reports
+        try {
+          console.log("Fetching TOU data for ordinary report");
+          const touResponse = await fetchWithErrorHandling("/CEBINFO_API_2025/api/tariffBlockwiseOrdinaryDataTOU", {
+            method: 'POST',
+            body: JSON.stringify({ billCycle: formData.billCycle })
+          });
+          
+          console.log("TOU API Response:", touResponse);
+          
+          const touResultData = touResponse.data?.OrdTOUList || touResponse.OrdTOUList || [];
+          setTouData(touResultData);
+          console.log("TOU Data set:", touResultData);
+        } catch (touError: any) {
+          console.warn("Failed to fetch TOU data:", touError.message);
+          setTouData([]);
+        }
       } else if (formData.reportType === "bulk") {
         resultData = data.data?.BulkList || data.BulkList || [];
       } else if (formData.reportType === "ordinary-block") {
@@ -320,6 +347,7 @@ const TariffBlockWiseConsumption: React.FC = () => {
     
     let headers: string[] = [];
     let filename = "";
+    let csvRows: string[] = [];
     
     // Set headers based on report type and actual data structure
     if (formData.reportType === "ordinary") {
@@ -331,72 +359,10 @@ const TariffBlockWiseConsumption: React.FC = () => {
         headers = ["Tariff", "No of Accounts", "KWH Units", "KWH Charge", "Fuel Charge", "Tax Charge", "Fixed Charge", "Total Charge"];
       }
       filename = "Ordinary_Tariff_Report";
-    } else if (formData.reportType === "bulk") {
-      headers = ["Tariff", "No of Accounts", "KWO Units", "KWD Units", "KWP Units", "KWH Units", "KVA Units", 
-                 "KWO Charge", "KWD Charge", "KWP Charge", "KWH Charge", "KVA Charge", "Fixed Charge", "Tax Charge", "FAC Charge", "Payments"];
-      filename = "Bulk_Tariff_Report";
-    } else if (formData.reportType === "ordinary-block") {
-      // Always use block structure headers for ordinary-block
-      headers = ["Tariff", "Range", "No of Accounts", "KWH Units", "KWH Charge", "Fixed Charge", "Tax", "FAC", "Payments"];
-      filename = "Ordinary_Block_Tariff_Report";
-    }
-
-    // Create CSV content
-    const csvContent = [
-      `"${reportTypeOptions.find(r => r.value === formData.reportType)?.label} Report"`,
-      `"Bill Cycle: ${billCycleOptions.find(b => b.code === formData.billCycle)?.display}"`,
-      "",
-      headers.map(h => `"${h}"`).join(","),
-      ...reportData.map(row => {
-        if (formData.reportType === "ordinary") {
-          // Handle both traditional and block-wise ordinary data
-          if (row.range !== undefined) {
-            // Block-wise ordinary data
-            return [
-              row.tariff,
-              row.range || "",
-              row.noAccts,
-              row.kwhUnits,
-              formatCurrency(row.kwhCharge),
-              formatCurrency(row.fixedCharge),
-              formatCurrency(row.tax || row.taxCharge || 0),
-              formatCurrency(row.fac || row.facCharge || 0),
-              formatCurrency(row.payments)
-            ].map(cell => `"${cell}"`).join(",");
-          } else {
-            // Traditional ordinary data
-            return [
-              row.tariff?.trim(),
-              row.noAccts,
-              row.kwhUnits,
-              formatCurrency(row.kwhCharge),
-              formatCurrency(row.fuelCharge),
-              formatCurrency(row.taxCharge),
-              formatCurrency(row.fixedCharge),
-              formatCurrency(row.Charge)
-            ].map(cell => `"${cell}"`).join(",");
-          }
-        } else if (formData.reportType === "bulk") {
-          return [
-            row.tariff,
-            row.noAccts,
-            row.kwoUnits,
-            row.kwdUnits,
-            row.kwpUnits,
-            row.kwhUnits,
-            row.kvaUnits,
-            formatCurrency(row.kwoCharge),
-            formatCurrency(row.kwdCharge),
-            formatCurrency(row.kwpCharge),
-            formatCurrency(row.kwhCharge),
-            formatCurrency(row.kvaCharge),
-            formatCurrency(row.fixedCharge),
-            formatCurrency(row.taxCharge),
-            formatCurrency(row.facCharge),
-            formatCurrency(row.payments)
-          ].map(cell => `"${cell}"`).join(",");
-        } else if (formData.reportType === "ordinary-block") {
-          // Always use block structure for ordinary-block
+      // Add main data rows
+      csvRows = reportData.map(row => {
+        if (row.range !== undefined) {
+          // Block-wise ordinary data
           return [
             row.tariff,
             row.range || "",
@@ -408,9 +374,82 @@ const TariffBlockWiseConsumption: React.FC = () => {
             formatCurrency(row.fac || row.facCharge || 0),
             formatCurrency(row.payments)
           ].map(cell => `"${cell}"`).join(",");
+        } else {
+          // Traditional ordinary data
+          return [
+            row.tariff?.trim(),
+            row.noAccts,
+            row.kwhUnits,
+            formatCurrency(row.kwhCharge),
+            formatCurrency(row.fuelCharge),
+            formatCurrency(row.taxCharge),
+            formatCurrency(row.fixedCharge),
+            formatCurrency(row.Charge)
+          ].map(cell => `"${cell}"`).join(",");
         }
-        return "";
-      })
+      });
+      
+      // Add TOU data if available
+      if (touData.length > 0) {
+        csvRows.push(""); // Empty row separator
+        csvRows.push('"TOU"');
+        csvRows.push('"Tariff","KWHP Units","KWHD Units","KWHO Units","KWHP Charge","KWHD Charge","KWHO Charge"');
+        csvRows.push(...touData.map(row => [
+          row.tariff,
+          row.kwhpUnits,
+          row.kwhdUnits,
+          row.kwhoUnits,
+          formatCurrency(row.kwhpCharge),
+          formatCurrency(row.kwhdCharge),
+          formatCurrency(row.kwhoCharge)
+        ].map(cell => `"${cell}"`).join(",")));
+      }
+    } else if (formData.reportType === "bulk") {
+      headers = ["Tariff", "No of Accounts", "KWO Units", "KWD Units", "KWP Units", "KWH Units", "KVA Units", 
+                 "KWO Charge", "KWD Charge", "KWP Charge", "KWH Charge", "KVA Charge", "Fixed Charge", "Tax Charge", "FAC Charge", "Payments"];
+      filename = "Bulk_Tariff_Report";
+      csvRows = reportData.map(row => [
+        row.tariff,
+        row.noAccts,
+        row.kwoUnits,
+        row.kwdUnits,
+        row.kwpUnits,
+        row.kwhUnits,
+        row.kvaUnits,
+        formatCurrency(row.kwoCharge),
+        formatCurrency(row.kwdCharge),
+        formatCurrency(row.kwpCharge),
+        formatCurrency(row.kwhCharge),
+        formatCurrency(row.kvaCharge),
+        formatCurrency(row.fixedCharge),
+        formatCurrency(row.taxCharge),
+        formatCurrency(row.facCharge),
+        formatCurrency(row.payments)
+      ].map(cell => `"${cell}"`).join(","));
+    } else if (formData.reportType === "ordinary-block") {
+      // Always use block structure headers for ordinary-block
+      headers = ["Tariff", "Range", "No of Accounts", "KWH Units", "KWH Charge", "Fixed Charge", "Tax", "FAC", "Payments"];
+      filename = "Ordinary_Block_Tariff_Report";
+      csvRows = reportData.map(row => [
+        row.tariff,
+        row.range || "",
+        row.noAccts,
+        row.kwhUnits,
+        formatCurrency(row.kwhCharge),
+        formatCurrency(row.fixedCharge),
+        formatCurrency(row.tax || row.taxCharge || 0),
+        formatCurrency(row.fac || row.facCharge || 0),
+        formatCurrency(row.payments)
+      ].map(cell => `"${cell}"`).join(","));
+    }
+
+    // Create CSV content
+    const csvContent = [
+      `"${reportTypeOptions.find(r => r.value === formData.reportType)?.label} Report"`,
+      `"Bill Cycle: ${billCycleOptions.find(b => b.code === formData.billCycle)?.display}"`,
+      "",
+      headers.map(h => `"${h}"`).join(","),
+      ...csvRows
     ].join("\n");
 
     // Create and trigger download
@@ -477,6 +516,7 @@ const TariffBlockWiseConsumption: React.FC = () => {
   const handleClose = () => {
     setShowReport(false);
     setReportData([]);
+    setTouData([]);
     setReportError(null);
   };
 
@@ -601,11 +641,11 @@ const TariffBlockWiseConsumption: React.FC = () => {
           <div className="overflow-x-auto">
             {/* Ordinary Report Table */}
             {formData.reportType === "ordinary" && (
+              <>
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="border border-gray-300 px-2 py-1 text-left">Tariff</th>
-                    <th className="border border-gray-300 px-2 py-1 text-center">Range</th>
                     <th className="border border-gray-300 px-2 py-1 text-right">No Accts</th>
                     <th className="border border-gray-300 px-2 py-1 text-right">KWH Units</th>
                     <th className="border border-gray-300 px-2 py-1 text-right">KWH Charge Rs.</th>
@@ -619,7 +659,6 @@ const TariffBlockWiseConsumption: React.FC = () => {
                   {reportData.map((row, index) => (
                     <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                       <td className="border border-gray-300 px-2 py-1">{row.tariff}</td>
-                      <td className="border border-gray-300 px-2 py-1 text-center">{row.range || ""}</td>
                       <td className="border border-gray-300 px-2 py-1 text-right">{parseInt(row.noAccts || 0).toLocaleString()}</td>
                       <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwhUnits || 0).toLocaleString()}</td>
                       <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhCharge)}</td>
@@ -631,6 +670,39 @@ const TariffBlockWiseConsumption: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              {/* TOU Table for Ordinary Reports */}
+                {touData.length > 0 && (
+                  <div className="mt-8">
+                    <h4 className="text-md font-semibold text-[#7A0000] mb-4">TOU</h4>
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border border-gray-300 px-2 py-1 text-left">Tariff</th>
+                          <th className="border border-gray-300 px-2 py-1 text-right">KWHP Units</th>
+                          <th className="border border-gray-300 px-2 py-1 text-right">KWHD Units</th>
+                          <th className="border border-gray-300 px-2 py-1 text-right">KWHO Units</th>
+                          <th className="border border-gray-300 px-2 py-1 text-right">KWHP Charge</th>
+                          <th className="border border-gray-300 px-2 py-1 text-right">KWHD Charge</th>
+                          <th className="border border-gray-300 px-2 py-1 text-right">KWHO Charge</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {touData.map((row, index) => (
+                          <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                            <td className="border border-gray-300 px-2 py-1">{row.tariff}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwhpUnits || '0').toLocaleString()}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwhdUnits || '0').toLocaleString()}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-right">{parseFloat(row.kwhoUnits || '0').toLocaleString()}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhpCharge)}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhdCharge)}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(row.kwhoCharge)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>  
             )}
 
             {/* Bulk Report Table */}

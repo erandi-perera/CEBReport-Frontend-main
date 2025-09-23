@@ -56,10 +56,10 @@ export const data = [
       { id: 25, name: "Transaction analysis (incl. Prov. Data)" },
       { id: 26, name: "Age analysis for solar customer" },
      
-      { id: 28, name: "Debtors age analysis (individual customers)" },
+      // { id: 28, name: "Debtors age analysis (individual customers)" },
       { id: 29, name: "Financial analysis" },
       { id: 30, name: "Assessed unit analysis" },
-      { id: 32, name: "unit analysis" },
+      // { id: 32, name: "unit analysis" },
     ],
     path: "/report/analysis",
   },

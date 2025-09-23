@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { FaArrowLeft } from "react-icons/fa";
 
 interface Area {
     AreaCode: string;
@@ -1134,7 +1135,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                                     />
                                 </svg>
-                                Export CSV
+                                CSV
                             </button>
                             <button
                                 onClick={printPDF}
@@ -1154,13 +1155,14 @@ const SolarProgressClarificationBulk: React.FC = () => {
                                         d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z"
                                     />
                                 </svg>
-                                Print PDF
+                                PDF
                             </button>
                             <button
                                 onClick={() => setReportVisible(false)}
-                                className="px-4 py-1.5 bg-[#7A0000] hover:bg-[#A52A2A] text-xs rounded-md text-white flex items-center"
+                                className="px-4 py-1.5 bg-[#7A0000] hover:bg-[#A52A2A] text-xs rounded-md text-white flex items-center gap-1"
                                 >
-                                    Back to Form
+                                    <FaArrowLeft className="w-3 h-3" />
+                                    Back
                             </button>
 
                         </div>
