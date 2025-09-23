@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import CostCenterTable from "../../components/mainTopics/CostCenterTrial/CostCenterTable";
-import DepartmentModal from "../../components/mainTopics/CostCenterTrial/DepartmentModal";
+import { FaSearch, FaSyncAlt, FaEye } from "react-icons/fa";
 import TrialBalanceModal from "../../components/mainTopics/CostCenterTrial/TrialBalanceModal";
 import { useUser } from "../../contexts/UserContext";
 
@@ -9,10 +8,6 @@ interface CostCenter {
   CompName: string;
 }
 
-interface Department {
-  DeptId: string;
-  DeptName: string;
-}
 
 interface TrialBalanceData {
   AcCd: string;
@@ -36,15 +31,9 @@ const CostCenterTrial: React.FC = () => {
   const [filtered, setFiltered] = useState<CostCenter[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [page, setPage] = useState(1);
-  const pageSize = 50;
+  const pageSize = 9;
 
-  // Department modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedCompName, setSelectedCompName] = useState<string | null>(null);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [deptLoading, setDeptLoading] = useState(false);
 
   // Trial balance modal state
   const [trialModalOpen, setTrialModalOpen] = useState(false);
@@ -67,13 +56,7 @@ const CostCenterTrial: React.FC = () => {
   useEffect(() => {
     console.log('Current user:', user);
     console.log('EPF Number being used:', epfNo);
-    
-    // Test formatNumber function with various values
-    console.log('Testing formatNumber:');
-    console.log('formatNumber(-5000):', formatNumber(-5000));
-    console.log('formatNumber(-2500.75):', formatNumber(-2500.75));
-    console.log('formatNumber(1500.50):', formatNumber(1500.50));
-    console.log('formatNumber(0):', formatNumber(0));
+    console.log('User Userno field:', user?.Userno);
   }, [user, epfNo]);
 
   // Colors
@@ -93,21 +76,60 @@ const CostCenterTrial: React.FC = () => {
 
       setLoading(true);
       try {
-        const res = await fetch(`/misapi/api/incomeexpenditure/Usercompanies/${epfNo}/70`);
+        const res = await fetch(`/misapi/api/incomeexpenditure/departments/${epfNo}`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         
         const txt = await res.text();
+        console.log('Raw API response:', txt);
         const parsed = JSON.parse(txt);
-        const rawData = Array.isArray(parsed) ? parsed : parsed.data || [];
+        console.log('Parsed API response:', parsed);
+        
+        // Handle different response structures
+        let rawData = [];
+        if (Array.isArray(parsed)) {
+          rawData = parsed;
+        } else if (parsed.data && Array.isArray(parsed.data)) {
+          rawData = parsed.data;
+        } else if (parsed.result && Array.isArray(parsed.result)) {
+          rawData = parsed.result;
+        } else if (parsed.CompId) {
+          rawData = [parsed];
+        }
+        
+        console.log('Raw data extracted:', rawData);
+        
         const final: CostCenter[] = rawData.map((item: any) => ({
-          compId: item.CompId,
-          CompName: item.CompName,
+          compId: item.CompId || item.compId || item.DeptId || item.deptId || '',
+          CompName: item.CompName || item.compName || item.DeptName || item.deptName || '',
         }));
-        setData(final);
-        setFiltered(final);
-        setLastUpdated(new Date());
+        
+        console.log('Final mapped data:', final);
+        
+        // If no data found, show test data for debugging
+        if (final.length === 0) {
+          console.log('No data found, showing test data');
+          const testData: CostCenter[] = [
+            { compId: 'TEST001', CompName: 'Test Division 1' },
+            { compId: 'TEST002', CompName: 'Test Division 2' },
+            { compId: 'TEST003', CompName: 'Test Division 3' },
+          ];
+          setData(testData);
+          setFiltered(testData);
+        } else {
+          setData(final);
+          setFiltered(final);
+        }
       } catch (e: any) {
+        console.error('Error fetching data:', e);
         setError(e.message);
+        
+        // Show test data even on error for debugging
+        const testData: CostCenter[] = [
+          { compId: 'ERROR001', CompName: 'Error Test Division 1' },
+          { compId: 'ERROR002', CompName: 'Error Test Division 2' },
+        ];
+        setData(testData);
+        setFiltered(testData);
       } finally {
         setLoading(false);
       }
@@ -126,28 +148,17 @@ const CostCenterTrial: React.FC = () => {
     setPage(1);
   }, [searchId, searchName, data]);
 
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedCostCenters = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  // Fetch departments for selected cost center
-  const viewDetails = async (compId: string, compName: string) => {
-    setSelectedCompName(compName);
-    setDeptLoading(true);
-    setModalOpen(true);
-    try {
-      const res = await fetch(`/misapi/api/trialbalance/departments/${compId}`);
-      const txt = await res.text();
-      const parsed = JSON.parse(txt);
-      const rawData = Array.isArray(parsed) ? parsed : parsed.data || [];
-      const deptList: Department[] = rawData.map((d: any) => ({
-        DeptId: d.DeptId,
-        DeptName: d.DeptName,
-      }));
-      setDepartments(deptList);
-    } catch (e) {
-      setDepartments([]);
-    } finally {
-      setDeptLoading(false);
-    }
+  // Handle cost center selection
+  const handleCostCenterSelect = (costCenter: CostCenter) => {
+    setTrialData({
+      costctr: costCenter.compId,
+      year: new Date().getFullYear(),
+      month: "January",
+      deptName: costCenter.CompName
+    });
+    setTrialModalOpen(true);
   };
 
   // Fetch trial balance data
@@ -202,23 +213,6 @@ const CostCenterTrial: React.FC = () => {
     setSearchName("");
   };
 
-  const handleSelection = (dept: Department, year: number, month: string) => {
-    setTrialData({
-      costctr: dept.DeptId,
-      year,
-      month,
-      deptName: dept.DeptName
-    });
-    setTrialModalOpen(true);
-    setModalOpen(false);
-  };
-
-  const closeDepartmentModal = () => {
-    setModalOpen(false);
-    setSelectedCompName(null);
-    setDepartments([]);
-  };
-
   const closeTrialModal = () => {
     setTrialModalOpen(false);
     setTrialBalanceData([]);
@@ -226,13 +220,13 @@ const CostCenterTrial: React.FC = () => {
 
   const formatNumber = (num: number): string => {
     // Handle undefined, null, or NaN values
-    if (num === undefined || num === null || isNaN(num)) return "0.00";
+    if (num === undefined || num === null || isNaN(num)) return "-";
     
     // Convert to number if it's a string
     const numValue = typeof num === 'string' ? parseFloat(num) : num;
     
     // Handle zero values
-    if (numValue === 0) return "0.00";
+    if (numValue === 0) return "-";
     
     // Get absolute value for formatting
     const absValue = Math.abs(numValue);
@@ -572,36 +566,122 @@ const CostCenterTrial: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
-      <CostCenterTable
-        filtered={filtered}
-        paginated={paginated}
-        page={page}
-        setPage={setPage}
-        pageSize={pageSize}
-        maroon={maroon}
-        maroonGrad={maroonGrad}
-        viewDetails={viewDetails}
-        loading={loading}
-        error={error}
-        lastUpdated={lastUpdated}
-        searchId={searchId}
-        setSearchId={setSearchId}
-        searchName={searchName}
-        setSearchName={setSearchName}
-        clearFilters={clearFilters}
-        epfNo={epfNo}
-        user={user}
-      />
-      <DepartmentModal
-        modalOpen={modalOpen}
-        closeDepartmentModal={closeDepartmentModal}
-        selectedCompName={selectedCompName}
-        departments={departments}
-        deptLoading={deptLoading}
-        handleSelection={handleSelection}
-        maroon={maroon}
-        maroonBg={maroonBg}
-      />
+      
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className={`text-xl font-bold ${maroon}`}>
+            Cost Center Trial Balance
+          </h2>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <div className="relative">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+            <input
+              type="text"
+              value={searchId}
+              placeholder="Search by Code"
+              onChange={(e) => setSearchId(e.target.value)}
+              className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition"
+            />
+          </div>
+          <div className="relative">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+            <input
+              type="text"
+              value={searchName}
+              placeholder="Search by Name"
+              onChange={(e) => setSearchName(e.target.value)}
+              className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition"
+            />
+          </div>
+          {(searchId || searchName) && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700"
+            >
+              <FaSyncAlt className="w-3 h-3" /> Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading cost centers...</p>
+        </div>
+      )}
+
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          Error: {error}
+        </div>
+      )}
+
+      {/* No Results */}
+      {!loading && !error && filtered.length === 0 && (
+        <div className="text-gray-600 bg-gray-100 p-4 rounded">No cost centers found.</div>
+      )}
+
+      {/* Table */}
+      {!loading && !error && filtered.length > 0 && (
+        <>
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <div className="max-h-[70vh] overflow-y-auto">
+              <table className="w-full table-fixed text-left text-gray-700 text-sm">
+                <thead className={`${maroonGrad} text-white sticky top-0`}>
+                  <tr>
+                    <th className="px-4 py-2 w-1/4">Cost Center Code</th>
+                    <th className="px-4 py-2 w-1/2">Cost Center Name</th>
+                    <th className="px-4 py-2 w-1/4 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedCostCenters.map((costCenter, i) => (
+                    <tr key={`${costCenter.compId}-${i}`} className={i % 2 ? "bg-white" : "bg-gray-50"}>
+                      <td className="px-4 py-2 truncate font-mono">{costCenter.compId}</td>
+                      <td className="px-4 py-2 truncate">{costCenter.CompName}</td>
+                      <td className="px-4 py-2 text-center">
+                        <button
+                          onClick={() => handleCostCenterSelect(costCenter)}
+                          className={`px-3 py-1 ${maroonGrad} text-white rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                        >
+                          <FaEye className="inline-block mr-1 w-3 h-3" /> View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="flex justify-end items-center gap-3 mt-3">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-gray-500">
+              Page {page} of {Math.ceil(filtered.length / pageSize)}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / pageSize), p + 1))}
+              disabled={page >= Math.ceil(filtered.length / pageSize)}
+              className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Trial Balance Modal */}
       <TrialBalanceModal
         trialModalOpen={trialModalOpen}
         closeTrialModal={closeTrialModal}
@@ -618,7 +698,6 @@ const CostCenterTrial: React.FC = () => {
         printPDF={printPDF}
         goBack={() => {
           setTrialModalOpen(false);
-          setModalOpen(true);
         }}
       />
     </div>

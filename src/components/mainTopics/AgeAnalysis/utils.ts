@@ -44,6 +44,7 @@ export const fetchWithErrorHandling = async (url: string) => {
 };
 
 export const formatCurrency = (value: number): string => {
+  if (value === 0) return "-";
   const absValue = Math.abs(value);
   const formatted = absValue.toLocaleString("en-US", {
     minimumFractionDigits: 2,

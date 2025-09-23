@@ -216,6 +216,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
     };
 
     const formatCurrency = (value: number): string => {
+        if (value === 0) return "-";
         return value.toLocaleString("en-US", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -225,6 +226,16 @@ const SolarProgressClarificationBulk: React.FC = () => {
     const downloadAsCSV = () => {
         if (reportType === "detailed" && !detailedData.length) return;
         if (reportType === "summary" && !summaryData.length) return;
+
+        const reportTitle = reportType === "detailed"
+            ? "Solar Progress Detailed Report"
+            : "Solar Progress Summary Report";
+
+        const selectionInfo = selectedOption === "Entire CEB"
+            ? "Entire CEB"
+            : selectedOption === "Area"
+                ? `${selectedOption}: ${selectedAreaName}`
+                : `${selectedOption}: ${inputValue}`;
 
         let csvContent = "";
         let headers: string[] = [];
@@ -245,28 +256,55 @@ const SolarProgressClarificationBulk: React.FC = () => {
                 "To Net Type"
             ];
 
-            rows = detailedData.map(item => [
-                item.Region,
-                item.Province,
-                item.Area,
-                item.AccountNumber,
-                item.NetType,
-                item.Description,
-                item.Capacity,
-                item.FromArea,
-                item.ToArea,
-                item.FromNetType,
-                item.ToNetType
-            ]);
+            // Group data to match the table structure with merged cells
+            const groupedData = detailedData.reduce((acc, item) => {
+                const regionKey = item.Region;
+                const provinceKey = `${item.Region}-${item.Province}`;
+                const areaKey = `${item.Region}-${item.Province}-${item.Area}`;
 
-            // Add totals row if multiple items
-            // if (detailedData.length > 1) {
-            //     rows.push([
-            //         "", "", "", "", "", "TOTAL:",
-            //         formatCurrency(detailedData.reduce((sum, item) => sum + item.Capacity, 0)),
-            //         "", "", "", ""
-            //     ]);
-            // }
+                if (!acc[regionKey]) acc[regionKey] = {};
+                if (!acc[regionKey][provinceKey]) acc[regionKey][provinceKey] = {};
+                if (!acc[regionKey][provinceKey][areaKey]) acc[regionKey][provinceKey][areaKey] = [];
+
+                acc[regionKey][provinceKey][areaKey].push(item);
+                return acc;
+            }, {} as any);
+
+            // Build rows with proper grouping (like merged cells in the table)
+            Object.keys(groupedData).forEach(region => {
+                const regionData = groupedData[region];
+                let isFirstRegionRow = true;
+
+                Object.keys(regionData).forEach(provinceKey => {
+                    const provinceData = regionData[provinceKey];
+                    let isFirstProvinceRow = true;
+
+                    Object.keys(provinceData).forEach(areaKey => {
+                        const areaData = provinceData[areaKey];
+                        let isFirstAreaRow = true;
+
+                        areaData.forEach((item: any) => {
+                            const row = [
+                                isFirstRegionRow ? item.Region : "", // Only show region on first row of region
+                                isFirstProvinceRow ? item.Province : "", // Only show province on first row of province
+                                isFirstAreaRow ? item.Area : "", // Only show area on first row of area
+                                item.AccountNumber,
+                                item.NetType,
+                                item.Description,
+                                item.Capacity,
+                                item.FromArea,
+                                item.ToArea,
+                                item.FromNetType,
+                                item.ToNetType
+                            ];
+                            rows.push(row);
+                            isFirstAreaRow = false;
+                        });
+                        isFirstProvinceRow = false;
+                    });
+                    isFirstRegionRow = false;
+                });
+            });
         } else {
             headers = [
                 "Region",
@@ -277,35 +315,53 @@ const SolarProgressClarificationBulk: React.FC = () => {
                 "Capacity"
             ];
 
-            rows = summaryData.map(item => [
-                item.Region,
-                item.Province,
-                item.Area,
-                item.Description,
-                item.Count,
-                item.Capacity
-            ]);
+            // Group summary data to match the table structure
+            const groupedData = summaryData.reduce((acc, item) => {
+                const regionKey = item.Region;
+                const provinceKey = `${item.Region}-${item.Province}`;
+                const areaKey = `${item.Region}-${item.Province}-${item.Area}`;
 
-            // Add totals row if multiple items
-            // if (summaryData.length > 1) {
-            //     rows.push([
-            //         "", "", "", "TOTAL:",
-            //         summaryData.reduce((sum, item) => sum + item.Count, 0),
-            //         formatCurrency(summaryData.reduce((sum, item) => sum + item.Capacity, 0))
-            //     ]);
-            // }
+                if (!acc[regionKey]) acc[regionKey] = {};
+                if (!acc[regionKey][provinceKey]) acc[regionKey][provinceKey] = {};
+                if (!acc[regionKey][provinceKey][areaKey]) acc[regionKey][provinceKey][areaKey] = [];
+
+                acc[regionKey][provinceKey][areaKey].push(item);
+                return acc;
+            }, {} as any);
+
+            // Build rows with proper grouping (like merged cells in the table)
+            Object.keys(groupedData).forEach(region => {
+                const regionData = groupedData[region];
+                let isFirstRegionRow = true;
+
+                Object.keys(regionData).forEach(provinceKey => {
+                    const provinceData = regionData[provinceKey];
+                    let isFirstProvinceRow = true;
+
+                    Object.keys(provinceData).forEach(areaKey => {
+                        const areaData = provinceData[areaKey];
+                        let isFirstAreaRow = true;
+
+                        areaData.forEach((item: any) => {
+                            const row = [
+                                isFirstRegionRow ? item.Region : "", // Only show region on first row of region
+                                isFirstProvinceRow ? item.Province : "", // Only show province on first row of province
+                                isFirstAreaRow ? item.Area : "", // Only show area on first row of area
+                                item.Description,
+                                item.Count,
+                                item.Capacity
+                            ];
+                            rows.push(row);
+                            isFirstAreaRow = false;
+                        });
+                        isFirstProvinceRow = false;
+                    });
+                    isFirstRegionRow = false;
+                });
+            });
         }
 
-        const reportTitle = reportType === "detailed"
-            ? "Solar Progress Detailed Report"
-            : "Solar Progress Summary Report";
-
-        const selectionInfo = selectedOption === "Entire CEB"
-            ? "Entire CEB"
-            : selectedOption === "Area"
-                ? `${selectedOption}: ${selectedAreaName}`
-                : `${selectedOption}: ${inputValue}`;
-
+        // Build CSV content with proper structure
         csvContent = [
             reportTitle,
             selectionInfo,
@@ -1118,10 +1174,10 @@ const SolarProgressClarificationBulk: React.FC = () => {
                         <div className="flex space-x-2 mt-2 md:mt-0">
                             <button
                                 onClick={downloadAsCSV}
-                                className="px-4 py-1.5 bg-white border border-gray-300 text-xs rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
+                                className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
                             >
                                 <svg
-                                    className="w-4 h-4 mr-1"
+                                    className="w-3 h-3"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -1134,14 +1190,14 @@ const SolarProgressClarificationBulk: React.FC = () => {
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                                     />
                                 </svg>
-                                Export CSV
+                                CSV
                             </button>
                             <button
                                 onClick={printPDF}
-                                className="px-4 py-1.5 bg-white border border-gray-300 text-xs rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
+                                className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
                             >
                                 <svg
-                                    className="w-4 h-4 mr-1"
+                                    className="w-3 h-3"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -1154,7 +1210,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
                                         d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z"
                                     />
                                 </svg>
-                                Print PDF
+                                PDF
                             </button>
                             <button
                                 onClick={() => setReportVisible(false)}
@@ -1174,7 +1230,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
                                         d="M15 19l-7-7 7-7"
                                     />
                                 </svg>
-                                Back
+                                Back to Home
                             </button>
 
                         </div>

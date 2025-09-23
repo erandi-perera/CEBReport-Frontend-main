@@ -933,11 +933,11 @@ const DishonouredCheques: React.FC = () => {
                             <div className="flex space-x-2 mt-2 md:mt-0">
                                 <button
                                     onClick={downloadAsCSV}
-                                    className="px-4 py-1.5 bg-white border border-gray-300 text-xs rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
+                                    className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
                                     disabled={!cheques.length}
                                 >
                                     <svg
-                                    className="w-4 h-4 mr-1"
+                                    className="w-3 h-3"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -951,15 +951,15 @@ const DishonouredCheques: React.FC = () => {
                                     />
                                 </svg>
 
-                                    Export CSV
+                                    CSV
                                 </button>
                                 <button
                                     onClick={printPDF}
-                                    className="px-4 py-1.5 bg-white border border-gray-300 text-xs rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
+                                    className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
                                     disabled={!cheques.length}
                                 >
                                     <svg
-                                    className="w-4 h-4 mr-1"
+                                    className="w-3 h-3"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -973,7 +973,7 @@ const DishonouredCheques: React.FC = () => {
                                     />
                                 </svg>
 
-                                    Print PDF
+                                    PDF
                                 </button>
                                 <button
                                     onClick={() => setReportVisible(false)}

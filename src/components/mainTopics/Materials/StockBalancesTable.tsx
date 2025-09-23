@@ -8,6 +8,7 @@ interface StockBalance {
   DeptId: string;
   MatNm: string;
   UnitPrice?: number;
+  QtyOnHand?: number;
   CommittedCost?: number;
   ReorderQty?: number;
   UomCd: string;
@@ -18,9 +19,10 @@ interface StockBalancesTableProps {
   stockBalances: StockBalance[];
   printPDF: () => void;
   downloadAsCSV: () => void;
+  onBackToHome: () => void;
 }
 
-const StockBalancesTable: React.FC<StockBalancesTableProps> = ({ matCd, stockBalances, printPDF, downloadAsCSV }) => {
+const StockBalancesTable: React.FC<StockBalancesTableProps> = ({ matCd, stockBalances, printPDF, downloadAsCSV, onBackToHome }) => {
   // Format numbers with commas and 2 decimal places
   const formatNumber = (value: number | undefined): string => {
     if (typeof value === "number") {
@@ -35,6 +37,7 @@ const StockBalancesTable: React.FC<StockBalancesTableProps> = ({ matCd, stockBal
   // Transform data with formatted numbers for display
   const formattedStockBalances = stockBalances.map(row => ({
     ...row,
+    QtyOnHand: formatNumber(row.QtyOnHand),
     CommittedCost: formatNumber(row.CommittedCost),
     ReorderQty: formatNumber(row.ReorderQty),
   }));
@@ -49,33 +52,43 @@ const StockBalancesTable: React.FC<StockBalancesTableProps> = ({ matCd, stockBal
             </h3>
             <div className="flex gap-2">
               <button
-                onClick={printPDF}
+                onClick={downloadAsCSV}
                 className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-[11px] font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
               >
-                <FaPrint className="w-3 h-3" /> Print PDF
+                <FaDownload className="w-3 h-3" /> CSV
               </button>
               <button
-                onClick={downloadAsCSV}
+                onClick={printPDF}
                 className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-[11px] font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
               >
-                <FaDownload className="w-3 h-3" /> Download CSV
+                <FaPrint className="w-3 h-3" /> PDF
+              </button>
+              <button
+                onClick={onBackToHome}
+                className="px-3 py-1.5 text-[11px] bg-[#7A0000] text-white rounded-md font-medium shadow-sm hover:bg-[#A52A2A] transition"
+              >
+                Back to Home
               </button>
             </div>
           </div>
           {stockBalances.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px]">
               <div className="flex">
                 <div className="text-gray-500 font-semibold mr-2">Material Name:</div>
                 <div className="text-gray-700">{stockBalances[0].MatNm}</div>
               </div>
               <div className="flex">
+                <div className="text-gray-500 font-semibold mr-2">Unit of Measure:</div>
+                <div className="text-gray-700">{stockBalances[0].UomCd || "-"}</div>
+              </div>
+              <div className="flex">
                 <div className="text-gray-500 font-semibold mr-2">Unit Price:</div>
                 <div className="text-gray-700">
                   {typeof stockBalances[0].UnitPrice === "number"
-                    ? stockBalances[0].UnitPrice.toLocaleString("en-US", {
+                    ? `LKR ${stockBalances[0].UnitPrice.toLocaleString("en-US", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })
+                      })}`
                     : "-"}
                 </div>
               </div>
@@ -87,9 +100,8 @@ const StockBalancesTable: React.FC<StockBalancesTableProps> = ({ matCd, stockBal
             { label: "Region", accessor: "Region" },
             { label: "Province", accessor: "Province" },
             { label: "Cost Center", accessor: "DeptId" },
-            { label: "Quantity On Hand", accessor: "CommittedCost", align: "right" },
+            { label: "Quantity On Hand", accessor: "QtyOnHand", align: "right" },
             { label: "Reorder Quantity", accessor: "ReorderQty", align: "right" },
-            { label: "Unit of Measure", accessor: "UomCd" },
           ]}
           data={formattedStockBalances}
           rowKey={(_, idx) => idx}

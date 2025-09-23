@@ -33,7 +33,7 @@ const Inventory = () => {
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-      case "All Material Details":
+      case "Material Details":
         return <MaterialMaster />;
         case "Cost Center wise Quantity on Hand":
           return <CostCenterQuantityHnad />;

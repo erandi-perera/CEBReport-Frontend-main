@@ -214,7 +214,7 @@ const DebtorsAnalysis: React.FC = () => {
   };
 
   const formatCurrency = (value: number | undefined): string => {
-    if (value === undefined || value === null) return "0.00";
+    if (value === undefined || value === null || value === 0) return "-";
     const absValue = Math.abs(value);
     const formatted = absValue.toLocaleString("en-US", {
       minimumFractionDigits: 2,

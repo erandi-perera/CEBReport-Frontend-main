@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FaSearch, FaSyncAlt, FaEye, FaDownload, FaPrint, FaTimes } from "react-icons/fa";
+import { ChevronLeft } from "lucide-react";
 import { useUser } from "../../contexts/UserContext";
 
 interface Company {
@@ -30,7 +31,6 @@ const ProvintionalWiseTrial: React.FC = () => {
   const [filtered, setFiltered] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 9;
 
@@ -93,7 +93,6 @@ const ProvintionalWiseTrial: React.FC = () => {
        
         setData(final);
         setFiltered(final);
-        setLastUpdated(new Date());
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -677,26 +676,7 @@ const ProvintionalWiseTrial: React.FC = () => {
     <>
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 className={`text-xl font-bold ${maroon}`}>
-            Company Details
-            <span className="ml-2 text-xs text-gray-500">(Total: {filtered.length})</span>
-          </h2>
-          {epfNo && (
-            <div className="text-xs text-gray-600 mt-1 space-y-1">
-              <p>
-                EPF Number: <span className="font-mono font-medium">{epfNo}</span>
-              </p>
-              {user?.Name && (
-                <p>
-                  User: <span className="font-medium">{user.Name}</span>
-                </p>
-              )}
-            </div>
-          )}
         </div>
-        {lastUpdated && (
-          <p className="text-[10px] text-gray-400">Last updated: {lastUpdated.toLocaleString()}</p>
-        )}
       </div>
 
       <div className="flex flex-wrap gap-3 justify-end mb-4">
@@ -737,20 +717,6 @@ const ProvintionalWiseTrial: React.FC = () => {
         </div>
       )}
 
-      {/* No EPF Number State */}
-      {!loading && !epfNo && (
-        <div className="text-center py-8">
-          <div className="text-gray-400 mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-700 mb-2">Authentication Required</h3>
-          <p className="text-gray-500 text-center max-w-md">
-            No EPF number available. Please <strong>login again</strong> to access this feature.
-          </p>
-        </div>
-      )}
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -758,11 +724,11 @@ const ProvintionalWiseTrial: React.FC = () => {
         </div>
       )}
 
-      {!loading && !error && epfNo && filtered.length === 0 && (
+      {!loading && !error && filtered.length === 0 && (
         <div className="text-gray-600 bg-gray-100 p-4 rounded">No companies found.</div>
       )}
 
-      {!loading && !error && epfNo && filtered.length > 0 && (
+      {!loading && !error && filtered.length > 0 && (
         <>
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <div className="max-h-[70vh] overflow-y-auto">
@@ -877,7 +843,7 @@ const ProvintionalWiseTrial: React.FC = () => {
               onClick={() => setShowDateSelection(false)}
               className="bg-gray-500 text-white py-2 px-6 rounded hover:brightness-110 text-sm"
             >
-              Back
+              Back to Home
             </button>
             <button
               onClick={fetchTrialBalanceData}
@@ -902,29 +868,13 @@ const ProvintionalWiseTrial: React.FC = () => {
       <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
         <div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
           <div className="p-5 border-b">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <h2 className="text-base font-bold text-gray-800">
-                  MONTHLY TRIAL BALANCE - {getMonthName(selectedMonth).toUpperCase()} {selectedYear}
-                </h2>
-                <h3 className={`text-sm ${maroon}`}>
-                  Company: {selectedCompany.compId} - {selectedCompany.CompName}
-                </h3>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={downloadAsCSV}
-                  className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 text-xs"
-                >
-                  <FaDownload className="w-3 h-3" /> Export CSV
-                </button>
-                <button
-                  onClick={printPDF}
-                  className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 text-xs"
-                >
-                  <FaPrint className="w-3 h-3" /> Print PDF
-                </button>
-              </div>
+            <div className="space-y-1">
+              <h2 className="text-base font-bold text-gray-800">
+                MONTHLY TRIAL BALANCE - {getMonthName(selectedMonth).toUpperCase()} {selectedYear}
+              </h2>
+              <h3 className={`text-sm ${maroon}`}>
+                Company: {selectedCompany.compId} - {selectedCompany.CompName}
+              </h3>
             </div>
             {trialError && (
               <div className="text-red-600 text-xs mt-2 text-center">
@@ -943,8 +893,43 @@ const ProvintionalWiseTrial: React.FC = () => {
                 No data found
               </div>
             ) : (
-              <div className="w-full overflow-x-auto text-xs">
-                <table className="w-full border-collapse">
+              <div>
+                {/* Buttons section above table */}
+                <div className="flex justify-between items-center mb-2">
+                  <div></div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={downloadAsCSV}
+                      className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                    >
+                      <FaDownload className="w-3 h-3" /> CSV
+                    </button>
+                    <button
+                      onClick={printPDF}
+                      className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
+                    >
+                      <FaPrint className="w-3 h-3" /> PDF
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTrialModalOpen(false);
+                        setShowDateSelection(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Back to Date Selection
+                    </button>
+                    <button
+                      onClick={closeTrialModal}
+                      className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`} 
+                    >
+                      Back To Home
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="w-full overflow-x-auto text-xs">
+                  <table className="w-full border-collapse">
                   <thead>
                     <tr className={`${maroonBg} text-white`}>
                       <th className="px-2 py-1 text-left sticky left-0 bg-[#7A0000] z-10">Account</th>
@@ -1046,17 +1031,10 @@ const ProvintionalWiseTrial: React.FC = () => {
                       </td>
                     </tr>
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             )}
-          </div>
-          <div className="p-5 border-t flex justify-center">
-            <button
-              onClick={closeTrialModal}
-              className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
-            >
-              Back To Home
-            </button>
           </div>
         </div>
       </div>

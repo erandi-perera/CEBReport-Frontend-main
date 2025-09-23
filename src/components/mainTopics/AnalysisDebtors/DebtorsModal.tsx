@@ -103,12 +103,12 @@ const DebtorsModal: React.FC<DebtorsModalProps> = ({
                 <h3 className="text-sm text-[#7A0000]">{locationLabel}</h3>
               )}
             </div>
-            <div className="flex gap-2">
-              <button onClick={downloadAsCSV} className="px-3 py-1.5 border text-xs border-gray-300 rounded bg-white hover:bg-gray-50 text-gray-700">
-                Export CSV
+            <div className="flex gap-2 mt-2">
+              <button onClick={downloadAsCSV} className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition">
+                CSV
               </button>
-              <button onClick={printPDF} className="px-3 py-1.5 border text-xs border-gray-300 rounded bg-white hover:bg-gray-50 text-gray-700">
-                Print PDF
+              <button onClick={printPDF} className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition">
+                PDF
               </button>
               <button onClick={() => setShowModal(false)} className="px-3 py-1.5 text-xs bg-[#7A0000] text-white rounded hover:brightness-110">
                 Back to form

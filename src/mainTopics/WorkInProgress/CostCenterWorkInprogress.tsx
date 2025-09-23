@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Search, RotateCcw, Eye, ChevronLeft, Download, FileText } from "lucide-react";
+import { Search, RotateCcw, Eye, ChevronLeft, Download, Printer } from "lucide-react";
 import { useUser } from "../../contexts/UserContext";
 
 interface Department {
@@ -36,7 +36,12 @@ interface WorkInProgressData {
   TotalCost?: number;
 }
 
-const CostCenterWorkInprogress = () => {
+interface CostCenterWorkInprogressProps {
+  preSelectedDepartment?: Department;
+  onBack?: () => void;
+}
+
+const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterWorkInprogressProps) => {
   // Get user from context
   const { user } = useUser();
   
@@ -47,7 +52,6 @@ const CostCenterWorkInprogress = () => {
   const [filtered, setFiltered] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 9;
 
@@ -69,6 +73,14 @@ const CostCenterWorkInprogress = () => {
     console.log('Current user:', user);
     console.log('EPF Number being used:', epfNo);
   }, [user, epfNo]);
+
+  // Auto-select department if preSelectedDepartment is provided
+  useEffect(() => {
+    if (preSelectedDepartment && !selectedDepartment) {
+      setSelectedDepartment(preSelectedDepartment);
+      fetchWorkInProgressData(preSelectedDepartment.DeptId);
+    }
+  }, [preSelectedDepartment]);
 
   // Colors
   const maroon = "text-[#7A0000]";
@@ -122,7 +134,6 @@ const CostCenterWorkInprogress = () => {
         
         setData(final);
         setFiltered(final);
-        setLastUpdated(new Date());
       } catch (e: any) {
         console.error('API Error:', e);
         setError(e.message.includes("JSON.parse") ? "Invalid data format received from server. Please check if the API is returning valid JSON." : e.message);
@@ -287,13 +298,39 @@ const CostCenterWorkInprogress = () => {
       return (a.ProjectNo || '').localeCompare(b.ProjectNo || '');
     });
 
+    // Calculate totals for CSV
+    const csvTotals = sortedData.reduce((acc, item) => {
+      const labCost = item.CommittedLabourCost || item.LabourCost || 0;
+      const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
+      const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
+      const total = labCost + matCost + otherCost;
+      const variance = (item.EstimatedCost || 0) - total;
+
+      return {
+        estimatedCost: acc.estimatedCost + (item.EstimatedCost || 0),
+        labCost: acc.labCost + labCost,
+        matCost: acc.matCost + matCost,
+        otherCost: acc.otherCost + otherCost,
+        total: acc.total + total,
+        variance: acc.variance + variance
+      };
+    }, {
+      estimatedCost: 0,
+      labCost: 0,
+      matCost: 0,
+      otherCost: 0,
+      total: 0,
+      variance: 0
+    });
+
     // Create CSV headers
     const headers = [
       "Year",
-      "Project No./Code", 
+      "Project No.", 
       "Category Code",
       "Fund Source",
       "WIP Year",
+      "WIP Month",
       "Estimated Cost",
       "Description",
       "Status",
@@ -304,8 +341,14 @@ const CostCenterWorkInprogress = () => {
       "Variance"
     ];
 
-    // Create CSV rows
+    // Create CSV rows with topic section
     const csvRows = [
+      // Topic section
+      [`"WORK IN PROGRESS - ${selectedDepartment.DeptName}"`],
+      [`"Department: ${selectedDepartment.DeptId}"`],
+      [`"Report Generated: ${new Date().toLocaleDateString()}"`],
+      [], // Empty line
+      // Data section
       headers,
       ...sortedData.map((item) => {
         const labCost = item.CommittedLabourCost || item.LabourCost || 0;
@@ -320,6 +363,7 @@ const CostCenterWorkInprogress = () => {
           item.CategoryCode || "",
           item.FundSource || "",
           item.WipYear || "0",
+          item.WipMonth || "0",
           (item.EstimatedCost || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
           `"${(item.Description || "").replace(/"/g, '""')}"`, // Escape quotes in description
           item.Status || "",
@@ -329,7 +373,22 @@ const CostCenterWorkInprogress = () => {
           total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
           variance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
         ];
-      })
+      }),
+      // Add summary section
+      [],
+      ["SUMMARY"],
+      ["Estimated Cost", csvTotals.estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ["Total Committed", csvTotals.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ["Variance", csvTotals.variance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ["Total Records", sortedData.length.toString()],
+      [],
+      ["COMMITTED COST BREAKDOWN"],
+      ["LAB", csvTotals.labCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ["MAT", csvTotals.matCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ["OTHER", csvTotals.otherCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      [], // Empty line
+      [`"Generated: ${new Date().toLocaleString()}"`],
+      [`"CEB@${new Date().getFullYear()}"`]
     ];
 
     // Create CSV content
@@ -401,6 +460,31 @@ const CostCenterWorkInprogress = () => {
       return (a.ProjectNo || '').localeCompare(b.ProjectNo || '');
     });
 
+    // Calculate totals for PDF
+    const pdfTotals = sortedData.reduce((acc, item) => {
+      const labCost = item.CommittedLabourCost || item.LabourCost || 0;
+      const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
+      const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
+      const total = labCost + matCost + otherCost;
+      const variance = (item.EstimatedCost || 0) - total;
+
+      return {
+        estimatedCost: acc.estimatedCost + (item.EstimatedCost || 0),
+        labCost: acc.labCost + labCost,
+        matCost: acc.matCost + matCost,
+        otherCost: acc.otherCost + otherCost,
+        total: acc.total + total,
+        variance: acc.variance + variance
+      };
+    }, {
+      estimatedCost: 0,
+      labCost: 0,
+      matCost: 0,
+      otherCost: 0,
+      total: 0,
+      variance: 0
+    });
+
     // Generate table rows HTML
     let tableRowsHTML = '';
     sortedData.forEach((item) => {
@@ -417,6 +501,7 @@ const CostCenterWorkInprogress = () => {
           <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px;">${item.CategoryCode || ""}</td>
           <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px;">${item.FundSource || ""}</td>
           <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: center;">${item.WipYear || "0"}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: center;">${item.WipMonth || "0"}</td>
           <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace;">${(item.EstimatedCost || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 8px; max-width: 150px; word-wrap: break-word;">${item.Description || ""}</td>
           <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: center;">${item.Status || ""}</td>
@@ -428,6 +513,40 @@ const CostCenterWorkInprogress = () => {
         </tr>
       `;
     });
+
+    // Generate summary section HTML
+    const summaryHTML = `
+      <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+        <h4 style="font-size: 11px; font-weight: bold; margin-bottom: 8px; color: #333;">SUMMARY</h4>
+        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+          <tr>
+            <td style="padding: 2px 4px; font-weight: bold;">Estimated Cost:</td>
+            <td style="padding: 2px 4px; text-align: right; font-family: monospace;">${pdfTotals.estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="padding: 2px 4px; font-weight: bold;">Total Committed:</td>
+            <td style="padding: 2px 4px; text-align: right; font-family: monospace;">${pdfTotals.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          </tr>
+          <tr>
+            <td style="padding: 2px 4px; font-weight: bold;">Variance:</td>
+            <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: ${pdfTotals.variance < 0 ? '#dc2626' : pdfTotals.variance > 0 ? '#16a34a' : '#6b7280'};">${pdfTotals.variance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="padding: 2px 4px; font-weight: bold;">Total Records:</td>
+            <td style="padding: 2px 4px; text-align: right; font-family: monospace;">${sortedData.length}</td>
+          </tr>
+        </table>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
+          <div style="font-size: 9px; font-weight: bold; margin-bottom: 4px;">COMMITTED COST BREAKDOWN</div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+            <tr>
+              <td style="padding: 2px 4px; font-weight: bold;">LAB:</td>
+              <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: #2563eb;">${pdfTotals.labCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td style="padding: 2px 4px; font-weight: bold;">MAT:</td>
+              <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: #ea580c;">${pdfTotals.matCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td style="padding: 2px 4px; font-weight: bold;">OTHER:</td>
+              <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: #9333ea;">${pdfTotals.otherCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    `;
 
     printWindow.document.write(`
       <html>
@@ -467,10 +586,11 @@ const CostCenterWorkInprogress = () => {
             <thead>
               <tr>
                 <th>Year</th>
-                <th>Project No./Code</th>
+                <th>Project No.</th>
                 <th>Category Code</th>
                 <th>Fund Source</th>
                 <th>WIP Year</th>
+                <th>WIP Month</th>
                 <th>Estimated Cost</th>
                 <th>Description</th>
                 <th>Status</th>
@@ -485,6 +605,7 @@ const CostCenterWorkInprogress = () => {
               ${tableRowsHTML}
             </tbody>
           </table>
+          ${summaryHTML}
         </body>
       </html>
     `);
@@ -513,24 +634,6 @@ const CostCenterWorkInprogress = () => {
                 <h3 className={`text-sm ${maroon}`}>
                   Department: {selectedDepartment.DeptId}
                 </h3>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={downloadAsCSV}
-                  disabled={workInProgressData.length === 0}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Download className="w-3 h-3" />
-                  CSV
-                </button>
-                <button
-                  onClick={printPDF}
-                  disabled={workInProgressData.length === 0}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <FileText className="w-3 h-3" />
-                  PDF
-                </button>
               </div>
             </div>
             {workInProgressError && (
@@ -561,8 +664,51 @@ const CostCenterWorkInprogress = () => {
                 </p>
               </div>
             ) : (
-              <div ref={printRef} className="w-full overflow-x-auto text-xs">
-                {/* Deduplicate and consolidate data by ProjectNo + CategoryCode */}
+              <div>
+                {/* Buttons section above table */}
+                <div className="flex justify-between items-center mb-2">
+                  <div></div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={downloadAsCSV}
+                      className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                    >
+                      <Download className="w-3 h-3" /> CSV
+                    </button>
+                    <button
+                      onClick={printPDF}
+                      className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
+                    >
+                      <Printer className="w-3 h-3" /> PDF
+                    </button>
+                    {onBack ? (
+                      <button
+                        onClick={onBack}
+                        className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+                      >
+                        <ChevronLeft className="w-4 h-4" /> Back to Age Analysis
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setShowWorkInProgress(false);
+                        }}
+                        className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+                      >
+                        <ChevronLeft className="w-4 h-4" /> Back to Department List
+                      </button>
+                    )}
+                    <button
+                      onClick={closeWorkInProgressModal}
+                      className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
+                    >
+                      Back To Home
+                    </button>
+                  </div>
+                </div>
+                
+                <div ref={printRef} className="w-full overflow-x-auto text-xs">
+                  {/* Deduplicate and consolidate data by ProjectNo + CategoryCode */}
                 {(() => {
                   // Create a map to consolidate duplicate rows
                   const consolidatedMap = new Map<string, WorkInProgressData>();
@@ -610,11 +756,36 @@ const CostCenterWorkInprogress = () => {
                     }
                   });
                   
-                  // Convert map to array and sort by AssignmentYear (descending) then by ProjectNo
+                  // Convert map to array and sort by AssignmentYear (descending) then by CategoryCode
                   const sortedData = Array.from(consolidatedMap.values()).sort((a, b) => {
                     const yearCompare = (b.AssignmentYear || '').localeCompare(a.AssignmentYear || '');
                     if (yearCompare !== 0) return yearCompare;
-                    return (a.ProjectNo || '').localeCompare(b.ProjectNo || '');
+                    return (a.CategoryCode || '').localeCompare(b.CategoryCode || '');
+                  });
+
+                  // Calculate totals for the total row
+                  const totals = sortedData.reduce((acc, item) => {
+                    const labCost = item.CommittedLabourCost || item.LabourCost || 0;
+                    const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
+                    const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
+                    const total = labCost + matCost + otherCost;
+                    const variance = (item.EstimatedCost || 0) - total;
+
+                    return {
+                      estimatedCost: acc.estimatedCost + (item.EstimatedCost || 0),
+                      labCost: acc.labCost + labCost,
+                      matCost: acc.matCost + matCost,
+                      otherCost: acc.otherCost + otherCost,
+                      total: acc.total + total,
+                      variance: acc.variance + variance
+                    };
+                  }, {
+                    estimatedCost: 0,
+                    labCost: 0,
+                    matCost: 0,
+                    otherCost: 0,
+                    total: 0,
+                    variance: 0
                   });
 
                   return (
@@ -629,16 +800,17 @@ const CostCenterWorkInprogress = () => {
                           <thead>
                             <tr className="bg-gray-100 text-gray-700">
                               <th className="px-2 py-1 text-left border-r">Year</th>
-                              <th className="px-2 py-1 text-left border-r">Project No./Code</th>
+                              <th className="px-2 py-1 text-left border-r">Project No.</th>
                               <th className="px-2 py-1 text-left border-r">Category Code</th>
                               <th className="px-2 py-1 text-left border-r">Fund Source</th>
                               <th className="px-2 py-1 text-center border-r">WIP Year</th>
+                              <th className="px-2 py-1 text-center border-r">WIP Month</th>
                               <th className="px-2 py-1 text-right border-r">Estimated Cost</th>
                               <th className="px-2 py-1 text-left border-r">Description</th>
                               <th className="px-2 py-1 text-center border-r">Status</th>
-                              <th className="px-2 py-1 text-right border-r">LAB</th>
-                              <th className="px-2 py-1 text-right border-r">MAT</th>
-                              <th className="px-2 py-1 text-right border-r">OTHER</th>
+                              <th className="px-2 py-1 text-right border-r">Labour</th>
+                              <th className="px-2 py-1 text-right border-r">Material</th>
+                              <th className="px-2 py-1 text-right border-r">Other</th>
                               <th className="px-2 py-1 text-right border-r">Total</th>
                               <th className="px-2 py-1 text-right">Variance</th>
                             </tr>
@@ -663,6 +835,7 @@ const CostCenterWorkInprogress = () => {
                                   <td className="px-2 py-1 text-xs border-r">{item.CategoryCode}</td>
                                   <td className="px-2 py-1 text-xs border-r">{item.FundSource}</td>
                                   <td className="px-2 py-1 text-center text-xs border-r">{item.WipYear || '0'}</td>
+                                  <td className="px-2 py-1 text-center text-xs border-r">{item.WipMonth || '0'}</td>
                                   <td className="px-2 py-1 text-right font-mono text-xs border-r">
                                     {(item.EstimatedCost || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </td>
@@ -703,32 +876,66 @@ const CostCenterWorkInprogress = () => {
                           </tbody>
                         </table>
                       </div>
+                      
+                      {/* Summary Section */}
+                      <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Summary</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <div className="text-xs text-gray-500 mb-1">Estimated Cost</div>
+                            <div className="text-sm font-mono font-semibold text-gray-800">
+                              {totals.estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xs text-gray-500 mb-1">Total Committed</div>
+                            <div className="text-sm font-mono font-semibold text-gray-800">
+                              {totals.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Breakdown of committed costs */}
+                        <div className="mt-4 pt-3 border-t border-gray-300">
+                          <div className="text-xs text-gray-500 mb-2">Committed Cost Breakdown</div>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="text-center">
+                              <div className="text-xs text-gray-500 mb-1">LAB</div>
+                              <div className="text-sm font-mono font-semibold text-blue-600">
+                                {totals.labCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-gray-500 mb-1">Material</div>
+                              <div className="text-sm font-mono font-semibold text-orange-600">
+                                {totals.matCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xs text-gray-500 mb-1">OTHER</div>
+                              <div className="text-sm font-mono font-semibold text-purple-600">
+                                {totals.otherCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   );
                 })()}
+                </div>
               </div>
             )}
-          </div>
-          <div className="p-5 border-t flex justify-center gap-3">
-            <button
-              onClick={() => {
-                setShowWorkInProgress(false);
-              }}
-              className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
-            >
-              <ChevronLeft className="w-4 h-4" /> Back to Department List
-            </button>
-            <button
-              onClick={closeWorkInProgressModal}
-              className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`} 
-            >
-              Back To Home
-            </button>
           </div>
         </div>
       </div>
     );
   };
+
+  // If preSelectedDepartment is provided, render only the WorkInProgressModal
+  if (preSelectedDepartment) {
+    return <WorkInProgressModal />;
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
@@ -737,24 +944,8 @@ const CostCenterWorkInprogress = () => {
         <div>
           <h2 className={`text-xl font-bold ${maroon}`}>
             Cost Center Work In Progress
-            <span className="ml-2 text-xs text-gray-500">(Total: {filtered.length})</span>
           </h2>
-          {epfNo && (
-            <div className="text-xs text-gray-600 mt-1 space-y-1">
-              <p>
-                EPF Number: <span className="font-mono font-medium">{epfNo}</span>
-              </p>
-              {user?.Name && (
-                <p>
-                  User: <span className="font-medium">{user.Name}</span>
-                </p>
-              )}
-            </div>
-          )}
         </div>
-        {lastUpdated && (
-          <p className="text-[10px] text-gray-400">Last updated: {lastUpdated.toLocaleString()}</p>
-        )}
       </div>
 
       {/* Search Controls */}
@@ -799,20 +990,6 @@ const CostCenterWorkInprogress = () => {
         </div>
       )}
 
-      {/* No EPF Number State */}
-      {!loading && !epfNo && (
-        <div className="text-center py-8">
-          <div className="text-gray-400 mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-700 mb-2">Authentication Required</h3>
-          <p className="text-gray-500 text-center max-w-md">
-            No EPF number available. Please <strong>login again</strong> to access this feature.
-          </p>
-        </div>
-      )}
 
       {/* Error State */}
       {error && (
@@ -822,12 +999,12 @@ const CostCenterWorkInprogress = () => {
       )}
 
       {/* No Results */}
-      {!loading && !error && epfNo && filtered.length === 0 && (
+      {!loading && !error && filtered.length === 0 && (
         <div className="text-gray-600 bg-gray-100 p-4 rounded">No departments found.</div>
       )}
 
       {/* Table */}
-      {!loading && !error && epfNo && filtered.length > 0 && (
+      {!loading && !error && filtered.length > 0 && (
         <>
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <div className="max-h-[50vh] overflow-y-auto">

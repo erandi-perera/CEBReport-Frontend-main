@@ -12,7 +12,6 @@ const MaterialMaster: React.FC<MaterialMasterProps> = ({
   const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
   const navigate = useNavigate();
@@ -28,7 +27,6 @@ const MaterialMaster: React.FC<MaterialMasterProps> = ({
         const data = Array.isArray(result) ? result : result.data || [];
         setMaterials(data);
         setFilteredMaterials(data);
-        setLastUpdated(new Date());
       } catch (err: any) {
         setError(err.message || "Failed to load materials.");
         setMaterials([]);
@@ -74,7 +72,6 @@ const MaterialMaster: React.FC<MaterialMasterProps> = ({
           {title}
           <span className="ml-2 text-xs text-gray-500"></span>
         </h2>
-        {lastUpdated && <p className="text-[10px] text-gray-400">Last updated: {lastUpdated.toLocaleString()}</p>}
       </div>
 
       <div className="flex flex-wrap gap-3 justify-end mb-4">

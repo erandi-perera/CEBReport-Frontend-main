@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useUser } from "../contexts/UserContext";
 import { 
-  Zap, 
-  Shield
+  Zap
 } from "lucide-react";
 
 const Home: React.FC = () => {
@@ -31,12 +30,6 @@ const Home: React.FC = () => {
               <p className="text-sm md:text-base text-gray-700 max-w-xl mx-auto leading-relaxed mb-3">
                 Access comprehensive management reports and analytics for informed decision-making
               </p>
-              {user?.Userno && (
-                <div className="inline-flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1">
-                  <Shield className="w-3 h-3 text-[#7A0000]" />
-                  <span className="text-xs text-gray-700">EPF: <span className="font-mono font-bold text-[#7A0000]">{user.Userno}</span></span>
-                </div>
-              )}
            </div>
          </div>
          
@@ -55,9 +48,9 @@ const Home: React.FC = () => {
 
 
                  {/* Main Content Grid */}
-         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+         <div className="grid grid-cols-1 gap-6 mb-6">
            {/* About Section */}
-           <div className={`lg:col-span-2 transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+           <div className={`transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300">
                                <div className="flex items-center gap-3 mb-4">
                   <div className={`p-2 rounded-lg ${maroonGrad} text-white animate-pulse`} style={{
@@ -107,51 +100,6 @@ const Home: React.FC = () => {
             </div>
           </div>
 
-                     {/* User Info Section */}
-           <div className={`transition-all duration-1000 delay-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300">
-                               <div className="flex items-center gap-3 mb-4">
-                  <div className={`p-2 rounded-lg ${maroonGrad} text-white animate-pulse`} style={{
-                    background: 'linear-gradient(45deg, #7A0000, #A52A2A, #7A0000)',
-                    backgroundSize: '200% 200%',
-                    animation: 'gradient-shift 2s ease-in-out infinite'
-                  }}>
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <h2 className="text-lg font-bold text-gray-900">Your Profile</h2>
-                </div>
-              <div className="space-y-4">
-                                 <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                   <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                     {user?.Name ? user.Name.charAt(0).toUpperCase() : 'U'}
-                   </div>
-                   <div>
-                     <div className="font-semibold text-gray-900 text-sm">{user?.Name || "User"}</div>
-                     <div className="text-xs text-gray-600">{user?.Designation || "Employee"}</div>
-                   </div>
-                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">EPF Number</span>
-                    <span className="text-sm font-mono font-semibold text-gray-900">{user?.Userno || "-"}</span>
-                  </div>
-                  {user?.Email && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-sm text-gray-600">Email</span>
-                      <span className="text-sm font-semibold text-gray-900">{user.Email}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-gray-600">Status</span>
-                    <span className="inline-flex items-center gap-1 text-sm text-green-600">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      Active
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
                                                                                                            {/* Animated Decorative Elements */}
