@@ -130,7 +130,7 @@ const MaterialDetails: React.FC = () => {
   useEffect(() => {
     const fetchStockBalances = async () => {
       try {
-        const url = `/materials/api/materials/stock-balances?matCd=${matCd}`;
+        const url = `/misapi/api/materials/stock-balances?matCd=${matCd}`;
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
         const data = await response.json();

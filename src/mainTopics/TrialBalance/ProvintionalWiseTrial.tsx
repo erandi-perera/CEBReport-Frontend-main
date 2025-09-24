@@ -126,7 +126,7 @@ const ProvintionalWiseTrial: React.FC = () => {
     setTrialLoading(true);
     setTrialError(null);
     try {
-      const apiUrl = `/provincetrial/api/trialbalance?companyId=${selectedCompany.compId}&month=${selectedMonth}&year=${selectedYear}`;
+      const apiUrl = `/misapi/api/trialbalance?companyId=${selectedCompany.compId}&month=${selectedMonth}&year=${selectedYear}`;
      
       const response = await fetch(apiUrl, {
         credentials: 'include',
