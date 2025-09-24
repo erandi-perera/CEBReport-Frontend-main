@@ -6,6 +6,7 @@ import SolarProgressClarificationBulk from "../mainTopics/SolarInformation/Solar
 import SolarProgressClarificationOrdinary from "../mainTopics/SolarInformation/SolarConnectionDetailsBulk";
 
 import SolarForm from "../mainTopics/Solar/SolarForm";
+import SolarPVBilling from "../mainTopics/SolarInformation/SolarPVBilling"
 
 
 type Subtopic = {
@@ -38,6 +39,7 @@ const SolarInformation = () => {
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
       case "Solar PV billing information":
+        return <SolarPVBilling/>;
       case "Solar PV capacity information":
       case "Solar progress clarification (ordinary)":
       case "Solar payment information – retail":

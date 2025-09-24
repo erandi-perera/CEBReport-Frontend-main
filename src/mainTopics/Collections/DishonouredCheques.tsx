@@ -85,21 +85,6 @@ const DishonouredCheques: React.FC = () => {
                     cheque.print,
                     cheque.email,
                 ],
-                getTotals: (cheques: DishonouredCheque[]) => [
-                    "",
-                    "",
-                    "",
-                    "TOTAL:",
-                    "",
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.surcharge, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.postage, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.bankCharge, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.paidAmount, 0)),
-                    "",
-                    "",
-                    "",
-                    "",
-                ],
             },
             "Cheque No": {
                 headers: [
@@ -133,22 +118,6 @@ const DishonouredCheques: React.FC = () => {
                     cheque.journal,
                     cheque.print,
                     cheque.email,
-                ],
-                getTotals: (cheques: DishonouredCheque[]) => [
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "TOTAL:",
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.surcharge, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.postage, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.bankCharge, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.paidAmount, 0)),
-                    "",
-                    "",
-                    "",
-                    "",
                 ],
             },
             "Date Range": {
@@ -186,25 +155,6 @@ const DishonouredCheques: React.FC = () => {
                     cheque.print,
                     cheque.email,
                 ],
-
-                getTotals: (cheques: DishonouredCheque[]) => [
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "TOTAL:",
-                    "",
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.surcharge, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.postage, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.bankCharge, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.paidAmount, 0)),
-                    "",
-                    "",
-                    "",
-                    "",
-                ],
-
             },
             All: {
                 headers: [
@@ -241,25 +191,6 @@ const DishonouredCheques: React.FC = () => {
                     cheque.print,
                     cheque.email,
                 ],
-
-                getTotals: (cheques: DishonouredCheque[]) => [
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "TOTAL:",
-                    "",
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.surcharge, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.postage, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.bankCharge, 0)),
-                    formatCurrency(cheques.reduce((sum, c) => sum + c.paidAmount, 0)),
-                    "",
-                    "",
-                    "",
-                    "",
-                ],
-
             },
         };
 
@@ -267,16 +198,9 @@ const DishonouredCheques: React.FC = () => {
             columnConfigs[selectedOption as keyof typeof columnConfigs] ||
             columnConfigs["All"];
 
-
-        const { headers, getRowData, getTotals } = config;
+        const { headers, getRowData } = config;
 
         const rows = cheques.map(getRowData);
-
-        // Add totals row if multiple cheques
-        if (cheques.length > 1) {
-            rows.push(getTotals(cheques));
-        }
-
 
         let csvContent = [
             `Dishonoured Cheques Report`,
@@ -287,7 +211,7 @@ const DishonouredCheques: React.FC = () => {
                     ? `Cheque No: ${inputValue}`
                     : selectedOption === "Date Range"
                         ? `Date Range: ${fromDate} to ${toDate}`
-                        : `All Dishonoured Cheques`,
+                        : `All Dishonoured Cheques (Last 5 Years)`,
             `Generated: ${new Date().toLocaleDateString()}`,
             "",
             headers.map((h) => `"${h}"`).join(","),
@@ -305,7 +229,7 @@ const DishonouredCheques: React.FC = () => {
                     ? `ChequeNo_${inputValue}`
                     : selectedOption === "Date Range"
                         ? `DateRange_${fromDate}_to_${toDate}`
-                        : "All";
+                        : "All_Last5Years";
 
             link.setAttribute("href", url);
             link.setAttribute(
@@ -353,7 +277,7 @@ const DishonouredCheques: React.FC = () => {
             if (selectedOption === "Date Range") {
                 return `Date Range: <span class="bold">${fromDate}</span> to <span class="bold">${toDate}</span>`;
             }
-            return "All Dishonoured Cheques";
+            return "All Dishonoured Cheques (Last 5 Years)";
         })();
 
         printWindow.document.write(`
@@ -708,8 +632,16 @@ const DishonouredCheques: React.FC = () => {
                     break;
 
                 case "All":
-                    endpoint = "/CEBINFO_API_2025/api/AllChqueDetailsDishonouredChque";
-                    body = {};
+                    endpoint = "/CEBINFO_API_2025/api/DateRangeDishonouredChque";
+                    // Calculate 5 years ago from today
+                    const today = new Date();
+                    const fiveYearsAgo = new Date();
+                    fiveYearsAgo.setFullYear(today.getFullYear() - 5);
+                    
+                    body = {
+                        date1: formatDateForAPI(fiveYearsAgo.toISOString().split('T')[0]),
+                        date2: formatDateForAPI(today.toISOString().split('T')[0]),
+                    };
                     break;
 
                 default:
@@ -1005,7 +937,7 @@ const DishonouredCheques: React.FC = () => {
                                     <span className="font-bold">{toDate}</span>
                                 </>
                             ) : (
-                                "All Dishonoured Cheques"
+                                "All Dishonoured Cheques (Last 5 Years)"
                             )}
                         </p>
 

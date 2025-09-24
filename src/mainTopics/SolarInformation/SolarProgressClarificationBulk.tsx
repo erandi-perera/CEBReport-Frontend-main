@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { FaArrowLeft } from "react-icons/fa";
 
 interface Area {
     AreaCode: string;
@@ -1214,9 +1215,10 @@ const SolarProgressClarificationBulk: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => setReportVisible(false)}
-                                className="px-4 py-1.5 bg-[#7A0000] hover:bg-[#A52A2A] text-xs rounded-md text-white flex items-center"
+                                className="px-4 py-1.5 bg-[#7A0000] hover:bg-[#A52A2A] text-xs rounded-md text-white flex items-center gap-1"
                                 >
-                                    Back to Form
+                                    <FaArrowLeft className="w-3 h-3" />
+                                    Back
                             </button>
 
                         </div>

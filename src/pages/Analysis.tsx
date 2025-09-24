@@ -3,7 +3,7 @@ import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import DebtorsAnalysis from "../mainTopics/Analysis/DebtorsAnalysis";
 import AgeAnalysis from "../mainTopics/Analysis/AgeAnalysis";
-import UnitAnalysis from "../mainTopics/Analysis/UnitAnalysis";
+
 
 
 type Subtopic = {
@@ -42,8 +42,8 @@ const Analysis = () => {
         case "Debtors Age Analysis (Individual Customers)":
         return <AgeAnalysis/>;
         
-         case "unit analysis":
-        return <UnitAnalysis/>;
+       
+        
       default:
         return (
           <div className="text-red-500 text-xs">
