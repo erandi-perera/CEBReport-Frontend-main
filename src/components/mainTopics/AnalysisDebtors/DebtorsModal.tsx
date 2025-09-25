@@ -3,6 +3,7 @@ import DebtorsTable from "./DebtorsTable";
 import DebtorsPieChart from "./DebtorsPieChart";
 import DebtorsBarChart from "./DebtorsBarChart";
 import CustomTooltip from "./CustomTooltip";
+import { FaFileDownload, FaPrint } from "react-icons/fa";
 
 interface DebtorsModalProps {
   showModal: boolean;
@@ -104,11 +105,17 @@ const DebtorsModal: React.FC<DebtorsModalProps> = ({
               )}
             </div>
             <div className="flex gap-2 mt-2">
-              <button onClick={downloadAsCSV} className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition">
-                CSV
+              <button
+                onClick={downloadAsCSV}
+                className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+              >
+                <FaFileDownload className="w-3 h-3" /> CSV
               </button>
-              <button onClick={printPDF} className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition">
-                PDF
+              <button
+                onClick={printPDF}
+                className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
+              >
+                <FaPrint className="w-3 h-3" /> PDF
               </button>
               <button onClick={() => setShowModal(false)} className="px-4 py-1.5 bg-[#7A0000] hover:bg-[#A52A2A] text-xs rounded-md text-white flex items-center"
               >
