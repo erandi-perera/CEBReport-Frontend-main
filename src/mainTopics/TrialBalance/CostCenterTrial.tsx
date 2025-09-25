@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaSearch, FaSyncAlt, FaEye } from "react-icons/fa";
+import { FaSearch, FaSyncAlt, FaEye, FaTimes } from "react-icons/fa";
 import TrialBalanceModal from "../../components/mainTopics/CostCenterTrial/TrialBalanceModal";
 import { useUser } from "../../contexts/UserContext";
 
@@ -35,6 +35,12 @@ const CostCenterTrial: React.FC = () => {
   const pageSize = 9;
 
 
+  // Selection state
+  const [selectedCostCenter, setSelectedCostCenter] = useState<CostCenter | null>(null);
+  const [showDateSelection, setShowDateSelection] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+
   // Trial balance modal state
   const [trialModalOpen, setTrialModalOpen] = useState(false);
   const [trialData, setTrialData] = useState({
@@ -63,6 +69,10 @@ const CostCenterTrial: React.FC = () => {
   const maroon = "text-[#7A0000]";
   const maroonBg = "bg-[#7A0000]";
   const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
+
+  // Available years and months
+  const years = Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - i);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1); // [1, 2, ..., 12]
 
   // Fetch cost centers
   useEffect(() => {
@@ -152,22 +162,20 @@ const CostCenterTrial: React.FC = () => {
 
   // Handle cost center selection
   const handleCostCenterSelect = (costCenter: CostCenter) => {
-    setTrialData({
-      costctr: costCenter.compId,
-      year: new Date().getFullYear(),
-      month: "January",
-      deptName: costCenter.CompName
-    });
-    setTrialModalOpen(true);
+    console.log('Cost center selected:', costCenter);
+    setSelectedCostCenter(costCenter);
+    setShowDateSelection(true);
+    console.log('Date selection should be visible now');
   };
 
   // Fetch trial balance data
   const fetchTrialBalanceData = async () => {
+    if (!selectedCostCenter) return;
+    
     setTrialLoading(true);
     setTrialError(null);
     try {
-      const monthNum = monthToNumber(trialData.month);
-      const apiUrl = `/misapi/api/trialbalance/${trialData.costctr}/${trialData.year}/${monthNum}`;
+      const apiUrl = `/misapi/api/trialbalance/${selectedCostCenter.compId}/${selectedYear}/${selectedMonth}`;
       const response = await fetch(apiUrl, {
         credentials: 'include',
         headers: { 'Accept': 'application/json' }
@@ -185,6 +193,17 @@ const CostCenterTrial: React.FC = () => {
       else if (jsonData.result && Array.isArray(jsonData.result)) trialBalanceArray = jsonData.result;
       else if (jsonData.AcCd) trialBalanceArray = [jsonData];
       setTrialBalanceData(trialBalanceArray);
+      
+      // Set trial data for modal
+      setTrialData({
+        costctr: selectedCostCenter.compId,
+        year: selectedYear,
+        month: getMonthName(selectedMonth),
+        deptName: selectedCostCenter.CompName
+      });
+      
+      setTrialModalOpen(true);
+      setShowDateSelection(false);
     } catch (error: any) {
       setTrialError(error.message.includes("JSON.parse") ? "Invalid data format received from server" : error.message);
     } finally {
@@ -192,21 +211,17 @@ const CostCenterTrial: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (trialModalOpen && trialData.costctr && trialData.year && trialData.month) {
-      fetchTrialBalanceData();
-    }
-  }, [trialModalOpen, trialData]);
+  // Remove the old useEffect since we now call fetchTrialBalanceData directly
 
   // Helper functions
-  const monthToNumber = (monthName: string): number => {
-    const months = [
+  const getMonthName = (monthNum: number): string => {
+    const monthNames = [
       "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
-      "13th Period",
+      "July", "August", "September", "October", "November", "December"
     ];
-    return monthName === "13th Period" ? 13 : months.indexOf(monthName) + 1;
+    return monthNames[monthNum - 1] || "";
   };
+
 
   const clearFilters = () => {
     setSearchId("");
@@ -216,6 +231,7 @@ const CostCenterTrial: React.FC = () => {
   const closeTrialModal = () => {
     setTrialModalOpen(false);
     setTrialBalanceData([]);
+    setSelectedCostCenter(null);
   };
 
   const formatNumber = (num: number): string => {
@@ -564,8 +580,94 @@ const CostCenterTrial: React.FC = () => {
     };
   };
 
+  // Date Selection Modal
+  const DateSelectionModal = () => {
+    console.log('DateSelectionModal render - selectedCostCenter:', selectedCostCenter, 'showDateSelection:', showDateSelection);
+    if (!selectedCostCenter || !showDateSelection) return null;
+
+    return (
+      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-end z-[9999] p-4 backdrop-blur-sm">
+        <div className="bg-white w-80 rounded-lg shadow-2xl border border-gray-200 relative max-h-[60vh] overflow-y-auto mr-8">
+          {/* Header with Work In Progress style */}
+          <div className="flex items-center w-full p-4 border-b border-gray-200 relative">
+            <div className="flex-shrink-0 mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="h-5 w-5 text-[#800000] transition-transform duration-300 rotate-180">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"></path>
+              </svg>
+            </div>
+            <div className="text-sm text-[#800000] tracking-wide">Select Period - {selectedCostCenter.CompName}</div>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#800000]/20 rounded-l-full"></div>
+            <button
+              onClick={() => setShowDateSelection(false)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-red-500"
+            >
+              <FaTimes className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <div className="p-4">
+         
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Year</label>
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1 max-h-32 overflow-y-auto mb-3">
+              {years.map((year) => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year)}
+                  className={`text-xs py-0.5 px-1 rounded cursor-pointer border transition-colors duration-150
+                  ${selectedYear === year
+                    ? "bg-[#7A0000] text-white border-[#7A0000]"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                  }`}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Month</label>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1">
+              {months.map((month) => (
+                <button
+                  key={month}
+                  onClick={() => setSelectedMonth(month)}
+                  className={`text-xs py-1 px-1 rounded cursor-pointer border transition-colors duration-150
+                  ${selectedMonth === month
+                    ? "bg-[#7A0000] text-white border-[#7A0000]"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                  }`}
+                >
+                  {getMonthName(month)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={() => setShowDateSelection(false)}
+              className="px-2 py-1 text-xs border border-gray-300 rounded bg-white hover:bg-gray-50 text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={fetchTrialBalanceData}
+              disabled={trialLoading}
+              className={`px-2 py-1 text-xs ${maroonBg} text-white rounded hover:brightness-110 disabled:opacity-50`}
+            >
+              {trialLoading ? "Loading..." : "View"}
+            </button>
+          </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
+    <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans relative">
       
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
@@ -681,6 +783,9 @@ const CostCenterTrial: React.FC = () => {
         </>
       )}
 
+      {/* Date Selection Modal */}
+      <DateSelectionModal />
+
       {/* Trial Balance Modal */}
       <TrialBalanceModal
         trialModalOpen={trialModalOpen}
@@ -698,6 +803,7 @@ const CostCenterTrial: React.FC = () => {
         printPDF={printPDF}
         goBack={() => {
           setTrialModalOpen(false);
+          setShowDateSelection(true);
         }}
       />
     </div>

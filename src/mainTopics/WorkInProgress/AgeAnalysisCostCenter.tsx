@@ -146,11 +146,11 @@ const AgeAnalysisCostCenter = () => {
     try {
       // Fetch data from both APIs in parallel
       const [commitmentResponse, ageAnalysisResponse] = await Promise.all([
-        fetch(`/misapi/api/projectcommitmentsummary/${deptId}`, {
+        fetch(`/workprogress/api/projectcommitmentsummary/${deptId}`, {
           credentials: 'include',
           headers: { 'Accept': 'application/json' }
         }),
-        fetch(`/misapi/api/projectageanalysis/${deptId}`, {
+        fetch(`/workprogress/api/projectageanalysis/${deptId}`, {
           credentials: 'include',
           headers: { 'Accept': 'application/json' }
         })

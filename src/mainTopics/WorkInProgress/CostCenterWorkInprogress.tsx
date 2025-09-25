@@ -160,7 +160,7 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
     setWorkInProgressLoading(true);
     setWorkInProgressError(null);
     try {
-      const apiUrl = `/misapi/api/costcenterworkinprogress/${deptId}`;
+      const apiUrl = `/workprogress/api/costcenterworkinprogress/${deptId}`;
       
       const response = await fetch(apiUrl, {
         credentials: 'include',

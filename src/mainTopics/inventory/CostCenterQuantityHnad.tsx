@@ -36,6 +36,11 @@ const CostCenterQuantityHnad: React.FC = () => {
   // Selection state
   const [selectedCostCenter, setSelectedCostCenter] = useState<CostCenter | null>(null);
 
+  // Material selection state
+  const [materialSelectionType, setMaterialSelectionType] = useState<'all' | 'specific'>('all');
+  const [materialCode, setMaterialCode] = useState('');
+  const [showMaterialSelection, setShowMaterialSelection] = useState(false);
+
   // Quantity On Hand modal state
   const [quantityModalOpen, setQuantityModalOpen] = useState(false);
   const [quantityData, setQuantityData] = useState<QuantityOnHandData[]>([]);
@@ -132,7 +137,13 @@ const CostCenterQuantityHnad: React.FC = () => {
     setQuantityLoading(true);
     setQuantityError(null);
     try {
-      const res = await fetch(`/materials/api/inventoryonhand/${selectedCostCenter.CostCenterId}`);
+      // Build API URL based on selection type
+      let apiUrl = `/materials/api/inventoryonhand/${selectedCostCenter.CostCenterId}`;
+      if (materialSelectionType === 'specific' && materialCode.trim()) {
+        apiUrl += `?matCode=${encodeURIComponent(materialCode.trim())}`;
+      }
+      
+      const res = await fetch(apiUrl);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       
       const contentType = res.headers.get('content-type');
@@ -169,6 +180,14 @@ const CostCenterQuantityHnad: React.FC = () => {
 
   const handleCostCenterSelect = (costCenter: CostCenter) => {
     setSelectedCostCenter(costCenter);
+    setShowMaterialSelection(true);
+  };
+
+  const handleViewData = () => {
+    if (materialSelectionType === 'specific' && !materialCode.trim()) {
+      setQuantityError('Please enter a material code for specific material selection.');
+      return;
+    }
     fetchQuantityData();
   };
 
@@ -176,6 +195,9 @@ const CostCenterQuantityHnad: React.FC = () => {
     setQuantityModalOpen(false);
     setQuantityData([]);
     setSelectedCostCenter(null);
+    setShowMaterialSelection(false);
+    setMaterialCode('');
+    setMaterialSelectionType('all');
   };
 
   const clearFilters = () => {
@@ -215,10 +237,10 @@ const CostCenterQuantityHnad: React.FC = () => {
       escapeCSVField(item.MatNm?.trim() || ""),
       escapeCSVField(item.GrdCd?.trim() || ""),
       escapeCSVField(item.MajUom?.trim() || ""),
-      escapeCSVField(item.Alocated || 0),
-      escapeCSVField(item.QtyOnHand || 0),
-      escapeCSVField(formatNumber(item.UnitPrice || 0)),
-      escapeCSVField(formatNumber(item.Value || 0))
+      escapeCSVField(item.Alocated || item.Alocated === 0 ? (item.Alocated === 0 ? "-" : item.Alocated) : "-"),
+      escapeCSVField(item.QtyOnHand || item.QtyOnHand === 0 ? (item.QtyOnHand === 0 ? "-" : item.QtyOnHand) : "-"),
+      escapeCSVField(item.UnitPrice || item.UnitPrice === 0 ? (item.UnitPrice === 0 ? "-" : formatNumber(item.UnitPrice)) : "-"),
+      escapeCSVField(item.Value || item.Value === 0 ? (item.Value === 0 ? "-" : formatNumber(item.Value)) : "-")
     ]);
     
     const csvContent = [
@@ -230,7 +252,8 @@ const CostCenterQuantityHnad: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `QuantityOnHand_${selectedCostCenter?.CostCenterId}_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
+    const materialSuffix = materialSelectionType === 'specific' && materialCode ? `_${materialCode}` : '';
+    link.download = `QuantityOnHand_${selectedCostCenter?.CostCenterId}${materialSuffix}_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -246,16 +269,21 @@ const CostCenterQuantityHnad: React.FC = () => {
 
     let tableRowsHTML = '';
     quantityData.forEach((item) => {
+      const allocated = item.Alocated || item.Alocated === 0 ? (item.Alocated === 0 ? "-" : item.Alocated) : "-";
+      const qtyOnHand = item.QtyOnHand || item.QtyOnHand === 0 ? (item.QtyOnHand === 0 ? "-" : item.QtyOnHand) : "-";
+      const unitPrice = item.UnitPrice || item.UnitPrice === 0 ? (item.UnitPrice === 0 ? "-" : formatNumber(item.UnitPrice)) : "-";
+      const value = item.Value || item.Value === 0 ? (item.Value === 0 ? "-" : formatNumber(item.Value)) : "-";
+      
       tableRowsHTML += `
         <tr>
           <td style="padding: 4px 8px; border: 1px solid #333; font-family: monospace; font-size: 11px;">${item.MatCd?.trim() || ""}</td>
           <td style="padding: 4px 8px; border: 1px solid #333; font-size: 11px;">${item.MatNm?.trim() || ""}</td>
           <td style="padding: 4px 8px; border: 1px solid #333; text-align: center; font-size: 11px;">${item.GrdCd?.trim() || ""}</td>
           <td style="padding: 4px 8px; border: 1px solid #333; text-align: center; font-size: 11px;">${item.MajUom?.trim() || ""}</td>
-          <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${item.Alocated || 0}</td>
-          <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${item.QtyOnHand || 0}</td>
-          <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${formatNumber(item.UnitPrice || 0)}</td>
-          <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${formatNumber(item.Value || 0)}</td>
+          <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${allocated}</td>
+          <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${qtyOnHand}</td>
+          <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${unitPrice}</td>
+          <td style="padding: 4px 8px; border: 1px solid #333; text-align: right; font-family: monospace; font-size: 11px;">${value}</td>
         </tr>
       `;
     });
@@ -329,7 +357,7 @@ const CostCenterQuantityHnad: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>CEYLON ELECTRICITY BOARD - INVENTORY REPORT - COST CENTRE: ${selectedCostCenter?.CostCenterId} / ${selectedCostCenter?.CostCenterName}</h1>
+          <h1>CEYLON ELECTRICITY BOARD - INVENTORY REPORT - COST CENTRE: ${selectedCostCenter?.CostCenterId} / ${selectedCostCenter?.CostCenterName}${materialSelectionType === 'specific' && materialCode ? ` / MATERIAL CODE - ${materialCode}` : ''}</h1>
           <h2>QUANTITY ON HAND REPORT - ${new Date().toLocaleDateString()}</h2>
         </div>
         
@@ -371,13 +399,112 @@ const CostCenterQuantityHnad: React.FC = () => {
     };
   };
 
+  // Material Selection Modal Component
+  const MaterialSelectionModal = () => {
+    if (!showMaterialSelection || !selectedCostCenter) return null;
+
+    return (
+      <div className="fixed inset-0 bg-white flex items-center justify-center z-50 pt-24 pb-8 pl-64">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-300 w-full max-w-lg mx-4">
+          <div className="p-8">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-3">
+                Material Selection
+              </h3>
+              <p className="text-base text-gray-600">
+                Cost Center: <span className="font-semibold">{selectedCostCenter.CostCenterId} - {selectedCostCenter.CostCenterName}</span>
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              {/* Selection Type */}
+              <div>
+                <label className="block text-base font-medium text-gray-700 mb-3">
+                  Select Material Type:
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="materialType"
+                      value="all"
+                      checked={materialSelectionType === 'all'}
+                      onChange={(e) => setMaterialSelectionType(e.target.value as 'all' | 'specific')}
+                      className="mr-3 w-4 h-4"
+                    />
+                    <span className="text-base">All Materials</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="materialType"
+                      value="specific"
+                      checked={materialSelectionType === 'specific'}
+                      onChange={(e) => setMaterialSelectionType(e.target.value as 'all' | 'specific')}
+                      className="mr-3 w-4 h-4"
+                    />
+                    <span className="text-base">Specific Material</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Material Code Input */}
+              {materialSelectionType === 'specific' && (
+                <div>
+                  <label className="block text-base font-medium text-gray-700 mb-3">
+                    Material Code:
+                  </label>
+                  <input
+                    type="text"
+                    value={materialCode}
+                    onChange={(e) => setMaterialCode(e.target.value)}
+                    placeholder="Enter material code"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-base"
+                    autoComplete="off"
+                    autoFocus={materialSelectionType === 'specific'}
+                  />
+                </div>
+              )}
+
+              {/* Error Message */}
+              {quantityError && (
+                <div className="text-red-600 text-base">
+                  {quantityError}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-4 mt-8">
+              <button
+                onClick={() => {
+                  setShowMaterialSelection(false);
+                  setSelectedCostCenter(null);
+                  setMaterialCode('');
+                  setMaterialSelectionType('all');
+                  setQuantityError(null);
+                }}
+                className="px-6 py-3 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-base font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleViewData}
+                className={`px-6 py-3 ${maroonBg} text-white rounded-md hover:brightness-110 text-base font-medium`}
+              >
+                View Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Quantity On Hand Modal Component
   const QuantityOnHandModal = () => {
     if (!quantityModalOpen || !selectedCostCenter) return null;
     
     const totalValue = quantityData.reduce((sum, item) => sum + (item.Value || 0), 0);
-    const totalQuantity = quantityData.reduce((sum, item) => sum + (item.QtyOnHand || 0), 0);
-    const totalAllocated = quantityData.reduce((sum, item) => sum + (item.Alocated || 0), 0);
 
     return (
       <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
@@ -390,6 +517,9 @@ const CostCenterQuantityHnad: React.FC = () => {
                 </h2>
                 <h3 className="text-sm font-semibold text-gray-700">
                   COST CENTRE: {selectedCostCenter.CostCenterId} / {selectedCostCenter.CostCenterName}
+                  {materialSelectionType === 'specific' && materialCode && (
+                    <span className="ml-2 text-blue-600">/ MATERIAL CODE - {materialCode}</span>
+                  )}
                 </h3>
                 <h4 className={`text-sm ${maroon} font-medium`}>
                   QUANTITY ON HAND REPORT - {new Date().toLocaleDateString()}
@@ -440,42 +570,42 @@ const CostCenterQuantityHnad: React.FC = () => {
               </div>
             ) : (
               <div className="w-full overflow-x-auto text-xs">
-                <table className="w-full border-collapse border border-gray-800">
+                <table className="w-full border-collapse border border-gray-200">
                   <thead>
-                    <tr className="bg-white border-b border-gray-800">
-                      <th className="px-3 py-2 text-left border-r border-gray-800 font-bold">MATERIAL<br/>CODE</th>
-                      <th className="px-3 py-2 text-left border-r border-gray-800 font-bold">MATERIAL<br/>NAME</th>
-                      <th className="px-3 py-2 text-center border-r border-gray-800 font-bold">GRADE<br/>CODE</th>
-                      <th className="px-3 py-2 text-center border-r border-gray-800 font-bold">UNIT</th>
-                      <th className="px-3 py-2 text-center border-r border-gray-800 font-bold">ALLOCATED</th>
-                      <th className="px-3 py-2 text-center border-r border-gray-800 font-bold">QUANTITY<br/>ON HAND</th>
-                      <th className="px-3 py-2 text-center border-r border-gray-800 font-bold">UNIT<br/>PRICE</th>
-                      <th className="px-3 py-2 text-center font-bold">VALUE</th>
+                    <tr className={`${maroonGrad} text-white`}>
+                      <th className="px-4 py-3 text-left border-r border-white font-bold">MATERIAL<br/>CODE</th>
+                      <th className="px-4 py-3 text-left border-r border-white font-bold">MATERIAL<br/>NAME</th>
+                      <th className="px-4 py-3 text-center border-r border-white font-bold">GRADE<br/>CODE</th>
+                      <th className="px-4 py-3 text-center border-r border-white font-bold">UNIT</th>
+                      <th className="px-4 py-3 text-center border-r border-white font-bold">ALLOCATED</th>
+                      <th className="px-4 py-3 text-center border-r border-white font-bold">QUANTITY<br/>ON HAND</th>
+                      <th className="px-4 py-3 text-center border-r border-white font-bold">UNIT<br/>PRICE</th>
+                      <th className="px-4 py-3 text-center font-bold">VALUE</th>
                     </tr>
                   </thead>
                   <tbody>
                     {quantityData.map((item, index) => (
-                      <tr key={`item-${index}`} className="border-b border-gray-300">
-                        <td className="px-3 py-1 font-mono border-r border-gray-300">{item.MatCd?.trim() || ""}</td>
-                        <td className="px-3 py-1 border-r border-gray-300">{item.MatNm?.trim() || ""}</td>
-                        <td className="px-3 py-1 text-center border-r border-gray-300">{item.GrdCd?.trim() || ""}</td>
-                        <td className="px-3 py-1 text-center border-r border-gray-300">{item.MajUom?.trim() || ""}</td>
-                        <td className="px-3 py-1 text-right font-mono border-r border-gray-300">{item.Alocated || 0}</td>
-                        <td className="px-3 py-1 text-right font-mono border-r border-gray-300">{item.QtyOnHand || 0}</td>
-                        <td className="px-3 py-1 text-right font-mono border-r border-gray-300">{formatNumber(item.UnitPrice || 0)}</td>
-                        <td className="px-3 py-1 text-right font-mono">{formatNumber(item.Value || 0)}</td>
+                      <tr key={`item-${index}`} className={index % 2 ? "bg-white" : "bg-gray-50"}>
+                        <td className="px-4 py-2 font-mono border-r border-gray-200">{item.MatCd?.trim() || ""}</td>
+                        <td className="px-4 py-2 border-r border-gray-200">{item.MatNm?.trim() || ""}</td>
+                        <td className="px-4 py-2 text-center border-r border-gray-200">{item.GrdCd?.trim() || ""}</td>
+                        <td className="px-4 py-2 text-center border-r border-gray-200">{item.MajUom?.trim() || ""}</td>
+                        <td className="px-4 py-2 text-right font-mono border-r border-gray-200">{item.Alocated || item.Alocated === 0 ? (item.Alocated === 0 ? "-" : item.Alocated) : "-"}</td>
+                        <td className="px-4 py-2 text-right font-mono border-r border-gray-200">{item.QtyOnHand || item.QtyOnHand === 0 ? (item.QtyOnHand === 0 ? "-" : item.QtyOnHand) : "-"}</td>
+                        <td className="px-4 py-2 text-right font-mono border-r border-gray-200">{item.UnitPrice || item.UnitPrice === 0 ? (item.UnitPrice === 0 ? "-" : formatNumber(item.UnitPrice)) : "-"}</td>
+                        <td className="px-4 py-2 text-right font-mono">{item.Value || item.Value === 0 ? (item.Value === 0 ? "-" : formatNumber(item.Value)) : "-"}</td>
                       </tr>
                     ))}
                     {/* Summary Row */}
-                    <tr className="bg-gray-100 border-t-2 border-gray-800">
-                      <td className="px-3 py-2 font-bold border-r border-gray-300"></td>
-                      <td className="px-3 py-2 font-bold border-r border-gray-300">TOTAL</td>
-                      <td className="px-3 py-2 text-center border-r border-gray-300"></td>
-                      <td className="px-3 py-2 text-center border-r border-gray-300"></td>
-                      <td className="px-3 py-2 text-right font-mono font-bold border-r border-gray-300">{totalAllocated}</td>
-                      <td className="px-3 py-2 text-right font-mono font-bold border-r border-gray-300">{totalQuantity}</td>
-                      <td className="px-3 py-2 text-center border-r border-gray-300"></td>
-                      <td className="px-3 py-2 text-right font-mono font-bold">{formatNumber(totalValue)}</td>
+                    <tr className="bg-gray-100 border-t-2 border-gray-300">
+                      <td className="px-4 py-3 font-bold border-r border-gray-200"></td>
+                      <td className="px-4 py-3 font-bold border-r border-gray-200">TOTAL</td>
+                      <td className="px-4 py-3 text-center border-r border-gray-200"></td>
+                      <td className="px-4 py-3 text-center border-r border-gray-200"></td>
+                      <td className="px-4 py-3 text-right font-mono border-r border-gray-200"></td>
+                      <td className="px-4 py-3 text-right font-mono border-r border-gray-200"></td>
+                      <td className="px-4 py-3 text-center border-r border-gray-200"></td>
+                      <td className="px-4 py-3 text-right font-mono font-bold">{formatNumber(totalValue)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -616,6 +746,9 @@ const CostCenterQuantityHnad: React.FC = () => {
         </>
       )}
 
+
+      {/* Material Selection Modal */}
+      <MaterialSelectionModal />
 
       {/* Quantity On Hand Modal */}
       <QuantityOnHandModal />

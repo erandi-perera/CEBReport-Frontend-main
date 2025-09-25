@@ -177,7 +177,8 @@ export const data = [
     name: "Work In Progress",
     icon: FaBalanceScale,
     subtopics: [
-                { id: 109, name: "Cost Center Wise Work In Progress With Age Analysis" }
+                { id: 109, name: "Cost Center Wise Work In Progress With Age Analysis" },
+                { id: 110, name: "Work In  Progress Completed Cost Center wise" }
     ],
     
 

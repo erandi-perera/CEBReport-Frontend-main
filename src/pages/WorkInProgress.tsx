@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import AgeAnalysisCostCenter from "../mainTopics/WorkInProgress/AgeAnalysisCostCenter";
+import CompletedCostCenterWise from "../mainTopics/WorkInProgress/CompletedCostCenterWise";
 
 
 type Subtopic = {
@@ -35,6 +36,8 @@ const WorkInProgress = () => {
     switch (subtopicName) {
         case "Cost Center Wise Work In Progress With Age Analysis":
         return <AgeAnalysisCostCenter/>;
+        case "Work In  Progress Completed Cost Center wise":
+          return <CompletedCostCenterWise/>;
     
         
         
