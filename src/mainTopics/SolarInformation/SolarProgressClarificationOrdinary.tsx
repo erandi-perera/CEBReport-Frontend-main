@@ -154,7 +154,7 @@ const SolarProgressClarificationOrdinary: React.FC = () => {
       setProvinceError(null);
       try {
         const provinceData = await fetchWithErrorHandling(
-          "/solarapi/ordinary/province"
+          "/misapi/solarapi/ordinary/province"
         );
         setProvinces(provinceData.data || []);
       } catch (err: any) {
@@ -177,7 +177,7 @@ const SolarProgressClarificationOrdinary: React.FC = () => {
       setDivisionError(null);
       try {
         const divisionData = await fetchWithErrorHandling(
-          "/solarapi/ordinary/region"
+          "/misapi/solarapi/ordinary/region"
         );
         setDivisions(divisionData.data || []);
       } catch (err: any) {
@@ -200,7 +200,7 @@ const SolarProgressClarificationOrdinary: React.FC = () => {
       setBillCycleError(null);
       try {
         const maxCycleData = await fetchWithErrorHandling(
-          "/solarapi/ordinary/bill-cycle"
+          "/misapi/solarapi/ordinary/bill-cycle"
         );
         if (maxCycleData.data && maxCycleData.data.BillCycles?.length > 0) {
           const options = generateBillCycleOptions(
@@ -791,7 +791,7 @@ const SolarProgressClarificationOrdinary: React.FC = () => {
         reportTypeParam = "Region"; // Assuming "Division" maps to "Region" in the API
       }
 
-      endpoint = `/solarapi/solar-progress/ordinary/${reportType}?billCycle=${billCycleValue}&reportType=${reportTypeParam}`;
+      endpoint = `/misapi/solarapi/solar-progress/ordinary/${reportType}?billCycle=${billCycleValue}&reportType=${reportTypeParam}`;
 
       // Only add typeCode parameter if it's not Entire CEB
       if (selectedOption !== "Entire CEB") {
