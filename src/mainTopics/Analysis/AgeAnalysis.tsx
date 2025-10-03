@@ -1,7 +1,25 @@
-
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from "recharts";
-
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
+import { FaFileDownload, FaPrint } from "react-icons/fa";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LabelList,
+} from "recharts";
 
 // Interfaces
 interface Area {
@@ -47,9 +65,6 @@ interface Debtor {
   ErrorMessage: string | null;
 }
 
-
-
-
 const AgeAnalysis: React.FC = () => {
   // Colors and styling
   const maroon = "text-[#7A0000]";
@@ -61,7 +76,9 @@ const AgeAnalysis: React.FC = () => {
 
   // State
   const [areas, setAreas] = useState<Area[]>([]);
-  const [billCycleOptions, setBillCycleOptions] = useState<BillCycleOption[]>([]);
+  const [billCycleOptions, setBillCycleOptions] = useState<BillCycleOption[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [debtors, setDebtors] = useState<Debtor[]>([]);
@@ -71,7 +88,7 @@ const AgeAnalysis: React.FC = () => {
 
   // Chart state
   const [showChart, setShowChart] = useState(false);
-  const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
+  const [chartType, setChartType] = useState<"bar" | "pie">("bar");
 
   // Pagination state for large datasets
   const [currentPage, setCurrentPage] = useState(1);
@@ -100,15 +117,18 @@ const AgeAnalysis: React.FC = () => {
     custType: "A",
     billCycle: "",
     areaCode: "",
-    timePeriod: "0-6"
+    timePeriod: "0-6",
   });
 
   // Helper functions
-  const generateBillCycleOptions = (billCycles: string[], maxCycle: string): BillCycleOption[] => {
+  const generateBillCycleOptions = (
+    billCycles: string[],
+    maxCycle: string
+  ): BillCycleOption[] => {
     const maxCycleNum = parseInt(maxCycle);
     return billCycles.map((cycle, index) => ({
       display: cycle,
-      code: (maxCycleNum - index).toString()
+      code: (maxCycleNum - index).toString(),
     }));
   };
 
@@ -119,9 +139,9 @@ const AgeAnalysis: React.FC = () => {
     try {
       const response = await fetch(url, {
         headers: {
-          'Accept': 'application/json'
+          Accept: "application/json",
         },
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
@@ -139,16 +159,18 @@ const AgeAnalysis: React.FC = () => {
         throw new Error(errorMsg);
       }
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
         throw new Error(`Expected JSON response but got ${contentType}`);
       }
 
       return await response.json();
     } catch (error: unknown) {
       clearTimeout(timeoutId);
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Request timed out - the server may be processing a large dataset');
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(
+          "Request timed out - the server may be processing a large dataset"
+        );
       }
       console.error(`Error fetching ${url}:`, error);
       throw error instanceof Error ? error : new Error(String(error));
@@ -165,21 +187,26 @@ const AgeAnalysis: React.FC = () => {
         const areaData = await fetchWithErrorHandling("/misapi/api/areas");
         setAreas(areaData.data || []);
         if (areaData.data?.length > 0) {
-          setFormData(prev => ({ ...prev, areaCode: areaData.data[0].AreaCode }));
+          setFormData((prev) => ({
+            ...prev,
+            areaCode: areaData.data[0].AreaCode,
+          }));
         }
 
         // Fetch bill cycles
-        const maxCycleData = await fetchWithErrorHandling("/misapi/api/billcycle/max");
+        const maxCycleData = await fetchWithErrorHandling(
+          "/misapi/api/billcycle/max"
+        );
         if (maxCycleData.data && maxCycleData.data.BillCycles?.length > 0) {
           const options = generateBillCycleOptions(
             maxCycleData.data.BillCycles,
             maxCycleData.data.MaxBillCycle
           );
           setBillCycleOptions(options);
-          setFormData(prev => ({ ...prev, billCycle: options[0].code }));
+          setFormData((prev) => ({ ...prev, billCycle: options[0].code }));
         } else {
           setBillCycleOptions([]);
-          setFormData(prev => ({ ...prev, billCycle: "" }));
+          setFormData((prev) => ({ ...prev, billCycle: "" }));
         }
       } catch (err: any) {
         setError("Error loading data: " + (err.message || err.toString()));
@@ -196,7 +223,10 @@ const AgeAnalysis: React.FC = () => {
     if (!debtors.length) return null;
 
     return {
-      totalOutstanding: debtors.reduce((sum, d) => sum + d.OutstandingBalance, 0),
+      totalOutstanding: debtors.reduce(
+        (sum, d) => sum + d.OutstandingBalance,
+        0
+      ),
       month0: debtors.reduce((sum, d) => sum + d.Month0, 0),
       month1: debtors.reduce((sum, d) => sum + d.Month1, 0),
       month2: debtors.reduce((sum, d) => sum + d.Month2, 0),
@@ -210,7 +240,7 @@ const AgeAnalysis: React.FC = () => {
       months25_36: debtors.reduce((sum, d) => sum + d.Months25_36, 0),
       months37_48: debtors.reduce((sum, d) => sum + d.Months37_48, 0),
       months49_60: debtors.reduce((sum, d) => sum + d.Months49_60, 0),
-      months61Plus: debtors.reduce((sum, d) => sum + d.Months61Plus, 0)
+      months61Plus: debtors.reduce((sum, d) => sum + d.Months61Plus, 0),
     };
   }, [debtors]);
 
@@ -222,42 +252,77 @@ const AgeAnalysis: React.FC = () => {
 
     if (formData.timePeriod === "0-6") {
       data.push(
-        { name: 'Month 0', value: totals.month0, color: '#1E3A8A' },
-        { name: 'Month 1', value: totals.month1, color: '#10B981' },
-        { name: 'Month 2', value: totals.month2, color: '#F59E0B' },
-        { name: 'Month 3', value: totals.month3, color: '#6366F1' },
-        { name: 'Month 4', value: totals.month4, color: '#3B82F6' },
-        { name: 'Month 5', value: totals.month5, color: '#6B7280' },
-        { name: 'Month 6', value: totals.month6, color: '#9CA3AF' }
+        { name: "Month 0", value: totals.month0, color: "#1E3A8A" },
+        { name: "Month 1", value: totals.month1, color: "#10B981" },
+        { name: "Month 2", value: totals.month2, color: "#F59E0B" },
+        { name: "Month 3", value: totals.month3, color: "#6366F1" },
+        { name: "Month 4", value: totals.month4, color: "#3B82F6" },
+        { name: "Month 5", value: totals.month5, color: "#6B7280" },
+        { name: "Month 6", value: totals.month6, color: "#9CA3AF" }
       );
     } else if (formData.timePeriod === "7-12") {
       data.push(
-        { name: 'Months 7-9', value: totals.months7_9, color: '#1E3A8A' },
-        { name: 'Months 10-12', value: totals.months10_12, color: '#10B981' }
+        { name: "Months 7-9", value: totals.months7_9, color: "#1E3A8A" },
+        { name: "Months 10-12", value: totals.months10_12, color: "#10B981" }
       );
     } else if (formData.timePeriod === "1-2") {
-      data.push({ name: '1-2 Years', value: totals.months13_24, color: '#1E3A8A' });
+      data.push({
+        name: "1-2 Years",
+        value: totals.months13_24,
+        color: "#1E3A8A",
+      });
     } else if (formData.timePeriod === "2-3") {
-      data.push({ name: '2-3 Years', value: totals.months25_36, color: '#1E3A8A' });
+      data.push({
+        name: "2-3 Years",
+        value: totals.months25_36,
+        color: "#1E3A8A",
+      });
     } else if (formData.timePeriod === "3-4") {
-      data.push({ name: '3-4 Years', value: totals.months37_48, color: '#1E3A8A' });
+      data.push({
+        name: "3-4 Years",
+        value: totals.months37_48,
+        color: "#1E3A8A",
+      });
     } else if (formData.timePeriod === "4-5") {
-      data.push({ name: '4-5 Years', value: totals.months49_60, color: '#1E3A8A' });
+      data.push({
+        name: "4-5 Years",
+        value: totals.months49_60,
+        color: "#1E3A8A",
+      });
     } else if (formData.timePeriod === ">5") {
-      data.push({ name: '5+ Years', value: totals.months61Plus, color: '#1E3A8A' });
+      data.push({
+        name: "5+ Years",
+        value: totals.months61Plus,
+        color: "#1E3A8A",
+      });
     } else if (formData.timePeriod === "All") {
       data.push(
-        { name: '0-6 Months', value: totals.month0 + totals.month1 + totals.month2 + totals.month3 + totals.month4 + totals.month5 + totals.month6, color: '#1E3A8A' },
-        { name: '7-12 Months', value: totals.months7_9 + totals.months10_12, color: '#10B981' },
-        { name: '1-2 Years', value: totals.months13_24, color: '#F59E0B' },
-        { name: '2-3 Years', value: totals.months25_36, color: '#6366F1' },
-        { name: '3-4 Years', value: totals.months37_48, color: '#3B82F6' },
-        { name: '4-5 Years', value: totals.months49_60, color: '#6B7280' },
-        { name: '5+ Years', value: totals.months61Plus, color: '#9CA3AF' }
+        {
+          name: "0-6 Months",
+          value:
+            totals.month0 +
+            totals.month1 +
+            totals.month2 +
+            totals.month3 +
+            totals.month4 +
+            totals.month5 +
+            totals.month6,
+          color: "#1E3A8A",
+        },
+        {
+          name: "7-12 Months",
+          value: totals.months7_9 + totals.months10_12,
+          color: "#10B981",
+        },
+        { name: "1-2 Years", value: totals.months13_24, color: "#F59E0B" },
+        { name: "2-3 Years", value: totals.months25_36, color: "#6366F1" },
+        { name: "3-4 Years", value: totals.months37_48, color: "#3B82F6" },
+        { name: "4-5 Years", value: totals.months49_60, color: "#6B7280" },
+        { name: "5+ Years", value: totals.months61Plus, color: "#9CA3AF" }
       );
     }
 
-    return data.filter(item => item.value > 0); // Only show non-zero values
+    return data.filter((item) => item.value > 0); // Only show non-zero values
   }, [debtors, totals, formData.timePeriod]);
 
   // Paginated data
@@ -270,10 +335,13 @@ const AgeAnalysis: React.FC = () => {
   const totalPages = Math.ceil(debtors.length / itemsPerPage);
 
   // Event handlers
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  }, []);
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    },
+    []
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,24 +355,39 @@ const AgeAnalysis: React.FC = () => {
     try {
       let ageRange = "";
       switch (formData.timePeriod) {
-        case "0-6": ageRange = "Months0_6"; break;
-        case "7-12": ageRange = "Months7_12"; break;
-        case "1-2": ageRange = "Years1_2"; break;
-        case "2-3": ageRange = "Years2_3"; break;
-        case "3-4": ageRange = "Years3_4"; break;
-        case "4-5": ageRange = "Years4_5"; break;
-        case ">5": ageRange = "Years5Plus"; break;
-        case "All": ageRange = "All"; break;
-        default: ageRange = "All";
+        case "0-6":
+          ageRange = "Months0_6";
+          break;
+        case "7-12":
+          ageRange = "Months7_12";
+          break;
+        case "1-2":
+          ageRange = "Years1_2";
+          break;
+        case "2-3":
+          ageRange = "Years2_3";
+          break;
+        case "3-4":
+          ageRange = "Years3_4";
+          break;
+        case "4-5":
+          ageRange = "Years4_5";
+          break;
+        case ">5":
+          ageRange = "Years5Plus";
+          break;
+        case "All":
+          ageRange = "All";
+          break;
+        default:
+          ageRange = "All";
       }
 
       const url = `/misapi/api/debtors?custType=${formData.custType}&billCycle=${formData.billCycle}&areaCode=${formData.areaCode}&ageRange=${ageRange}`;
 
-
       // Increased timeout for Active customer reports
       const timeout = formData.custType === "A" ? 120000 : 60000; // 2 minutes for Active, 1 minute for others
       const data = await fetchWithErrorHandling(url, timeout);
-
 
       if (data.errorMessage) {
         throw new Error(data.errorMessage);
@@ -328,17 +411,17 @@ const AgeAnalysis: React.FC = () => {
       // Scroll to report after a small delay to allow rendering
       setTimeout(() => {
         if (reportContainerRef.current) {
-          reportContainerRef.current.scrollIntoView({ behavior: 'smooth' });
+          reportContainerRef.current.scrollIntoView({ behavior: "smooth" });
         }
       }, 100);
-
     } catch (err: any) {
       let errorMessage = "Error fetching report: ";
 
-      if (err.message.includes('timed out')) {
-        errorMessage += "The request timed out. This usually happens when there are too many Active customers. Try selecting a more specific time period or smaller area.";
+      if (err.message.includes("timed out")) {
+        errorMessage +=
+          "The request timed out. This usually happens when there are too many Active customers. Try selecting a more specific time period or smaller area.";
       } else {
-        errorMessage += (err.message || err.toString());
+        errorMessage += err.message || err.toString();
       }
 
       setReportError(errorMessage);
@@ -356,7 +439,7 @@ const AgeAnalysis: React.FC = () => {
       "Name",
       "Address",
       "Tariff Code",
-      "Outstanding Balance"
+      "Outstanding Balance",
     ];
 
     // Add columns based on the selected time period
@@ -371,10 +454,7 @@ const AgeAnalysis: React.FC = () => {
         "Month 6"
       );
     } else if (formData.timePeriod === "7-12") {
-      headers.push(
-        "Months 7-9",
-        "Months 10-12"
-      );
+      headers.push("Months 7-9", "Months 10-12");
     } else if (formData.timePeriod === "1-2") {
       headers.push("1-2 Years");
     } else if (formData.timePeriod === "2-3") {
@@ -398,15 +478,15 @@ const AgeAnalysis: React.FC = () => {
     }
 
     // Create rows with proper formatting
-    const rows = debtors.map(debtor => {
+    const rows = debtors.map((debtor) => {
       const row = [
         debtor.AccountNumber,
         `${debtor.FirstName} ${debtor.LastName}`.trim(),
         [debtor.Address1, debtor.Address2, debtor.Address3]
-          .filter(part => part && part.trim() !== '')
-          .join(', '),
+          .filter((part) => part && part.trim() !== "")
+          .join(", "),
         debtor.TariffCode,
-        formatCurrency(debtor.OutstandingBalance)
+        formatCurrency(debtor.OutstandingBalance),
       ];
 
       // Add values based on the selected time period
@@ -437,8 +517,15 @@ const AgeAnalysis: React.FC = () => {
         row.push(formatCurrency(debtor.Months61Plus));
       } else if (formData.timePeriod === "All") {
         row.push(
-          formatCurrency(debtor.Month0 + debtor.Month1 + debtor.Month2 +
-            debtor.Month3 + debtor.Month4 + debtor.Month5 + debtor.Month6),
+          formatCurrency(
+            debtor.Month0 +
+              debtor.Month1 +
+              debtor.Month2 +
+              debtor.Month3 +
+              debtor.Month4 +
+              debtor.Month5 +
+              debtor.Month6
+          ),
           formatCurrency(debtor.Months7_9 + debtor.Months10_12),
           formatCurrency(debtor.Months13_24),
           formatCurrency(debtor.Months25_36),
@@ -482,8 +569,15 @@ const AgeAnalysis: React.FC = () => {
         totalsRow.push(formatCurrency(totals.months61Plus));
       } else if (formData.timePeriod === "All") {
         totalsRow.push(
-          formatCurrency(totals.month0 + totals.month1 + totals.month2 +
-            totals.month3 + totals.month4 + totals.month5 + totals.month6),
+          formatCurrency(
+            totals.month0 +
+              totals.month1 +
+              totals.month2 +
+              totals.month3 +
+              totals.month4 +
+              totals.month5 +
+              totals.month6
+          ),
           formatCurrency(totals.months7_9 + totals.months10_12),
           formatCurrency(totals.months13_24),
           formatCurrency(totals.months25_36),
@@ -498,13 +592,19 @@ const AgeAnalysis: React.FC = () => {
 
     // Create CSV content with proper formatting
     let csvContent = [
-      `"Age Analysis Report - ${customerTypeOptions.find(t => t.value === formData.custType)?.display} Customers"`,
-      `"Bill Cycle: ${billCycleOptions.find(b => b.code === formData.billCycle)?.display} - ${formData.billCycle}"`,
-      `"Area: ${areas.find(a => a.AreaCode === formData.areaCode)?.AreaName} (${formData.areaCode})"`,
+      `"Age Analysis Report - ${
+        customerTypeOptions.find((t) => t.value === formData.custType)?.display
+      } Customers"`,
+      `"Bill Cycle: ${
+        billCycleOptions.find((b) => b.code === formData.billCycle)?.display
+      } - ${formData.billCycle}"`,
+      `"Area: ${
+        areas.find((a) => a.AreaCode === formData.areaCode)?.AreaName
+      } (${formData.areaCode})"`,
       `"Total Records: ${totalRecords}"`,
       "",
-      headers.map(h => `"${h}"`).join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+      headers.map((h) => `"${h}"`).join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
     ].join("\n");
 
     // Create and trigger download
@@ -512,12 +612,22 @@ const AgeAnalysis: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `AgeAnalysis_${formData.custType}_Cycle${formData.billCycle}_Area${formData.areaCode}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `AgeAnalysis_${formData.custType}_Cycle${
+      formData.billCycle
+    }_Area${formData.areaCode}_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }, [debtors, formData, billCycleOptions, areas, customerTypeOptions, totals, totalRecords]);
+  }, [
+    debtors,
+    formData,
+    billCycleOptions,
+    areas,
+    customerTypeOptions,
+    totals,
+    totalRecords,
+  ]);
 
   const printPDF = () => {
     if (!debtors.length) return;
@@ -578,45 +688,103 @@ const AgeAnalysis: React.FC = () => {
         const bgColor = index % 2 === 0 ? "#ffffff" : "#f9f9f9";
         tableHTML += `
           <tr style="background-color: ${bgColor};">
-            <td style="border: 1px solid #ddd; padding: 2px 4px; font-size: 10px; vertical-align: top;">${debtor.AccountNumber}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; font-size: 10px; vertical-align: top;">${getFullName(debtor)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; font-size: 10px; vertical-align: top;">${getFullAddress(debtor)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; font-size: 10px; vertical-align: top;">${debtor.TariffCode}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.OutstandingBalance)}</td>`;
+            <td style="border: 1px solid #ddd; padding: 2px 4px; font-size: 10px; vertical-align: top;">${
+              debtor.AccountNumber
+            }</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; font-size: 10px; vertical-align: top;">${getFullName(
+              debtor
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; font-size: 10px; vertical-align: top;">${getFullAddress(
+              debtor
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; font-size: 10px; vertical-align: top;">${
+              debtor.TariffCode
+            }</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.OutstandingBalance
+            )}</td>`;
 
         // Add time period specific data
         if (formData.timePeriod === "0-6") {
           tableHTML += `
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Month0)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Month1)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Month2)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Month3)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Month4)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Month5)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Month6)}</td>`;
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Month0
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Month1
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Month2
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Month3
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Month4
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Month5
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Month6
+            )}</td>`;
         } else if (formData.timePeriod === "7-12") {
           tableHTML += `
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months7_9)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months10_12)}</td>`;
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Months7_9
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Months10_12
+            )}</td>`;
         } else if (formData.timePeriod === "1-2") {
-          tableHTML += `<td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months13_24)}</td>`;
+          tableHTML += `<td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+            debtor.Months13_24
+          )}</td>`;
         } else if (formData.timePeriod === "2-3") {
-          tableHTML += `<td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months25_36)}</td>`;
+          tableHTML += `<td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+            debtor.Months25_36
+          )}</td>`;
         } else if (formData.timePeriod === "3-4") {
-          tableHTML += `<td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months37_48)}</td>`;
+          tableHTML += `<td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+            debtor.Months37_48
+          )}</td>`;
         } else if (formData.timePeriod === "4-5") {
-          tableHTML += `<td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months49_60)}</td>`;
+          tableHTML += `<td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+            debtor.Months49_60
+          )}</td>`;
         } else if (formData.timePeriod === ">5") {
-          tableHTML += `<td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months61Plus)}</td>`;
+          tableHTML += `<td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+            debtor.Months61Plus
+          )}</td>`;
         } else if (formData.timePeriod === "All") {
           tableHTML += `
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Month0 + debtor.Month1 + debtor.Month2 + debtor.Month3 + debtor.Month4 + debtor.Month5 + debtor.Month6)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months7_9 + debtor.Months10_12)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months13_24)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months25_36)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months37_48)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months49_60)}</td>
-            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(debtor.Months61Plus)}</td>`;
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Month0 +
+                debtor.Month1 +
+                debtor.Month2 +
+                debtor.Month3 +
+                debtor.Month4 +
+                debtor.Month5 +
+                debtor.Month6
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Months7_9 + debtor.Months10_12
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Months13_24
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Months25_36
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Months37_48
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Months49_60
+            )}</td>
+            <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: right; font-size: 10px; vertical-align: top;">${formatCurrency(
+              debtor.Months61Plus
+            )}</td>`;
         }
 
         tableHTML += `</tr>`;
@@ -669,10 +837,18 @@ const AgeAnalysis: React.FC = () => {
           </style>
         </head>
         <body>
-          <div class="header">AGE ANALYSIS REPORT - ${customerTypeOptions.find(t => t.value === formData.custType)?.display} </div>
+          <div class="header">AGE ANALYSIS REPORT - ${
+            customerTypeOptions.find((t) => t.value === formData.custType)
+              ?.display
+          } </div>
           <div class="subheader">
-            Area: <span class="bold">${areas.find(a => a.AreaCode === formData.areaCode)?.AreaName} (${formData.areaCode})</span><br>
-            Bill Cycle: <span class="bold">${billCycleOptions.find(b => b.code === formData.billCycle)?.display} - ${formData.billCycle}</span><br>
+            Area: <span class="bold">${
+              areas.find((a) => a.AreaCode === formData.areaCode)?.AreaName
+            } (${formData.areaCode})</span><br>
+            Bill Cycle: <span class="bold">${
+              billCycleOptions.find((b) => b.code === formData.billCycle)
+                ?.display
+            } - ${formData.billCycle}</span><br>
             Total Records: <span class="bold">${totalRecords}</span>
           </div>
           ${generateTableHTML()}
@@ -696,7 +872,7 @@ const AgeAnalysis: React.FC = () => {
     const absValue = Math.abs(value);
     const formatted = absValue.toLocaleString("en-US", {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     });
     return value < 0 ? `(${formatted})` : formatted;
   };
@@ -707,8 +883,8 @@ const AgeAnalysis: React.FC = () => {
 
   const getFullAddress = (debtor: Debtor): string => {
     return [debtor.Address1, debtor.Address2, debtor.Address3]
-      .filter(part => part && part.trim() !== '')
-      .join(', ');
+      .filter((part) => part && part.trim() !== "")
+      .join(", ");
   };
 
   const handleBack = () => {
@@ -722,40 +898,46 @@ const AgeAnalysis: React.FC = () => {
 
   const renderChart = () => {
     const hideChartPeriods = ["1-2", "2-3", "3-4", "4-5", ">5"];
-    if (!showChart || !chartData.length || hideChartPeriods.includes(formData.timePeriod)) {
+    if (
+      !showChart ||
+      !chartData.length ||
+      hideChartPeriods.includes(formData.timePeriod)
+    ) {
       return null;
     }
 
     return (
       <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded">
         <div className="flex justify-between items-center mb-4">
-          <h4 className="font-medium text-gray-800">Age Analysis Visualization</h4>
+          <h4 className="font-medium text-gray-800">
+            Age Analysis Visualization
+          </h4>
           <div className="flex gap-2">
             <button
-              onClick={() => setChartType('bar')}
-              className={`px-3 py-1 rounded text-sm ${chartType === 'bar'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 hover:bg-gray-300'
-                }`}
+              onClick={() => setChartType("bar")}
+              className={`px-3 py-1 rounded text-sm ${
+                chartType === "bar"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 hover:bg-gray-300"
+              }`}
             >
               Bar Chart
             </button>
             <button
-              onClick={() => setChartType('pie')}
-              className={`px-3 py-1 rounded text-sm ${chartType === 'pie'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 hover:bg-gray-300'
-                }`}
+              onClick={() => setChartType("pie")}
+              className={`px-3 py-1 rounded text-sm ${
+                chartType === "pie"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 hover:bg-gray-300"
+              }`}
             >
               Pie Chart
             </button>
           </div>
         </div>
 
-        <div style={{ width: '100%', height: '400px' }}>
-
-          {chartType === 'bar' ? (
-
+        <div style={{ width: "100%", height: "400px" }}>
+          {chartType === "bar" ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
@@ -772,22 +954,26 @@ const AgeAnalysis: React.FC = () => {
                 <YAxis
                   tick={{ fontSize: 11 }}
                   tickFormatter={(value) => {
-                    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                    if (value >= 1000000)
+                      return `${(value / 1000000).toFixed(1)}M`;
                     if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
                     return value.toString();
                   }}
                 />
                 <Tooltip
-                  cursor={{ fill: 'rgba(0,0,0,0.05)' }} // highlight bar on hover
-                  formatter={(value) => [formatCurrency(Number(value)), 'Amount']}
-                  labelStyle={{ fontSize: '12px' }}
+                  cursor={{ fill: "rgba(0,0,0,0.05)" }} // highlight bar on hover
+                  formatter={(value) => [
+                    formatCurrency(Number(value)),
+                    "Amount",
+                  ]}
+                  labelStyle={{ fontSize: "12px" }}
                 />
                 <Legend
                   payload={chartData.map((item) => ({
                     id: item.name,
                     type: "square",
                     value: item.name,
-                    color: item.color
+                    color: item.color,
                   }))}
                 />
 
@@ -797,7 +983,11 @@ const AgeAnalysis: React.FC = () => {
                   // fill="#1E3A8A"
                   radius={[6, 6, 0, 0]} // rounded corners
                   onClick={(data) => {
-                    alert(`You clicked on ${data.name} with value ${formatCurrency(data.value)}`);
+                    alert(
+                      `You clicked on ${data.name} with value ${formatCurrency(
+                        data.value
+                      )}`
+                    );
                   }}
                   isAnimationActive={true} // animate on load
                 >
@@ -809,12 +999,11 @@ const AgeAnalysis: React.FC = () => {
                     dataKey="value"
                     position="top"
                     formatter={(val: number) => formatCurrency(val)}
-                    style={{ fontSize: '10px', fill: '#333' }}
+                    style={{ fontSize: "10px", fill: "#333" }}
                   />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -826,7 +1015,9 @@ const AgeAnalysis: React.FC = () => {
                   outerRadius={150}
                   paddingAngle={2}
                   dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                  label={({ name, percent }) =>
+                    `${name}: ${(percent * 100).toFixed(1)}%`
+                  }
                   labelLine={false}
                   fontSize={11}
                 >
@@ -835,15 +1026,17 @@ const AgeAnalysis: React.FC = () => {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value) => [formatCurrency(Number(value)), 'Amount']}
-                  labelStyle={{ fontSize: '12px' }}
+                  formatter={(value) => [
+                    formatCurrency(Number(value)),
+                    "Amount",
+                  ]}
+                  labelStyle={{ fontSize: "12px" }}
                 />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
           )}
         </div>
-
       </div>
     );
   };
@@ -881,14 +1074,15 @@ const AgeAnalysis: React.FC = () => {
           Previous
         </button>
 
-        {pageNumbers.map(pageNum => (
+        {pageNumbers.map((pageNum) => (
           <button
             key={pageNum}
             onClick={() => setCurrentPage(pageNum)}
-            className={`px-2 py-1 text-xs rounded ${currentPage === pageNum
-              ? 'bg-[#7A0000] text-white'
-              : 'bg-gray-200 hover:bg-gray-300'
-              }`}
+            className={`px-2 py-1 text-xs rounded ${
+              currentPage === pageNum
+                ? "bg-[#7A0000] text-white"
+                : "bg-gray-200 hover:bg-gray-300"
+            }`}
           >
             {pageNum}
           </button>
@@ -910,7 +1104,9 @@ const AgeAnalysis: React.FC = () => {
         </button>
 
         <span className="text-xs text-gray-600 ml-4">
-          Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalRecords)} of {totalRecords} records
+          Showing {(currentPage - 1) * itemsPerPage + 1}-
+          {Math.min(currentPage * itemsPerPage, totalRecords)} of {totalRecords}{" "}
+          records
         </span>
       </div>
     );
@@ -923,8 +1119,9 @@ const AgeAnalysis: React.FC = () => {
       {/* Warning for Active customers */}
       {formData.custType === "A" && (
         <div className="mb-4 p-3 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded text-sm">
-          <strong>Note:</strong> Active customer reports may take longer to load due to large dataset size.
-          Consider selecting a specific time period for faster results.
+          <strong>Note:</strong> Active customer reports may take longer to load
+          due to large dataset size. Consider selecting a specific time period
+          for faster results.
         </div>
       )}
 
@@ -932,7 +1129,9 @@ const AgeAnalysis: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Customer Type Dropdown */}
           <div className="flex flex-col">
-            <label className={`${maroon} text-xs font-medium mb-1`}>Select Customer Type:</label>
+            <label className={`${maroon} text-xs font-medium mb-1`}>
+              Select Customer Type:
+            </label>
             <select
               name="custType"
               value={formData.custType}
@@ -940,7 +1139,11 @@ const AgeAnalysis: React.FC = () => {
               className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-[#7A0000] focus:border-transparent mb-1"
             >
               {customerTypeOptions.map((type) => (
-                <option key={type.value} value={type.value} className="text-xs py-1">
+                <option
+                  key={type.value}
+                  value={type.value}
+                  className="text-xs py-1"
+                >
                   {type.display} - {type.value}
                 </option>
               ))}
@@ -949,7 +1152,9 @@ const AgeAnalysis: React.FC = () => {
 
           {/* Bill Cycle Dropdown */}
           <div className="flex flex-col">
-            <label className={`${maroon} text-xs font-medium mb-1`}>Select Bill Cycle:</label>
+            <label className={`${maroon} text-xs font-medium mb-1`}>
+              Select Bill Cycle:
+            </label>
             <select
               name="billCycle"
               value={formData.billCycle}
@@ -958,7 +1163,11 @@ const AgeAnalysis: React.FC = () => {
               required
             >
               {billCycleOptions.map((option) => (
-                <option key={option.code} value={option.code} className="text-xs py-1">
+                <option
+                  key={option.code}
+                  value={option.code}
+                  className="text-xs py-1"
+                >
                   {option.display} - {option.code}
                 </option>
               ))}
@@ -967,7 +1176,9 @@ const AgeAnalysis: React.FC = () => {
 
           {/* Area Dropdown */}
           <div className="flex flex-col">
-            <label className={`${maroon} text-xs font-medium mb-1`}>Select Area:</label>
+            <label className={`${maroon} text-xs font-medium mb-1`}>
+              Select Area:
+            </label>
             <select
               name="areaCode"
               value={formData.areaCode}
@@ -976,7 +1187,11 @@ const AgeAnalysis: React.FC = () => {
               required
             >
               {areas.map((area) => (
-                <option key={area.AreaCode} value={area.AreaCode} className="text-xs py-1">
+                <option
+                  key={area.AreaCode}
+                  value={area.AreaCode}
+                  className="text-xs py-1"
+                >
                   {area.AreaName} ({area.AreaCode})
                 </option>
               ))}
@@ -985,7 +1200,9 @@ const AgeAnalysis: React.FC = () => {
 
           {/* Time Period Dropdown */}
           <div className="flex flex-col">
-            <label className={`${maroon} text-xs font-medium mb-1`}>Select Time Period:</label>
+            <label className={`${maroon} text-xs font-medium mb-1`}>
+              Select Time Period:
+            </label>
             <select
               name="timePeriod"
               value={formData.timePeriod}
@@ -994,7 +1211,11 @@ const AgeAnalysis: React.FC = () => {
               required
             >
               {timePeriods.map((period) => (
-                <option key={period.value} value={period.value} className="text-xs py-1">
+                <option
+                  key={period.value}
+                  value={period.value}
+                  className="text-xs py-1"
+                >
                   {period.label}
                 </option>
               ))}
@@ -1006,22 +1227,51 @@ const AgeAnalysis: React.FC = () => {
         <div className="w-full mt-6 flex justify-end">
           <button
             type="submit"
-            disabled={reportLoading || !formData.areaCode || !formData.billCycle || !formData.custType}
+            disabled={
+              reportLoading ||
+              !formData.areaCode ||
+              !formData.billCycle ||
+              !formData.custType
+            }
             className={`
               px-6 py-2 rounded-md font-medium transition-opacity duration-300 shadow
               ${maroonGrad} text-white
-              ${reportLoading ? "opacity-70 cursor-not-allowed" : "hover:opacity-90"}
+              ${
+                reportLoading
+                  ? "opacity-70 cursor-not-allowed"
+                  : "hover:opacity-90"
+              }
             `}
           >
             {reportLoading ? (
               <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
-                {formData.custType === "A" ? "Loading (may take up to 2 minutes)..." : "Loading..."}
+                {formData.custType === "A"
+                  ? "Loading (may take up to 2 minutes)..."
+                  : "Loading..."}
               </span>
-            ) : "View Report"}
+            ) : (
+              "View Report"
+            )}
           </button>
         </div>
       </form>
@@ -1038,10 +1288,15 @@ const AgeAnalysis: React.FC = () => {
       <div className="mt-8" ref={printRef}>
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-semibold text-[#7A0000]">
-            Debtors Age Analysis — {customerTypeOptions.find(t => t.value === formData.custType)?.display} Customers
+            Debtors Age Analysis —{" "}
+            {
+              customerTypeOptions.find((t) => t.value === formData.custType)
+                ?.display
+            }{" "}
+            Customers
           </h3>
           <div className="flex gap-2 mt-2">
-            <button
+            {/* <button
               onClick={downloadAsCSV}
               className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
               disabled={!debtors.length}
@@ -1054,15 +1309,33 @@ const AgeAnalysis: React.FC = () => {
               disabled={!debtors.length}
             >
               PDF
+            </button> */}
+            <button
+              onClick={downloadAsCSV}
+              className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+              disabled={!debtors.length}
+            >
+              <FaFileDownload className="w-3 h-3" /> CSV
+            </button>
+            <button
+              onClick={printPDF}
+              className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
+              disabled={!debtors.length}
+            >
+              <FaPrint className="w-3 h-3" /> PDF
             </button>
 
             <button
               onClick={() => setShowChart(!showChart)}
-              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm text-white"
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-xs rounded-md text-white flex items-center"
               disabled={!debtors.length || isChartDisabled}
-              title={isChartDisabled ? "Charts not available for this time period" : ""}
+              title={
+                isChartDisabled
+                  ? "Charts not available for this time period"
+                  : ""
+              }
             >
-              {showChart ? 'Hide Chart' : 'Show Chart'}
+              {showChart ? "Hide Chart" : "Show Chart"}
             </button>
             <button
               onClick={handleBack}
@@ -1074,21 +1347,42 @@ const AgeAnalysis: React.FC = () => {
         </div>
 
         <p className="text-sm text-gray-600 mb-2">
-          Bill Cycle: {billCycleOptions.find(b => b.code === formData.billCycle)?.display} - {formData.billCycle}
+          Bill Cycle:{" "}
+          {billCycleOptions.find((b) => b.code === formData.billCycle)?.display}{" "}
+          - {formData.billCycle}
         </p>
         <p className="text-sm text-gray-600 mb-2">
-          Area: {areas.find(a => a.AreaCode === formData.areaCode)?.AreaName} ({formData.areaCode})
+          Area: {areas.find((a) => a.AreaCode === formData.areaCode)?.AreaName}{" "}
+          ({formData.areaCode})
         </p>
         {/* <p className="text-sm text-gray-600 mb-4">
           Total Records: {totalRecords} {totalPages > 1 && `(${totalPages} pages)`}
         </p> */}
 
         {reportLoading && (
-          <div className={`text-center py-8 ${maroon} text-sm animate-pulse font-sans`}>
+          <div
+            className={`text-center py-8 ${maroon} text-sm animate-pulse font-sans`}
+          >
             <div className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#7A0000]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#7A0000]"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               Loading report data...
               {formData.custType === "A" && (
@@ -1111,14 +1405,31 @@ const AgeAnalysis: React.FC = () => {
             {/* Summary totals */}
             {totals && (
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
-                <h4 className="font-medium text-blue-800 mb-2">Summary Totals</h4>
+                <h4 className="font-medium text-blue-800 mb-2">
+                  Summary Totals
+                </h4>
                 <p className="text-sm text-blue-700">
-                  Total Outstanding Balance: <strong>{formatCurrency(totals.totalOutstanding)}</strong>
+                  Total Outstanding Balance:{" "}
+                  <strong>{formatCurrency(totals.totalOutstanding)}</strong>
                 </p>
                 {formData.timePeriod === "All" && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-xs text-blue-600">
-                    <div>0-6 Months: {formatCurrency(totals.month0 + totals.month1 + totals.month2 + totals.month3 + totals.month4 + totals.month5 + totals.month6)}</div>
-                    <div>7-12 Months: {formatCurrency(totals.months7_9 + totals.months10_12)}</div>
+                    <div>
+                      0-6 Months:{" "}
+                      {formatCurrency(
+                        totals.month0 +
+                          totals.month1 +
+                          totals.month2 +
+                          totals.month3 +
+                          totals.month4 +
+                          totals.month5 +
+                          totals.month6
+                      )}
+                    </div>
+                    <div>
+                      7-12 Months:{" "}
+                      {formatCurrency(totals.months7_9 + totals.months10_12)}
+                    </div>
                     <div>1-2 Years: {formatCurrency(totals.months13_24)}</div>
                     <div>2-3 Years: {formatCurrency(totals.months25_36)}</div>
                     <div>3-4 Years: {formatCurrency(totals.months37_48)}</div>
@@ -1138,109 +1449,222 @@ const AgeAnalysis: React.FC = () => {
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Account Number</th>
-                    <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Name</th>
-                    <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Address</th>
-                    <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Tariff</th>
-                    <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Outstanding Balance</th>
+                    <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                      Account Number
+                    </th>
+                    <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                      Name
+                    </th>
+                    <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                      Address
+                    </th>
+                    <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                      Tariff
+                    </th>
+                    <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                      Outstanding Balance
+                    </th>
                     {formData.timePeriod === "0-6" && (
                       <>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Month 0</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Month 1</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Month 2</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Month 3</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Month 4</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Month 5</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Month 6</th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          Month 0
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          Month 1
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          Month 2
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          Month 3
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          Month 4
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          Month 5
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          Month 6
+                        </th>
                       </>
                     )}
                     {formData.timePeriod === "7-12" && (
                       <>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Months 7-9</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">Months 10-12</th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          Months 7-9
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          Months 10-12
+                        </th>
                       </>
                     )}
                     {formData.timePeriod === "1-2" && (
-                      <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">1-2 Years</th>
+                      <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                        1-2 Years
+                      </th>
                     )}
                     {formData.timePeriod === "2-3" && (
-                      <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">2-3 Years</th>
+                      <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                        2-3 Years
+                      </th>
                     )}
                     {formData.timePeriod === "3-4" && (
-                      <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">3-4 Years</th>
+                      <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                        3-4 Years
+                      </th>
                     )}
                     {formData.timePeriod === "4-5" && (
-                      <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">4-5 Years</th>
+                      <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                        4-5 Years
+                      </th>
                     )}
                     {formData.timePeriod === ">5" && (
-                      <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">5+ Years</th>
+                      <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                        5+ Years
+                      </th>
                     )}
                     {formData.timePeriod === "All" && (
                       <>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">0-6 Months</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">7-12 Months</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">1-2 Years</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">2-3 Years</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">3-4 Years</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">4-5 Years</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">5+ Years</th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          0-6 Months
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          7-12 Months
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          1-2 Years
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          2-3 Years
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          3-4 Years
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          4-5 Years
+                        </th>
+                        <th className="border border-gray-300 px-2 py-1 text-left sticky top-0 bg-gray-100">
+                          5+ Years
+                        </th>
                       </>
                     )}
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedDebtors.map((debtor, index) => (
-                    <tr key={`${debtor.AccountNumber}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                      <td className="border border-gray-300 px-2 py-1">{debtor.AccountNumber}</td>
-                      <td className="border border-gray-300 px-2 py-1">{getFullName(debtor)}</td>
-                      <td className="border border-gray-300 px-2 py-1">{getFullAddress(debtor)}</td>
-                      <td className="border border-gray-300 px-2 py-1">{debtor.TariffCode}</td>
-                      <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.OutstandingBalance)}</td>
+                    <tr
+                      key={`${debtor.AccountNumber}-${index}`}
+                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    >
+                      <td className="border border-gray-300 px-2 py-1">
+                        {debtor.AccountNumber}
+                      </td>
+                      <td className="border border-gray-300 px-2 py-1">
+                        {getFullName(debtor)}
+                      </td>
+                      <td className="border border-gray-300 px-2 py-1">
+                        {getFullAddress(debtor)}
+                      </td>
+                      <td className="border border-gray-300 px-2 py-1">
+                        {debtor.TariffCode}
+                      </td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">
+                        {formatCurrency(debtor.OutstandingBalance)}
+                      </td>
                       {formData.timePeriod === "0-6" && (
                         <>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Month0)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Month1)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Month2)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Month3)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Month4)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Month5)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Month6)}</td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Month0)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Month1)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Month2)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Month3)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Month4)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Month5)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Month6)}
+                          </td>
                         </>
                       )}
                       {formData.timePeriod === "7-12" && (
                         <>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months7_9)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months10_12)}</td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Months7_9)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Months10_12)}
+                          </td>
                         </>
                       )}
                       {formData.timePeriod === "1-2" && (
-                        <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months13_24)}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-right">
+                          {formatCurrency(debtor.Months13_24)}
+                        </td>
                       )}
                       {formData.timePeriod === "2-3" && (
-                        <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months25_36)}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-right">
+                          {formatCurrency(debtor.Months25_36)}
+                        </td>
                       )}
                       {formData.timePeriod === "3-4" && (
-                        <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months37_48)}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-right">
+                          {formatCurrency(debtor.Months37_48)}
+                        </td>
                       )}
                       {formData.timePeriod === "4-5" && (
-                        <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months49_60)}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-right">
+                          {formatCurrency(debtor.Months49_60)}
+                        </td>
                       )}
                       {formData.timePeriod === ">5" && (
-                        <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months61Plus)}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-right">
+                          {formatCurrency(debtor.Months61Plus)}
+                        </td>
                       )}
                       {formData.timePeriod === "All" && (
                         <>
                           <td className="border border-gray-300 px-2 py-1 text-right">
-                            {formatCurrency(debtor.Month0 + debtor.Month1 + debtor.Month2 + debtor.Month3 + debtor.Month4 + debtor.Month5 + debtor.Month6)}
+                            {formatCurrency(
+                              debtor.Month0 +
+                                debtor.Month1 +
+                                debtor.Month2 +
+                                debtor.Month3 +
+                                debtor.Month4 +
+                                debtor.Month5 +
+                                debtor.Month6
+                            )}
                           </td>
                           <td className="border border-gray-300 px-2 py-1 text-right">
-                            {formatCurrency(debtor.Months7_9 + debtor.Months10_12)}
+                            {formatCurrency(
+                              debtor.Months7_9 + debtor.Months10_12
+                            )}
                           </td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months13_24)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months25_36)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months37_48)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months49_60)}</td>
-                          <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(debtor.Months61Plus)}</td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Months13_24)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Months25_36)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Months37_48)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Months49_60)}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {formatCurrency(debtor.Months61Plus)}
+                          </td>
                         </>
                       )}
                     </tr>
@@ -1259,7 +1683,9 @@ const AgeAnalysis: React.FC = () => {
   // Main render
   if (loading) {
     return (
-      <div className={`text-center py-8 ${maroon} text-sm animate-pulse font-sans`}>
+      <div
+        className={`text-center py-8 ${maroon} text-sm animate-pulse font-sans`}
+      >
         Loading initial data...
       </div>
     );
@@ -1280,11 +1706,11 @@ const AgeAnalysis: React.FC = () => {
   }
 
   return (
-    <div className={`max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans`}>
+    <div
+      className={`max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans`}
+    >
       {/* Always render form (will be hidden when report is shown) */}
-      <div className={showReport ? "hidden" : ""}>
-        {renderForm()}
-      </div>
+      <div className={showReport ? "hidden" : ""}>{renderForm()}</div>
 
       {/* Show any report errors even when form is visible */}
       {!showReport && reportError && (
@@ -1298,7 +1724,7 @@ const AgeAnalysis: React.FC = () => {
         <div
           ref={reportContainerRef}
           className="mt-4 border border-gray-300 rounded-lg overflow-hidden"
-          style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}
+          style={{ maxHeight: "calc(100vh - 200px)", overflowY: "auto" }}
         >
           {renderReportTable()}
         </div>

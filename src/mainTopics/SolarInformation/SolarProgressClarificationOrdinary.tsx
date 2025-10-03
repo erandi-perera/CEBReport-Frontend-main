@@ -46,7 +46,7 @@ interface SummarySolarProgress {
   Capacity: number;
 }
 
-const SolarProgressClarificationBulk: React.FC = () => {
+const SolarProgressClarificationOrdinary: React.FC = () => {
   const maroon = "text-[#7A0000]";
   const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
@@ -132,7 +132,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
       setAreaError(null);
       try {
         // Using the same API endpoint pattern as AgeAnalysis
-        const areaData = await fetchWithErrorHandling("/misapi/solarapi/areas");
+        const areaData = await fetchWithErrorHandling("/misapi/api/areas");
         setAreas(areaData.data || []);
       } catch (err: any) {
         console.error("Error fetching areas:", err);
@@ -154,7 +154,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
       setProvinceError(null);
       try {
         const provinceData = await fetchWithErrorHandling(
-          "/misapi/solarapi/province"
+          "/misapi/solarapi/ordinary/province"
         );
         setProvinces(provinceData.data || []);
       } catch (err: any) {
@@ -177,7 +177,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
       setDivisionError(null);
       try {
         const divisionData = await fetchWithErrorHandling(
-          "/misapi/solarapi/region"
+          "/misapi/solarapi/ordinary/region"
         );
         setDivisions(divisionData.data || []);
       } catch (err: any) {
@@ -200,7 +200,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
       setBillCycleError(null);
       try {
         const maxCycleData = await fetchWithErrorHandling(
-          "/misapi/solarapi/billcycle/max"
+          "/misapi/solarapi/ordinary/bill-cycle"
         );
         if (maxCycleData.data && maxCycleData.data.BillCycles?.length > 0) {
           const options = generateBillCycleOptions(
@@ -245,187 +245,129 @@ const SolarProgressClarificationBulk: React.FC = () => {
   };
 
   const downloadAsCSV = () => {
-    if (reportType === "detailed" && !detailedData.length) return;
-    if (reportType === "summary" && !summaryData.length) return;
+  if (reportType === "detailed" && !detailedData.length) return;
+  if (reportType === "summary" && !summaryData.length) return;
 
-    const reportTitle =
-      reportType === "detailed"
-        ? "Solar Progress Detailed Report"
-        : "Solar Progress Summary Report";
+  const reportTitle =
+    reportType === "detailed"
+      ? "Solar Progress Detailed Report"
+      : "Solar Progress Summary Report";
 
-    const selectionInfo =
+  const selectionInfo =
+    selectedOption === "Entire CEB"
+      ? "Entire CEB"
+      : selectedOption === "Area"
+      ? `${selectedOption}: ${selectedAreaName}`
+      : `${selectedOption}: ${inputValue}`;
+
+  let csvContent = "";
+  let headers: string[] = [];
+  let rows: any[] = [];
+
+  if (reportType === "detailed") {
+    headers = [
+      "Region",
+      "Province",
+      "Area",
+      "Account Number",
+      "Net Type",
+      "Description",
+      "Capacity",
+      "From Area",
+      "To Area",
+      "From Net Type",
+      "To Net Type",
+    ];
+
+    // Sort data to match table order
+    const sortedData = [...detailedData].sort((a, b) => {
+      if (a.Region !== b.Region) return a.Region.localeCompare(b.Region);
+      if (a.Province !== b.Province) return a.Province.localeCompare(b.Province);
+      return a.Area.localeCompare(b.Area);
+    });
+
+    // Build rows - include Region/Province/Area on EVERY row for CSV
+    rows = sortedData.map((item) => [
+      item.Region,
+      item.Province,
+      item.Area,
+      item.AccountNumber,
+      item.NetType,
+      item.Description,
+      item.Capacity,
+      item.FromArea || "",
+      item.ToArea || "",
+      item.FromNetType || "",
+      item.ToNetType || "",
+    ]);
+  } else {
+    headers = [
+      "Region",
+      "Province",
+      "Area",
+      "Description",
+      "Count",
+      "Capacity",
+    ];
+
+    // Sort data to match table order
+    const sortedData = [...summaryData].sort((a, b) => {
+      if (a.Region !== b.Region) return a.Region.localeCompare(b.Region);
+      if (a.Province !== b.Province) return a.Province.localeCompare(b.Province);
+      return a.Area.localeCompare(b.Area);
+    });
+
+    // Build rows - include Region/Province/Area on EVERY row for CSV
+    rows = sortedData.map((item) => [
+      item.Region,
+      item.Province,
+      item.Area,
+      item.Description,
+      item.Count,
+      item.Capacity,
+    ]);
+  }
+
+  // Build CSV content with proper structure
+  csvContent = [
+    reportTitle,
+    selectionInfo,
+    `Bill Cycle: ${selectedBillCycleDisplay}`,
+    `Generated: ${new Date().toLocaleDateString()}`,
+    "",
+    headers.map((h) => `"${h}"`).join(","),
+    ...rows.map((row) => row.map((cell: any) => `"${cell}"`).join(",")),
+  ].join("\n");
+
+  try {
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    const fileDescriptor =
       selectedOption === "Entire CEB"
-        ? "Entire CEB"
+        ? "EntireCEB"
         : selectedOption === "Area"
-        ? `${selectedOption}: ${selectedAreaName}`
-        : `${selectedOption}: ${inputValue}`;
+        ? `${selectedOption}_${selectedAreaName}`
+        : `${selectedOption}_${inputValue}`;
 
-    let csvContent = "";
-    let headers: string[] = [];
-    let rows: any[] = [];
+    const reportTypeName = reportType === "detailed" ? "Detailed" : "Summary";
 
-    if (reportType === "detailed") {
-      headers = [
-        "Region",
-        "Province",
-        "Area",
-        "Account Number",
-        "Net Type",
-        "Description",
-        "Capacity",
-        "From Area",
-        "To Area",
-        "From Net Type",
-        "To Net Type",
-      ];
-
-      // Group data to match the table structure with merged cells
-      const groupedData = detailedData.reduce((acc, item) => {
-        const regionKey = item.Region;
-        const provinceKey = `${item.Region}-${item.Province}`;
-        const areaKey = `${item.Region}-${item.Province}-${item.Area}`;
-
-        if (!acc[regionKey]) acc[regionKey] = {};
-        if (!acc[regionKey][provinceKey]) acc[regionKey][provinceKey] = {};
-        if (!acc[regionKey][provinceKey][areaKey])
-          acc[regionKey][provinceKey][areaKey] = [];
-
-        acc[regionKey][provinceKey][areaKey].push(item);
-        return acc;
-      }, {} as any);
-
-      // Build rows with proper grouping (like merged cells in the table)
-      Object.keys(groupedData).forEach((region) => {
-        const regionData = groupedData[region];
-        let isFirstRegionRow = true;
-
-        Object.keys(regionData).forEach((provinceKey) => {
-          const provinceData = regionData[provinceKey];
-          let isFirstProvinceRow = true;
-
-          Object.keys(provinceData).forEach((areaKey) => {
-            const areaData = provinceData[areaKey];
-            let isFirstAreaRow = true;
-
-            areaData.forEach((item: any) => {
-              const row = [
-                isFirstRegionRow ? item.Region : "", // Only show region on first row of region
-                isFirstProvinceRow ? item.Province : "", // Only show province on first row of province
-                isFirstAreaRow ? item.Area : "", // Only show area on first row of area
-                item.AccountNumber,
-                item.NetType,
-                item.Description,
-                item.Capacity,
-                item.FromArea,
-                item.ToArea,
-                item.FromNetType,
-                item.ToNetType,
-              ];
-              rows.push(row);
-              isFirstAreaRow = false;
-            });
-            isFirstProvinceRow = false;
-          });
-          isFirstRegionRow = false;
-        });
-      });
-    } else {
-      headers = [
-        "Region",
-        "Province",
-        "Area",
-        "Description",
-        "Count",
-        "Capacity",
-      ];
-
-      // Group summary data to match the table structure
-      const groupedData = summaryData.reduce((acc, item) => {
-        const regionKey = item.Region;
-        const provinceKey = `${item.Region}-${item.Province}`;
-        const areaKey = `${item.Region}-${item.Province}-${item.Area}`;
-
-        if (!acc[regionKey]) acc[regionKey] = {};
-        if (!acc[regionKey][provinceKey]) acc[regionKey][provinceKey] = {};
-        if (!acc[regionKey][provinceKey][areaKey])
-          acc[regionKey][provinceKey][areaKey] = [];
-
-        acc[regionKey][provinceKey][areaKey].push(item);
-        return acc;
-      }, {} as any);
-
-      // Build rows with proper grouping (like merged cells in the table)
-      Object.keys(groupedData).forEach((region) => {
-        const regionData = groupedData[region];
-        let isFirstRegionRow = true;
-
-        Object.keys(regionData).forEach((provinceKey) => {
-          const provinceData = regionData[provinceKey];
-          let isFirstProvinceRow = true;
-
-          Object.keys(provinceData).forEach((areaKey) => {
-            const areaData = provinceData[areaKey];
-            let isFirstAreaRow = true;
-
-            areaData.forEach((item: any) => {
-              const row = [
-                isFirstRegionRow ? item.Region : "", // Only show region on first row of region
-                isFirstProvinceRow ? item.Province : "", // Only show province on first row of province
-                isFirstAreaRow ? item.Area : "", // Only show area on first row of area
-                item.Description,
-                item.Count,
-                item.Capacity,
-              ];
-              rows.push(row);
-              isFirstAreaRow = false;
-            });
-            isFirstProvinceRow = false;
-          });
-          isFirstRegionRow = false;
-        });
-      });
-    }
-
-    // Build CSV content with proper structure
-    csvContent = [
-      reportTitle,
-      selectionInfo,
-      `Bill Cycle: ${selectedBillCycleDisplay}`,
-      `Generated: ${new Date().toLocaleDateString()}`,
-      "",
-      headers.map((h) => `"${h}"`).join(","),
-      ...rows.map((row) => row.map((cell: any) => `"${cell}"`).join(",")),
-    ].join("\n");
-
-    try {
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      const fileDescriptor =
-        selectedOption === "Entire CEB"
-          ? "EntireCEB"
-          : selectedOption === "Area"
-          ? `${selectedOption}_${selectedAreaName}`
-          : `${selectedOption}_${inputValue}`;
-
-      const reportTypeName = reportType === "detailed" ? "Detailed" : "Summary";
-
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `SolarProgress_${reportTypeName}_${fileDescriptor}_BillCycle_${billCycleValue}.csv`
-      );
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-    } catch (error) {
-      console.error("Error generating CSV:", error);
-      alert("Failed to export CSV");
-    }
-  };
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `SolarProgress_${reportTypeName}_${fileDescriptor}_BillCycle_${billCycleValue}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  } catch (error) {
+    console.error("Error generating CSV:", error);
+    alert("Failed to export CSV");
+  }
+};
 
   const printPDF = () => {
     if (!printRef.current) return;
@@ -513,8 +455,13 @@ const SolarProgressClarificationBulk: React.FC = () => {
   };
 
   const renderDetailedTable = () => {
+    const sortedData = [...detailedData].sort((a, b) => {
+    if (a.Region !== b.Region) return a.Region.localeCompare(b.Region);
+    if (a.Province !== b.Province) return a.Province.localeCompare(b.Province);
+    return a.Area.localeCompare(b.Area);
+  });
     // Group data and calculate rowspans
-    const groupedData = detailedData.reduce(
+    const groupedData = sortedData.reduce(
       (acc, item, index) => {
         const regionKey = item.Region;
         const provinceKey = `${item.Region}-${item.Province}`;
@@ -673,8 +620,13 @@ const SolarProgressClarificationBulk: React.FC = () => {
   };
 
   const renderSummaryTable = () => {
+    const sortedData = [...summaryData].sort((a, b) => {
+    if (a.Region !== b.Region) return a.Region.localeCompare(b.Region);
+    if (a.Province !== b.Province) return a.Province.localeCompare(b.Province);
+    return a.Area.localeCompare(b.Area);
+  });
     // Group data and calculate rowspans
-    const groupedData = summaryData.reduce(
+    const groupedData = sortedData.reduce(
       (acc, item, index) => {
         const regionKey = item.Region;
         const provinceKey = `${item.Region}-${item.Province}`;
@@ -839,7 +791,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
         reportTypeParam = "Region"; // Assuming "Division" maps to "Region" in the API
       }
 
-      endpoint = `/misapi/solarapi/solar-progress/${reportType}?billCycle=${billCycleValue}&reportType=${reportTypeParam}`;
+      endpoint = `/misapi/solarapi/solar-progress/ordinary/${reportType}?billCycle=${billCycleValue}&reportType=${reportTypeParam}`;
 
       // Only add typeCode parameter if it's not Entire CEB
       if (selectedOption !== "Entire CEB") {
@@ -1410,4 +1362,4 @@ const SolarProgressClarificationBulk: React.FC = () => {
   );
 };
 
-export default SolarProgressClarificationBulk;
+export default SolarProgressClarificationOrdinary;

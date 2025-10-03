@@ -3,7 +3,7 @@ import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 
 import SolarProgressClarificationBulk from "../mainTopics/SolarInformation/SolarProgressClarificationBulk";
-import SolarProgressClarificationOrdinary from "../mainTopics/SolarInformation/SolarConnectionDetailsBulk";
+import SolarProgressClarificationOrdinary from "../mainTopics/SolarInformation/SolarProgressClarificationOrdinary";
 
 import SolarForm from "../mainTopics/Solar/SolarForm";
 import SolarPVBilling from "../mainTopics/SolarInformation/SolarPVBilling"
@@ -42,6 +42,7 @@ const SolarInformation = () => {
         return <SolarPVBilling/>;
       case "Solar PV capacity information":
       case "Solar progress clarification (ordinary)":
+        return <SolarProgressClarificationOrdinary/>;
       case "Solar payment information – retail":
         return <SolarForm />;
       case "Solar payment information – Bulk":

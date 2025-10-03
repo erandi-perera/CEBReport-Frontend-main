@@ -41,15 +41,6 @@ interface DetailedPVConnection {
   UnitsForLossReduction?: number; // Only for ordinary connections
 }
 
-interface SummaryPVConnection {
-  Division: string;
-  Province: string;
-  Area: string;
-  Description: string;
-  Count: number;
-  TotalCapacity: number;
-}
-
 interface SummaryReportData {
   ordinary: DetailedPVConnection[];
   bulk: DetailedPVConnection[];
@@ -136,11 +127,14 @@ const SolarPVBilling: React.FC = () => {
   // Generate cycle options
   const generateCycleOptions = (
     cycles: string[],
-    maxCycle: string
+    maxCycle: string,
+    cycleType: string
   ): BillCycleOption[] => {
     const maxCycleNum = parseInt(maxCycle);
     return cycles.map((cycle, index) => ({
-      display: `${(maxCycleNum - index).toString()} - ${cycle}`,
+      display: cycleType === "Calculation Cycle" 
+        ? cycle  // Show only month-year for Calculation Cycle
+        : `${(maxCycleNum - index).toString()} - ${cycle}`,  // Show full format for Bill Cycle
       code: (maxCycleNum - index).toString(),
     }));
   };
@@ -231,7 +225,8 @@ const SolarPVBilling: React.FC = () => {
         if (cycleData.data && cycleData.data.BillCycles?.length > 0) {
           const options = generateCycleOptions(
             cycleData.data.BillCycles,
-            cycleData.data.MaxBillCycle
+            cycleData.data.MaxBillCycle,
+            selectedCycleType
           );
           setCycleOptions(options);
         } else {
