@@ -5,7 +5,7 @@ import { data } from "../../data/SideBarData";
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeId, setActiveId] = useState<number | null>(data[0]?.id || null);
+  const [activeId, setActiveId] = useState<number | null>(null);
 
   const handleClick = (id: number, path: string, subtopics: any[]) => {
     setActiveId(id);
@@ -14,6 +14,13 @@ const Sidebar = () => {
 
   useEffect(() => {
     const currentPath = location.pathname;
+    
+    // Special handling for home page - don't redirect and clear activeId
+    if (currentPath === "/home") {
+      setActiveId(null); // Clear any active selection
+      return; // Exit early, don't interfere with home page
+    }
+    
     const matchedTopic = data.find((topic) => topic.path === currentPath);
 
     if (matchedTopic) {
@@ -29,7 +36,7 @@ const Sidebar = () => {
         setActiveId(matchingTopic.id);
       } else {
         // Don't redirect for certain special paths like report display pages
-        const specialPaths = ["/report-display", "/home", "/user"];
+        const specialPaths = ["/report-display", "/user"];
         if (!specialPaths.includes(currentPath)) {
           // Only redirect to first item if we're on a completely unknown path
           const first = data[0];

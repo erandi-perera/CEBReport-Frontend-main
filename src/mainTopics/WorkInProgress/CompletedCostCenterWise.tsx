@@ -894,10 +894,13 @@ const CompletedCostCenterWise = () => {
                     <Printer className="w-3 h-3" /> PDF
                   </button>
                   <button
-                    onClick={() => setCompletedModalOpen(false)}
-                    className="px-3 py-1.5 text-xs border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+                    onClick={() => {
+                      setCompletedModalOpen(false);
+                      setSelectedDepartment(null); // Reset selected department
+                    }}
+                    className="px-3 py-1.5 text-xs bg-[#7A0000] text-white rounded hover:brightness-110"
                   >
-                    Close
+                    Back To Home
                   </button>
                 </div>
               </div>
