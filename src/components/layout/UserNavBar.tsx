@@ -83,18 +83,18 @@ const UserNavBar = () => {
         </Link>
       </div>
 
-      {/* Center - Date & Time */}
-      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center text-center text-white">
-        <div className="text-sm font-semibold">
-          {currentDate}
+      {/* Right Side - Date & Time and User Info */}
+      <div className="absolute right-4 sm:right-6 top-1/2 transform -translate-y-1/2 flex items-center gap-6">
+        {/* Date & Time */}
+        <div className="flex flex-col items-end text-right text-white">
+          <div className="text-sm font-semibold">
+            {currentDate}
+          </div>
+          <div className="text-xs opacity-90">
+            {currentTime}
+          </div>
         </div>
-        <div className="text-xs opacity-90">
-          {currentTime}
-        </div>
-      </div>
-
-      {/* Right Side - User Info */}
-      <div className="absolute right-4 sm:right-6 top-1/2 transform -translate-y-1/2 flex items-center gap-3">
+        {/* User Info */}
         <div className="hidden sm:block text-right text-white/90">
           <div className="text-xs font-medium">{user.Name}</div>
         </div>
