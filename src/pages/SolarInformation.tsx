@@ -4,9 +4,8 @@ import SubtopicCard from "../components/shared/SubtopicCard";
 
 import SolarProgressClarificationBulk from "../mainTopics/SolarInformation/SolarProgressClarificationBulk";
 import SolarProgressClarificationOrdinary from "../mainTopics/SolarInformation/SolarProgressClarificationOrdinary";
-
-import SolarForm from "../mainTopics/Solar/SolarForm";
-import SolarPVBilling from "../mainTopics/SolarInformation/SolarPVBilling"
+import SolarPVBilling from "../mainTopics/SolarInformation/SolarPVBilling";
+import SolarPaymentRetail from "../mainTopics/SolarInformation/SolarPaymentRetail"
 
 
 type Subtopic = {
@@ -44,7 +43,7 @@ const SolarInformation = () => {
       case "Solar progress clarification (ordinary)":
         return <SolarProgressClarificationOrdinary/>;
       case "Solar payment information – retail":
-        return <SolarForm />;
+        return <SolarPaymentRetail />;
       case "Solar payment information – Bulk":
       case "Solar connection details (incl. Reading and usage) - retail":
       case "Solar connection details (incl. Reading and usage) - bulk":

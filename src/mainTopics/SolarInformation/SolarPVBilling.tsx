@@ -145,7 +145,7 @@ const SolarPVBilling: React.FC = () => {
       setIsLoadingAreas(true);
       setAreaError(null);
       try {
-        const areaData = await fetchWithErrorHandling("/solarapi/areas");
+        const areaData = await fetchWithErrorHandling("/misapi/solarapi/areas");
         setAreas(areaData.data || []);
       } catch (err: any) {
         console.error("Error fetching areas:", err);
@@ -166,7 +166,7 @@ const SolarPVBilling: React.FC = () => {
       setIsLoadingProvinces(true);
       setProvinceError(null);
       try {
-        const provinceData = await fetchWithErrorHandling("/solarapi/province");
+        const provinceData = await fetchWithErrorHandling("/misapi/solarapi/province");
         setProvinces(provinceData.data || []);
       } catch (err: any) {
         console.error("Error fetching provinces:", err);
@@ -187,7 +187,7 @@ const SolarPVBilling: React.FC = () => {
       setIsLoadingDivisions(true);
       setDivisionError(null);
       try {
-        const divisionData = await fetchWithErrorHandling("/solarapi/region");
+        const divisionData = await fetchWithErrorHandling("/misapi/solarapi/region");
         setDivisions(divisionData.data || []);
       } catch (err: any) {
         console.error("Error fetching divisions:", err);
@@ -221,7 +221,7 @@ const SolarPVBilling: React.FC = () => {
 
       try {
         // Use the same endpoint for both bill cycle and calc cycle
-        const cycleData = await fetchWithErrorHandling("/solarapi/bill-cycle");
+        const cycleData = await fetchWithErrorHandling("/misapi/solarapi/bill-cycle");
         if (cycleData.data && cycleData.data.BillCycles?.length > 0) {
           const options = generateCycleOptions(
             cycleData.data.BillCycles,
@@ -1152,7 +1152,7 @@ const SolarPVBilling: React.FC = () => {
 
       // Determine endpoint based on report type
       if (reportType === "Detailed Report - Ordinary") {
-        endpoint = `/solarapi/pv-connections?${cycleParam}=${cycleValue}&cycleType=${cycleTypeParam}&reportType=${reportTypeParam}`;
+        endpoint = `/misapi/solarapi/pv-connections?${cycleParam}=${cycleValue}&cycleType=${cycleTypeParam}&reportType=${reportTypeParam}`;
 
         // Only add typeCode parameter if it's not Entire CEB
         if (selectedCategory !== "Entire CEB") {
@@ -1204,7 +1204,7 @@ const SolarPVBilling: React.FC = () => {
         setDetailedData(detailedData);
         setReportVisible(true);
       } else if (reportType === "Detailed Report - Bulk") {
-        endpoint = `/solarapi/pv-bulkconnections?${cycleParam}=${cycleValue}&cycleType=${cycleTypeParam}&reportType=${reportTypeParam}`;
+        endpoint = `/misapi/solarapi/pv-bulkconnections?${cycleParam}=${cycleValue}&cycleType=${cycleTypeParam}&reportType=${reportTypeParam}`;
 
         // Only add typeCode parameter if it's not Entire CEB
         if (selectedCategory !== "Entire CEB") {
@@ -1257,8 +1257,8 @@ const SolarPVBilling: React.FC = () => {
         setReportVisible(true);
       } else if (reportType === "Summary Report") {
         // For summary report, we'll fetch both ordinary and bulk data
-        let ordinaryEndpoint = `/solarapi/pv-connections?${cycleParam}=${cycleValue}&cycleType=${cycleTypeParam}&reportType=${reportTypeParam}`;
-        let bulkEndpoint = `/solarapi/pv-bulkconnections?${cycleParam}=${cycleValue}&cycleType=${cycleTypeParam}&reportType=${reportTypeParam}`;
+        let ordinaryEndpoint = `/misapi/solarapi/pv-connections?${cycleParam}=${cycleValue}&cycleType=${cycleTypeParam}&reportType=${reportTypeParam}`;
+        let bulkEndpoint = `/misapi/solarapi/pv-bulkconnections?${cycleParam}=${cycleValue}&cycleType=${cycleTypeParam}&reportType=${reportTypeParam}`;
 
         // Only add typeCode parameter if it's not Entire CEB
         if (selectedCategory !== "Entire CEB") {

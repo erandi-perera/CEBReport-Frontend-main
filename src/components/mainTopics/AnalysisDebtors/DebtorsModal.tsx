@@ -65,7 +65,7 @@ const DebtorsModal: React.FC<DebtorsModalProps> = ({
   const getCycleDisplayName = () => {
     const cycleOption = billCycleOptions.find(option => option.code === formData.cycle);
     if (cycleOption) {
-      return `${cycleOption.display} - ${formData.cycle}`;
+      return `${formData.cycle} - ${cycleOption.display}`;
     }
     return formData.cycle;
   };
