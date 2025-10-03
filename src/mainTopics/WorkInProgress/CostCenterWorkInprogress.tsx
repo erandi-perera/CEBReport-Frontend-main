@@ -24,11 +24,9 @@ interface WorkInProgressData {
   ResourceType: string;
   CommittedCost: number;
   CctName: string;
-  // Committed costs for each category
   CommittedLabourCost?: number;
   CommittedMaterialCost?: number;
   CommittedOtherCost?: number;
-  // Legacy fields for backward compatibility
   LabourCost?: number;
   MaterialCost?: number;
   OtherCost?: number;
@@ -42,10 +40,8 @@ interface CostCenterWorkInprogressProps {
 }
 
 const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterWorkInprogressProps) => {
-  // Get user from context
   const { user } = useUser();
   
-  // Main state
   const [data, setData] = useState<Department[]>([]);
   const [searchId, setSearchId] = useState("");
   const [searchName, setSearchName] = useState("");
@@ -55,26 +51,21 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
   const [page, setPage] = useState(1);
   const pageSize = 9;
 
-  // Selection state
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [showWorkInProgress, setShowWorkInProgress] = useState(false);
   const [workInProgressData, setWorkInProgressData] = useState<WorkInProgressData[]>([]);
   const [workInProgressLoading, setWorkInProgressLoading] = useState(false);
   const [workInProgressError, setWorkInProgressError] = useState<string | null>(null);
 
-  // Ref for print functionality
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Get EPF Number from user context (Userno field)
   const epfNo = user?.Userno || "";
   
-  // Debug log to see what EPF number is being used
   useEffect(() => {
     console.log('Current user:', user);
     console.log('EPF Number being used:', epfNo);
   }, [user, epfNo]);
 
-  // Auto-select department if preSelectedDepartment is provided
   useEffect(() => {
     if (preSelectedDepartment && !selectedDepartment) {
       setSelectedDepartment(preSelectedDepartment);
@@ -82,18 +73,14 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
     }
   }, [preSelectedDepartment]);
 
-  // Colors
   const maroon = "text-[#7A0000]";
   const maroonBg = "bg-[#7A0000]";
   const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
-  // Paginated departments
   const paginatedDepartments = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  // Fetch departments - Same API as CostCenterIncomeExpenditure
   useEffect(() => {
     const fetchData = async () => {
-      // Don't fetch if no EPF number
       if (!epfNo) {
         setError("No EPF number available. Please login again.");
         setLoading(false);
@@ -144,7 +131,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
     fetchData();
   }, [epfNo]);
 
-  // Filter departments
   useEffect(() => {
     const f = data.filter(
       (d) =>
@@ -155,12 +141,11 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
     setPage(1);
   }, [searchId, searchName, data]);
 
-  // Fetch work in progress data
   const fetchWorkInProgressData = async (deptId: string) => {
     setWorkInProgressLoading(true);
     setWorkInProgressError(null);
     try {
-      const apiUrl = `/workprogress/api/costcenterworkinprogress/${deptId}`;
+      const apiUrl = `/misapi/api/costcenterworkinprogress/${deptId}`;
       
       const response = await fetch(apiUrl, {
         credentials: 'include',
@@ -177,7 +162,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
       
       const jsonData = await response.json();
       
-      // Process the response and map to our interface
       let rawData = [];
       if (Array.isArray(jsonData)) {
         rawData = jsonData;
@@ -192,7 +176,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
         rawData = [];
       }
       
-      // Map the API response to our WorkInProgressData interface
       const mappedData: WorkInProgressData[] = rawData.map((item: any) => ({
         AssignmentYear: item.AssignmentYear?.toString() || item.assignmentYear?.toString() || "",
         ProjectNo: item.ProjectNo?.toString() || item.projectNo?.toString() || "",
@@ -210,11 +193,9 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
         ResourceType: item.ResourceType?.toString() || item.resourceType?.toString() || "",
         CommittedCost: parseFloat(item.CommittedCost || item.committedCost || 0),
         CctName: item.CctName?.toString() || item.cctName?.toString() || "",
-        // Committed costs for each category - try different field name variations
         CommittedLabourCost: parseFloat(item.CommittedLabourCost || item.committedLabourCost || item.LabourCost || item.labourCost || item.LAB || item.lab || 0),
         CommittedMaterialCost: parseFloat(item.CommittedMaterialCost || item.committedMaterialCost || item.MaterialCost || item.materialCost || item.MAT || item.mat || 0),
         CommittedOtherCost: parseFloat(item.CommittedOtherCost || item.committedOtherCost || item.OtherCost || item.otherCost || item.OTHER || item.other || 0),
-        // Legacy fields for backward compatibility
         LabourCost: parseFloat(item.LabourCost || item.labourCost || 0),
         MaterialCost: parseFloat(item.MaterialCost || item.materialCost || 0),
         OtherCost: parseFloat(item.OtherCost || item.otherCost || 0),
@@ -247,11 +228,10 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
     setSearchName("");
   };
 
-  // CSV Export function
+  // UPDATED CSV Export function - Matching WIP Close Job Report format
   const downloadAsCSV = () => {
     if (!workInProgressData.length || !selectedDepartment) return;
 
-    // Create consolidated data (same logic as in the table)
     const consolidatedMap = new Map<string, WorkInProgressData>();
     
     workInProgressData.forEach((item) => {
@@ -298,8 +278,7 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
       return (a.ProjectNo || '').localeCompare(b.ProjectNo || '');
     });
 
-    // Calculate totals for CSV
-    const csvTotals = sortedData.reduce((acc, item) => {
+    const totals = sortedData.reduce((acc, item) => {
       const labCost = item.CommittedLabourCost || item.LabourCost || 0;
       const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
       const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
@@ -323,97 +302,80 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
       variance: 0
     });
 
-    // Create CSV headers
-    const headers = [
-      "Year",
-      "Project No.", 
-      "Category Code",
-      "Fund Source",
-      "WIP Year",
-      "WIP Month",
-      "Estimated Cost",
-      "Description",
-      "Status",
-      "LAB",
-      "MAT", 
-      "OTHER",
-      "Total",
-      "Variance"
-    ];
+    const formatNum = (num: number) => num.toFixed(2);
 
-    // Create CSV rows with topic section
+
     const csvRows = [
-      // Topic section
-      [`"WORK IN PROGRESS - ${selectedDepartment.DeptName}"`],
-      [`"Department: ${selectedDepartment.DeptId}"`],
-      [`"Report Generated: ${new Date().toLocaleDateString()}"`],
-      [], // Empty line
-      // Data section
-      headers,
+      [`Work In Progress Report`],
+      [`Cost Centre : ${selectedDepartment.DeptId} / ${selectedDepartment.DeptName.toUpperCase()}`],
+      [],
+      ["Year", "Project No.", "Category", "Fund Id", "Stand_Cost", "Description", "Dept_id", "PIV_No", "Project Assigned", "LABOUR", "MATERIAL", "OTHER", "TOTAL"],
       ...sortedData.map((item) => {
         const labCost = item.CommittedLabourCost || item.LabourCost || 0;
         const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
         const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
         const total = labCost + matCost + otherCost;
-        const variance = (item.EstimatedCost || 0) - total;
 
         return [
           item.AssignmentYear || "",
           item.ProjectNo || "",
           item.CategoryCode || "",
           item.FundSource || "",
-          item.WipYear || "0",
-          item.WipMonth || "0",
-          (item.EstimatedCost || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          `"${(item.Description || "").replace(/"/g, '""')}"`, // Escape quotes in description
+          formatNum(item.EstimatedCost || 0),
+          `"${(item.Description || "").replace(/"/g, '""')}"`,
+          selectedDepartment.DeptId || "",
+          item.PivNo || "",
           item.Status || "",
-          labCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          matCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          otherCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          variance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          formatNum(labCost),
+          formatNum(matCost),
+          formatNum(otherCost),
+          formatNum(total)
         ];
       }),
-      // Add summary section
+      [],
+      [
+        "", "", "", "", 
+        formatNum(totals.estimatedCost),
+        "TOTAL",
+        "", "",
+        "",
+        formatNum(totals.labCost),
+        formatNum(totals.matCost),
+        formatNum(totals.otherCost),
+        formatNum(totals.total)
+      ],
       [],
       ["SUMMARY"],
-      ["Estimated Cost", csvTotals.estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-      ["Total Committed", csvTotals.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-      ["Variance", csvTotals.variance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
+      ["Total Estimated Cost", formatNum(totals.estimatedCost)],
+      ["Total Labour", formatNum(totals.labCost)],
+      ["Total Material", formatNum(totals.matCost)],
+      ["Total Other", formatNum(totals.otherCost)],
+      ["Total Committed", formatNum(totals.total)],
+      ["Variance", formatNum(totals.variance)],
       ["Total Records", sortedData.length.toString()],
       [],
-      ["COMMITTED COST BREAKDOWN"],
-      ["LAB", csvTotals.labCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-      ["MAT", csvTotals.matCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-      ["OTHER", csvTotals.otherCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-      [], // Empty line
-      [`"Generated: ${new Date().toLocaleString()}"`],
-      [`"CEB@${new Date().getFullYear()}"`]
+      [`Generated: ${new Date().toLocaleString()}`],
+      [`CEB@${new Date().getFullYear()}`]
     ];
 
-    // Create CSV content
-    const csvContent = csvRows.map(row => row.join(",")).join("\n");
-
-    // Create and trigger download
+    const csvContent = csvRows.map(r => r.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `WorkInProgress_${selectedDepartment.DeptId}_${selectedDepartment.DeptName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `Work_In_Progress_Report_Cost_Centre_${selectedDepartment.DeptId}_${selectedDepartment.DeptName.replace(/[^a-zA-Z0-9]/g, '_')}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  // PDF Export function
   const printPDF = () => {
     if (!printRef.current || !selectedDepartment) return;
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    // Create consolidated data (same logic as in the table)
     const consolidatedMap = new Map<string, WorkInProgressData>();
     
     workInProgressData.forEach((item) => {
@@ -460,7 +422,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
       return (a.ProjectNo || '').localeCompare(b.ProjectNo || '');
     });
 
-    // Calculate totals for PDF
     const pdfTotals = sortedData.reduce((acc, item) => {
       const labCost = item.CommittedLabourCost || item.LabourCost || 0;
       const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
@@ -485,7 +446,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
       variance: 0
     });
 
-    // Generate table rows HTML
     let tableRowsHTML = '';
     sortedData.forEach((item) => {
       const labCost = item.CommittedLabourCost || item.LabourCost || 0;
@@ -514,7 +474,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
       `;
     });
 
-    // Generate summary section HTML
     const summaryHTML = `
       <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
         <h4 style="font-size: 11px; font-weight: bold; margin-bottom: 8px; color: #333;">SUMMARY</h4>
@@ -618,14 +577,14 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
     }, 500);
   };
 
-  // Work In Progress Modal Component
   const WorkInProgressModal = () => {
     if (!showWorkInProgress || !selectedDepartment) return null;
     
     return (
-      <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
-        <div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
-          <div className="p-5 border-b">
+      <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pr-4 pl-[1cm]">
+        <div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4 ml-[2cm]">
+          {/* Header with 1cm top margin */}
+          <div className="p-5 border-b mt-[1cm]">
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h2 className="text-base font-bold text-gray-800">
@@ -665,7 +624,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
               </div>
             ) : (
               <div>
-                {/* Buttons section above table */}
                 <div className="flex justify-between items-center mb-2">
                   <div></div>
                   <div className="flex gap-2">
@@ -708,19 +666,14 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
                 </div>
                 
                 <div ref={printRef} className="w-full overflow-x-auto text-xs">
-                  {/* Deduplicate and consolidate data by ProjectNo + CategoryCode */}
                 {(() => {
-                  // Create a map to consolidate duplicate rows
                   const consolidatedMap = new Map<string, WorkInProgressData>();
                   
                   workInProgressData.forEach((item) => {
                     const key = `${item.ProjectNo?.trim()}-${item.CategoryCode?.trim()}`;
                     
                     if (consolidatedMap.has(key)) {
-                      // Merge with existing row
                       const existing = consolidatedMap.get(key)!;
-                      
-                      // Add committed cost based on ResourceType
                       const resourceType = item.ResourceType?.trim().toUpperCase();
                       const committedCost = item.CommittedCost || 0;
                       
@@ -732,7 +685,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
                         existing.CommittedOtherCost = (existing.CommittedOtherCost || 0) + committedCost;
                       }
                     } else {
-                      // Create new consolidated row
                       const resourceType = item.ResourceType?.trim().toUpperCase();
                       const committedCost = item.CommittedCost || 0;
                       
@@ -743,7 +695,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
                         CommittedOtherCost: 0,
                       };
                       
-                      // Set the appropriate committed cost based on ResourceType
                       if (resourceType === 'LAB' || resourceType === 'LABOUR') {
                         consolidatedItem.CommittedLabourCost = committedCost;
                       } else if (resourceType === 'MAT' || resourceType === 'MATERIAL') {
@@ -756,14 +707,12 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
                     }
                   });
                   
-                  // Convert map to array and sort by AssignmentYear (descending) then by CategoryCode
                   const sortedData = Array.from(consolidatedMap.values()).sort((a, b) => {
                     const yearCompare = (b.AssignmentYear || '').localeCompare(a.AssignmentYear || '');
                     if (yearCompare !== 0) return yearCompare;
                     return (a.CategoryCode || '').localeCompare(b.CategoryCode || '');
                   });
 
-                  // Calculate totals for the total row
                   const totals = sortedData.reduce((acc, item) => {
                     const labCost = item.CommittedLabourCost || item.LabourCost || 0;
                     const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
@@ -790,7 +739,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
 
                   return (
                     <div className="border border-gray-200 rounded-lg">
-                      {/* Currency indicator */}
                       <div className="flex justify-end p-2 bg-gray-50 border-b">
                         <span className="text-xs font-semibold text-gray-600">Currency: LKR</span>
                       </div>
@@ -798,7 +746,7 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
                       <div className="overflow-x-auto">
                         <table className="w-full border-collapse">
                           <thead>
-                            <tr className="bg-gray-100 text-gray-700">
+                            <tr className="text-gray-800" style={{backgroundColor: '#D3D3D3'}}>
                               <th className="px-2 py-1 text-left border-r">Year</th>
                               <th className="px-2 py-1 text-left border-r">Project No.</th>
                               <th className="px-2 py-1 text-left border-r">Category Code</th>
@@ -817,15 +765,10 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
                           </thead>
                           <tbody>
                             {sortedData.map((item, index) => {
-                              // Use committed costs for LAB, MAT, OTHER
                               const labCost = item.CommittedLabourCost || item.LabourCost || 0;
                               const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
                               const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
-                              
-                              // Calculate Total = Committed LAB + Committed MAT + Committed OTHER
                               const total = labCost + matCost + otherCost;
-                              
-                              // Calculate Variance = Estimated Cost - Total (Committed Costs)
                               const variance = (item.EstimatedCost || 0) - total;
                               
                               return (
@@ -877,7 +820,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
                         </table>
                       </div>
                       
-                      {/* Summary Section */}
                       <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
                         <h4 className="text-sm font-semibold text-gray-700 mb-3">Summary</h4>
                         <div className="grid grid-cols-2 gap-4">
@@ -895,7 +837,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
                           </div>
                         </div>
                         
-                        {/* Breakdown of committed costs */}
                         <div className="mt-4 pt-3 border-t border-gray-300">
                           <div className="text-xs text-gray-500 mb-2">Committed Cost Breakdown</div>
                           <div className="grid grid-cols-3 gap-4">
@@ -932,14 +873,12 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
     );
   };
 
-  // If preSelectedDepartment is provided, render only the WorkInProgressModal
   if (preSelectedDepartment) {
     return <WorkInProgressModal />;
   }
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
-      {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className={`text-xl font-bold ${maroon}`}>
@@ -948,7 +887,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
         </div>
       </div>
 
-      {/* Search Controls */}
       <div className="flex flex-wrap gap-3 justify-end mb-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
@@ -982,7 +920,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
         )}
       </div>
 
-      {/* Loading State */}
       {loading && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
@@ -990,20 +927,16 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
         </div>
       )}
 
-
-      {/* Error State */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           Error: {error}
         </div>
       )}
 
-      {/* No Results */}
       {!loading && !error && filtered.length === 0 && (
         <div className="text-gray-600 bg-gray-100 p-4 rounded">No departments found.</div>
       )}
 
-      {/* Table */}
       {!loading && !error && filtered.length > 0 && (
         <>
           <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -1018,15 +951,25 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
                 </thead>
                 <tbody>
                   {paginatedDepartments.map((department, i) => (
-                    <tr key={`${department.DeptId}-${i}`} className={i % 2 ? "bg-white" : "bg-gray-50"}>
+                    <tr 
+                      key={`${department.DeptId}-${i}`} 
+                      className={`${i % 2 ? "bg-white" : "bg-gray-50"} ${
+                        selectedDepartment?.DeptId === department.DeptId ? "ring-2 ring-[#7A0000] ring-inset" : ""
+                      }`}
+                    >
                       <td className="px-4 py-2 truncate font-mono">{department.DeptId}</td>
                       <td className="px-4 py-2 truncate">{department.DeptName}</td>
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleDepartmentSelect(department)}
-                          className={`px-3 py-1 ${maroonGrad} text-white rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                          className={`px-3 py-1 ${
+                            selectedDepartment?.DeptId === department.DeptId 
+                              ? "bg-green-600 text-white" 
+                              : maroonGrad + " text-white"
+                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
                         >
-                          <Eye className="inline-block mr-1 w-3 h-3" /> View
+                          <Eye className="inline-block mr-1 w-3 h-3" /> 
+                          {selectedDepartment?.DeptId === department.DeptId ? "Viewing" : "View"}
                         </button>
                       </td>
                     </tr>
@@ -1036,7 +979,6 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
             </div>
           </div>
 
-          {/* Pagination */}
           <div className="flex justify-end items-center gap-3 mt-3">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -1059,9 +1001,9 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
         </>
       )}
 
-      {/* Work In Progress Modal */}
       <WorkInProgressModal />
     </div>
   );
 };
+
 export default CostCenterWorkInprogress;

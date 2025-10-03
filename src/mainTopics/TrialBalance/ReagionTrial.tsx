@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { RegionTable, DateSelectionModal, TrialBalanceModal } from "../../components/mainTopics/RegionTrial/test-import";
+import { FaSearch, FaSyncAlt, FaEye, FaChevronDown } from "react-icons/fa";
+import { TrialBalanceModal } from "../../components/mainTopics/RegionTrial/test-import";
 import { useUser } from "../../contexts/UserContext";
 
 interface Region {
@@ -34,9 +35,16 @@ const RegionTrial: React.FC = () => {
   const [page, setPage] = useState(1);
   const pageSize = 50;
 
-  // Date selection modal state
-  const [modalOpen, setModalOpen] = useState(false);
+  // Selection state
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+
+  // Date selection state - moved to table header
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  
+  // Dropdown state
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
 
   // Trial balance modal state
   const [trialModalOpen, setTrialModalOpen] = useState(false);
@@ -59,6 +67,24 @@ const RegionTrial: React.FC = () => {
   const maroon = "text-[#7A0000]";
   const maroonBg = "bg-[#7A0000]";
   const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
+
+  // Available years and months
+  const years = Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - i);
+  const months = Array.from({ length: 13 }, (_, i) => i + 1); // [1, 2, ..., 13] - Added 13th period
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.year-dropdown') && !target.closest('.month-dropdown')) {
+        setYearDropdownOpen(false);
+        setMonthDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch regions
   useEffect(() => {
@@ -106,41 +132,24 @@ const RegionTrial: React.FC = () => {
 
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  // Open date selection modal
-  const viewDetails = (region: Region) => {
+  // Handle region selection - Auto fetch data when selected
+  const handleRegionSelect = (region: Region) => {
+    console.log('Region selected:', region);
     setSelectedRegion(region);
-    setModalOpen(true);
-  };
-
-  // Close date selection modal
-  const closeDateModal = () => {
-    setModalOpen(false);
-    setSelectedRegion(null);
-  };
-
-  // Handle date selection and fetch trial balance
-  const handleDateSelection = (year: number, month: string) => {
-    if (!selectedRegion) return;
-    
-    setTrialData({
-      companyId: selectedRegion.compId,
-      year,
-      month,
-      regionName: selectedRegion.CompName
-    });
-    setTrialModalOpen(true);
-    setModalOpen(false);
+    // Auto fetch trial balance data when region is selected
+    fetchTrialBalanceData(region);
   };
 
   // Fetch trial balance data
-  const fetchTrialBalanceData = async () => {
-    if (!trialData.companyId) return;
+  const fetchTrialBalanceData = async (region?: Region) => {
+    const targetRegion = region || selectedRegion;
+    if (!targetRegion) return;
     
     setTrialLoading(true);
     setTrialError(null);
     try {
-      const monthNum = monthToNumber(trialData.month);
-      const apiUrl = `/misapi/api/regionwisetrial?companyId=${trialData.companyId}&month=${monthNum}&year=${trialData.year}`;
+      const monthNum = selectedMonth;
+      const apiUrl = `/misapi/api/regionwisetrial?companyId=${targetRegion.compId}&month=${monthNum}&year=${selectedYear}`;
       const response = await fetch(apiUrl, {
         credentials: 'include',
         headers: { 'Accept': 'application/json' }
@@ -168,6 +177,16 @@ const RegionTrial: React.FC = () => {
       }
       
       setTrialBalanceData(trialBalanceArray);
+      
+      // Set trial data for modal
+      setTrialData({
+        companyId: targetRegion.compId,
+        year: selectedYear,
+        month: getMonthName(selectedMonth),
+        regionName: targetRegion.CompName
+      });
+      
+      setTrialModalOpen(true);
     } catch (error: any) {
       setTrialError(error.message.includes("JSON.parse") ? "Invalid data format received from server" : error.message);
     } finally {
@@ -175,20 +194,13 @@ const RegionTrial: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (trialModalOpen && trialData.companyId && trialData.year && trialData.month) {
-      fetchTrialBalanceData();
-    }
-  }, [trialModalOpen, trialData]);
-
   // Helper functions
-  const monthToNumber = (monthName: string): number => {
-    const months = [
+  const getMonthName = (monthNum: number): string => {
+    const monthNames = [
       "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
-      "13th Period",
+      "July", "August", "September", "October", "November", "December", "13th Period"
     ];
-    return monthName === "13th Period" ? 13 : months.indexOf(monthName) + 1;
+    return monthNames[monthNum - 1] || "";
   };
 
   const clearFilters = () => {
@@ -199,6 +211,7 @@ const RegionTrial: React.FC = () => {
   const closeTrialModal = () => {
     setTrialModalOpen(false);
     setTrialBalanceData([]);
+    setSelectedRegion(null);
   };
 
   const formatNumber = (num: number): string => {
@@ -260,10 +273,102 @@ const RegionTrial: React.FC = () => {
     return { categoryTotals, grandTotals };
   };
 
+  // Custom Dropdown Components
+  const YearDropdown = () => (
+    <div className="year-dropdown relative">
+      <label className="block text-xs font-medium text-gray-700 mb-1">Year</label>
+      <button
+        type="button"
+        onClick={() => {
+          setYearDropdownOpen(!yearDropdownOpen);
+          setMonthDropdownOpen(false);
+        }}
+        className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
+      >
+        <span>{selectedYear}</span>
+        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {yearDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {years.map((year) => (
+            <button
+              key={year}
+              type="button"
+              onClick={() => {
+                setSelectedYear(year);
+                setYearDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedYear === year ? 'bg-[#7A0000] text-white' : 'text-gray-700'
+              }`}
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const MonthDropdown = () => (
+    <div className="month-dropdown relative">
+      <label className="block text-xs font-medium text-gray-700 mb-1">Month</label>
+      <button
+        type="button"
+        onClick={() => {
+          setMonthDropdownOpen(!monthDropdownOpen);
+          setYearDropdownOpen(false);
+        }}
+        className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
+      >
+        <span>{getMonthName(selectedMonth)}</span>
+        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {monthDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {months.map((month) => (
+            <button
+              key={month}
+              type="button"
+              onClick={() => {
+                setSelectedMonth(month);
+                setMonthDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedMonth === month ? 'bg-[#7A0000] text-white' : 'text-gray-700'
+              }`}
+            >
+              {getMonthName(month)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // UPDATED CSV FUNCTION to match CompletedCostCenterWise style
   const downloadAsCSV = () => {
     if (!trialBalanceData || trialBalanceData.length === 0) return;
 
     const { categoryTotals, grandTotals } = calculateTotals();
+
+    // Format number for CSV (no thousands separator, 2 decimals)
+    const formatNum = (num: number) => {
+      if (num === undefined || num === null || isNaN(num)) return "0.00";
+      if (num === 0) return "0.00";
+      return num.toFixed(2);
+    };
+
+    // Escape CSV field
+    const escape = (field: string | number): string => {
+      const str = String(field || '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    };
 
     // Sort data by category (A, E, L, R)
     const sortedData = [...trialBalanceData].sort((a, b) => {
@@ -273,14 +378,14 @@ const RegionTrial: React.FC = () => {
       return (categoryOrder[aCat] || 5) - (categoryOrder[bCat] || 5);
     });
 
-    // Start with header information
     const csvRows = [
-      [`REGION WISE TRIAL BALANCE - ${trialData.month.toUpperCase()}/${trialData.year}`],
-      [`Region: ${trialData.regionName}`],
-      [`Generated on: ${new Date().toLocaleDateString()}`],
-      [`Total Records: ${trialBalanceData.length}`],
-      [''], // Empty row for spacing
-      ['Account Code', 'Account Name', 'Title Flag', 'Cost Center', 'Company Name', 'Cost Center Code', 'Opening Balance', 'Debit Amount', 'Credit Amount', 'Closing Balance']
+      // Header section
+      [`Region Wise Trial Balance - ${trialData.month.toUpperCase()}/${trialData.year}`],
+      [`Region: ${trialData.companyId} / ${trialData.regionName.toUpperCase()}`],
+      [`Generated: ${new Date().toLocaleString()}`],
+      [],
+      // Column headers
+      ["Account Code", "Account Name", "Title Flag", "Cost Center", "Company Name", "Cost Center Code", "Opening Balance", "Debit Amount", "Credit Amount", "Closing Balance"]
     ];
 
     // Process data with category grouping
@@ -293,21 +398,22 @@ const RegionTrial: React.FC = () => {
       // Add category header if category changes
       if (rowCategory !== currentCategory) {
         currentCategory = rowCategory;
-        csvRows.push([''], [`=== ${rowCategory.toUpperCase()} ===`]);
+        csvRows.push([]);
+        csvRows.push([rowCategory.toUpperCase()]);
       }
       
       // Add data row
       csvRows.push([
         row.AccountCode.trim(),
-        row.AccountName.trim(),
+        escape(row.AccountName.trim()),
         row.TitleFlag,
         row.CostCenter,
-        row.CompanyName.trim(),
+        escape(row.CompanyName.trim()),
         row.DepartmentId,
-        formatNumber(row.OpeningBalance),
-        formatNumber(row.DebitAmount),
-        formatNumber(row.CreditAmount),
-        formatNumber(row.ClosingBalance)
+        formatNum(row.OpeningBalance),
+        formatNum(row.DebitAmount),
+        formatNum(row.CreditAmount),
+        formatNum(row.ClosingBalance)
       ]);
       
       // Check if this is the last row of current category
@@ -317,48 +423,43 @@ const RegionTrial: React.FC = () => {
       
       // Add category total if this is the last row of the category
       if (isLastInCategory && categoryTotals[categoryKey]) {
+        csvRows.push([]);
         csvRows.push([
           `TOTAL ${rowCategory.toUpperCase()}`,
-          '', '', '', '', '',
-          formatNumber(categoryTotals[categoryKey].opening),
-          formatNumber(categoryTotals[categoryKey].debit),
-          formatNumber(categoryTotals[categoryKey].credit),
-          formatNumber(categoryTotals[categoryKey].closing)
+          "", "", "", "", "",
+          formatNum(categoryTotals[categoryKey].opening),
+          formatNum(categoryTotals[categoryKey].debit),
+          formatNum(categoryTotals[categoryKey].credit),
+          formatNum(categoryTotals[categoryKey].closing)
         ]);
-        csvRows.push(['']); // Empty row after category total
       }
     });
 
-    // Add grand total
-    csvRows.push(
-      [''], // Extra spacing before grand total
-      ['=== GRAND TOTAL ==='],
-      [
-        'GRAND TOTAL',
-        '', '', '', '', '',
-        formatNumber(grandTotals.opening),
-        formatNumber(grandTotals.debit),
-        formatNumber(grandTotals.credit),
-        formatNumber(grandTotals.closing)
-      ]
-    );
+    // Add grand total section
+    csvRows.push([]);
+    csvRows.push([]);
+    csvRows.push([
+      "GRAND TOTAL",
+      "", "", "", "", "",
+      formatNum(grandTotals.opening),
+      formatNum(grandTotals.debit),
+      formatNum(grandTotals.credit),
+      formatNum(grandTotals.closing)
+    ]);
 
-    // Add footer information
-    csvRows.push(
-      [''],
-      [`Report generated on: ${new Date().toLocaleDateString()} | CEB@2025`]
-    );
+    // Add summary section
+    csvRows.push([]);
+    csvRows.push(["SUMMARY"]);
+    csvRows.push(["Total Opening Balance", formatNum(grandTotals.opening)]);
+    csvRows.push(["Total Debit Amount", formatNum(grandTotals.debit)]);
+    csvRows.push(["Total Credit Amount", formatNum(grandTotals.credit)]);
+    csvRows.push(["Total Closing Balance", formatNum(grandTotals.closing)]);
+    csvRows.push(["Total Records", trialBalanceData.length.toString()]);
+    csvRows.push([]);
+    csvRows.push([`CEB@${new Date().getFullYear()}`]);
 
     // Convert to CSV format
-    const csvContent = csvRows.map(row => {
-      return row.map(cell => {
-        const cellStr = String(cell || '');
-        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
-          return `"${cellStr.replace(/"/g, '""')}"`;
-        }
-        return cellStr;
-      }).join(',');
-    }).join('\n');
+    const csvContent = csvRows.map(row => row.join(',')).join('\n');
 
     // Create and download the file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -545,7 +646,7 @@ const RegionTrial: React.FC = () => {
         </table>
         
         <div class="footer">
-          <p>Generated on: ${new Date().toLocaleDateString()} | CEB@2025</p>
+          <p>Generated on: ${new Date().toLocaleDateString()} | CEB@${new Date().getFullYear()}</p>
         </div>
       </body>
       </html>
@@ -562,41 +663,164 @@ const RegionTrial: React.FC = () => {
     };
   };
 
+  // Custom Region Table Component with integrated date selection
+  const CustomRegionTable = () => (
+    <>
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className={`text-xl font-bold ${maroon}`}>
+            Region-Wise Trial Balance
+          </h2>
+        </div>
+      </div>
+
+      {/* Search and Date Selection Section */}
+      <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          {/* Search by Code */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search by Code</label>
+            <div className="relative">
+              <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+              <input
+                type="text"
+                value={searchId}
+                placeholder="Code"
+                onChange={(e) => setSearchId(e.target.value)}
+                className="pl-7 pr-2 py-1.5 w-full rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#7A0000] text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Search by Name */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search by Name</label>
+            <div className="relative">
+              <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+              <input
+                type="text"
+                value={searchName}
+                placeholder="Name"
+                onChange={(e) => setSearchName(e.target.value)}
+                className="pl-7 pr-2 py-1.5 w-full rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#7A0000] text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Year Dropdown */}
+          <YearDropdown />
+
+          {/* Month Dropdown */}
+          <MonthDropdown />
+
+          {/* Clear Filters Button */}
+          <div>
+            {(searchId || searchName) && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm w-full justify-center"
+              >
+                <FaSyncAlt className="w-3 h-3" /> Clear
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {selectedRegion && (
+          <div className="mt-2 text-xs text-gray-600">
+            Selected: <span className="font-semibold">{selectedRegion.CompName}</span> ({selectedRegion.compId})
+          </div>
+        )}
+      </div>
+
+      {loading && (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading regions...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          Error: {error}
+        </div>
+      )}
+
+      {!loading && !error && filtered.length === 0 && (
+        <div className="text-gray-600 bg-gray-100 p-4 rounded">No regions found.</div>
+      )}
+
+      {!loading && !error && filtered.length > 0 && (
+        <>
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <div className="max-h-[70vh] overflow-y-auto">
+              <table className="w-full table-fixed text-left text-gray-700 text-sm">
+                <thead className={`${maroonGrad} text-white sticky top-0`}>
+                  <tr>
+                    <th className="px-4 py-2 w-1/4">Region Code</th>
+                    <th className="px-4 py-2 w-1/2">Region Name</th>
+                    <th className="px-4 py-2 w-1/4 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map((region, i) => (
+                    <tr 
+                      key={i} 
+                      className={`${i % 2 ? "bg-white" : "bg-gray-50"} ${
+                        selectedRegion?.compId === region.compId ? "ring-2 ring-[#7A0000] ring-inset" : ""
+                      }`}
+                    >
+                      <td className="px-4 py-2 truncate">{region.compId}</td>
+                      <td className="px-4 py-2 truncate">{region.CompName}</td>
+                      <td className="px-4 py-2 text-center">
+                        <button
+                          onClick={() => handleRegionSelect(region)}
+                          className={`px-3 py-1 ${
+                            selectedRegion?.compId === region.compId 
+                              ? "bg-green-600 text-white" 
+                              : maroonGrad + " text-white"
+                          } rounded text-xs font-medium hover:brightness-110 transition shadow`}
+                        >
+                          <FaEye className="inline-block mr-1 w-3 h-3" /> 
+                          {selectedRegion?.compId === region.compId ? "Viewing" : "View"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="flex justify-end items-center gap-3 mt-3">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-gray-500">
+              Page {page} of {Math.ceil(filtered.length / pageSize)}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / pageSize), p + 1))}
+              disabled={page >= Math.ceil(filtered.length / pageSize)}
+              className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
-      {/* Region Table Component */}
-      <RegionTable
-        filtered={filtered}
-        paginated={paginated}
-        page={page}
-        setPage={setPage}
-        pageSize={pageSize}
-        maroon={maroon}
-        maroonGrad={maroonGrad}
-        viewDetails={viewDetails}
-        loading={loading}
-        error={error}
-        lastUpdated={new Date()}
-        searchId={searchId}
-        setSearchId={setSearchId}
-        searchName={searchName}
-        setSearchName={setSearchName}
-        clearFilters={clearFilters}
-        epfNo={epfNo}
-        user={user}
-      />
+      {/* Custom Region Table with integrated date selection */}
+      <CustomRegionTable />
 
-        {/* Date Selection Modal */}
-      <DateSelectionModal
-        modalOpen={modalOpen}
-        closeDateModal={closeDateModal}
-        selectedRegion={selectedRegion}
-        handleDateSelection={handleDateSelection}
-        maroon={maroon}
-        maroonBg={maroonBg}
-      />
-
-        {/* Trial Balance Modal */}
+      {/* Trial Balance Modal */}
       <TrialBalanceModal
         trialModalOpen={trialModalOpen}
         closeTrialModal={closeTrialModal}
@@ -613,7 +837,6 @@ const RegionTrial: React.FC = () => {
         printPDF={printPDF}
         goBack={() => {
           setTrialModalOpen(false);
-          setModalOpen(true);
         }}
       />
     </div>

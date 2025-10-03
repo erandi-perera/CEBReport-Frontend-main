@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Search, RotateCcw, Eye, X, Download, Printer, ChevronLeft } from "lucide-react";
+import { Search, RotateCcw, Eye, Download, Printer } from "lucide-react";
+import { FaChevronDown } from "react-icons/fa";
 import { useUser } from "../../contexts/UserContext";
 
 interface Department {
@@ -35,7 +36,6 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 
   // Selection state
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
-  const [showDateSelection, setShowDateSelection] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
 
@@ -63,8 +63,26 @@ const CostCenterIncomeExpenditure: React.FC = () => {
   const years = Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
+  // Dropdown state
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
+
   // Paginated departments
   const paginatedDepartments = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.year-dropdown') && !target.closest('.month-dropdown')) {
+        setYearDropdownOpen(false);
+        setMonthDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch departments
   useEffect(() => {
@@ -132,13 +150,14 @@ const CostCenterIncomeExpenditure: React.FC = () => {
   }, [searchId, searchName, data]);
 
   // Fetch income & expenditure data
-  const fetchIncomeExpenditureData = async () => {
-    if (!selectedDepartment) return;
+  const fetchIncomeExpenditureData = async (department?: Department) => {
+    const targetDepartment = department || selectedDepartment;
+    if (!targetDepartment) return;
     
     setIncomeExpLoading(true);
     setIncomeExpError(null);
     try {
-      const apiUrl = `/misapi/api/incomeexpenditure/${selectedDepartment.DeptId}/${selectedYear}/${selectedMonth}`;
+      const apiUrl = `/misapi/api/incomeexpenditure/${targetDepartment.DeptId}/${selectedYear}/${selectedMonth}`;
       
       const response = await fetch(apiUrl, {
         credentials: 'include',
@@ -168,7 +187,6 @@ const CostCenterIncomeExpenditure: React.FC = () => {
       
       setIncomeExpData(incomeExpArray);
       setIncomeExpModalOpen(true);
-      setShowDateSelection(false);
     } catch (error: any) {
       setIncomeExpError(error.message.includes("JSON.parse") ? "Invalid data format received from server" : error.message);
     } finally {
@@ -177,8 +195,10 @@ const CostCenterIncomeExpenditure: React.FC = () => {
   };
 
   const handleDepartmentSelect = (department: Department) => {
+    console.log('Department selected:', department);
     setSelectedDepartment(department);
-    setShowDateSelection(true);
+    // Auto fetch income & expenditure data when department is selected
+    fetchIncomeExpenditureData(department);
   };
 
   const closeIncomeExpModal = () => {
@@ -228,105 +248,169 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     return num < 0 ? `(${formatted})` : formatted;
   };
 
-  // Escape CSV field function
-  const escapeCSVField = (field: string | number): string => {
-    const stringField = String(field);
-    // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
-    if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
-      return '"' + stringField.replace(/"/g, '""') + '"';
-    }
-    return stringField;
-  };
+  // Custom Dropdown Components
+  const YearDropdown = () => (
+    <div className="year-dropdown relative">
+      <label className="block text-xs font-medium text-gray-700 mb-1">Year</label>
+      <button
+        type="button"
+        onClick={() => {
+          setYearDropdownOpen(!yearDropdownOpen);
+          setMonthDropdownOpen(false);
+        }}
+        className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
+      >
+        <span>{selectedYear}</span>
+        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {yearDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {years.map((year) => (
+            <button
+              key={year}
+              type="button"
+              onClick={() => {
+                setSelectedYear(year);
+                setYearDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedYear === year ? 'bg-[#7A0000] text-white' : 'text-gray-700'
+              }`}
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
-  // Improved Download as CSV function
+  const MonthDropdown = () => (
+    <div className="month-dropdown relative">
+      <label className="block text-xs font-medium text-gray-700 mb-1">Month</label>
+      <button
+        type="button"
+        onClick={() => {
+          setMonthDropdownOpen(!monthDropdownOpen);
+          setYearDropdownOpen(false);
+        }}
+        className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
+      >
+        <span>{getMonthName(selectedMonth)}</span>
+        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {monthDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {months.map((month) => (
+            <button
+              key={month}
+              type="button"
+              onClick={() => {
+                setSelectedMonth(month);
+                setMonthDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedMonth === month ? 'bg-[#7A0000] text-white' : 'text-gray-700'
+              }`}
+            >
+              {getMonthName(month)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // UPDATED Download as CSV function to match CompletedCostCenterWise style
   const downloadAsCSV = () => {
     if (!incomeExpData || incomeExpData.length === 0) return;
     
-    // Create headers
-    const headers = [
-      "", "", "Account Code", 
-      "Category Name", "Budget", "Actual Cumulative Cost", "Balance Budget (excess/shortfall)"
-    ];
-    
-    // Create data rows with proper CSV formatting
-    const dataRows = incomeExpData.map(item => [
-      escapeCSVField(""),
-      escapeCSVField(""),
-      escapeCSVField(item.AcCd.trim()),
-      escapeCSVField(item.CatName.trim()),
-      escapeCSVField(formatNumber(item.TotalBudget)),
-      escapeCSVField(formatNumber(item.Clbal)),
-      escapeCSVField(formatNumber(item.Varience))
-    ]);
-    
-    // Add summary rows
+    // Calculate totals
     const incomeData = incomeExpData.filter(item => item.CatFlag === "I");
     const expenditureData = incomeExpData.filter(item => item.CatFlag === "X");
     
-    const summaryRows = [];
+    const totals = {
+      incomeBudget: incomeData.reduce((sum, item) => sum + item.TotalBudget, 0),
+      incomeCumulative: incomeData.reduce((sum, item) => sum + item.Clbal, 0),
+      incomeBalance: incomeData.reduce((sum, item) => sum + item.Varience, 0),
+      expenditureBudget: expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0),
+      expenditureCumulative: expenditureData.reduce((sum, item) => sum + item.Clbal, 0),
+      expenditureBalance: expenditureData.reduce((sum, item) => sum + item.Varience, 0)
+    };
     
-    // Add empty row separator
-    summaryRows.push(["", "", "", "", "", "", ""]);
+    // Format number for CSV (no thousands separator, 2 decimals)
+    const formatNum = (num: number) => num.toFixed(2);
     
-    // Income total
-    if (incomeData.length > 0) {
-      summaryRows.push([
-        "", "", "", 
-        "TOTAL INCOME",
-        escapeCSVField(formatNumber(incomeData.reduce((sum, item) => sum + item.TotalBudget, 0))),
-        escapeCSVField(formatNumber(incomeData.reduce((sum, item) => sum + item.Clbal, 0))),
-        escapeCSVField(formatNumber(incomeData.reduce((sum, item) => sum + item.Varience, 0)))
-      ]);
-    }
+    // Escape CSV field
+    const escape = (field: string | number): string => {
+      const str = String(field);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    };
     
-    // Expenditure total
-    if (expenditureData.length > 0) {
-      summaryRows.push([
-        "", "", "", 
-        "TOTAL EXPENDITURES",
-        escapeCSVField(formatNumber(expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0))),
-        escapeCSVField(formatNumber(expenditureData.reduce((sum, item) => sum + item.Clbal, 0))),
-        escapeCSVField(formatNumber(expenditureData.reduce((sum, item) => sum + item.Varience, 0)))
-      ]);
-    }
+    const csvRows = [
+      // Header section
+      [`Income & Expenditure Report - Cost Center Wise`],
+      [`Department: ${selectedDepartment?.DeptId} / ${selectedDepartment?.DeptName.toUpperCase()}`],
+      [`Period: ${getMonthName(selectedMonth)} ${selectedYear}`],
+      [`Generated: ${new Date().toLocaleString()}`],
+      [],
+      // Column headers
+      ["Account Code", "Category Name", "Budget", "Actual Cumulative Cost", "Balance Budget (excess/shortfall)"],
+      
+      // Income section
+      ["INCOME"],
+      ...incomeData.map(item => [
+        item.AcCd.trim(),
+        escape(item.CatName.trim()),
+        formatNum(item.TotalBudget),
+        formatNum(item.Clbal),
+        formatNum(item.Varience)
+      ]),
+      [],
+      ["", "TOTAL INCOME", formatNum(totals.incomeBudget), formatNum(totals.incomeCumulative), formatNum(totals.incomeBalance)],
+      [],
+      
+      // Expenditure section
+      ["EXPENDITURES"],
+      ...expenditureData.map(item => [
+        item.AcCd.trim(),
+        escape(item.CatName.trim()),
+        formatNum(item.TotalBudget),
+        formatNum(item.Clbal),
+        formatNum(item.Varience)
+      ]),
+      [],
+      ["", "TOTAL EXPENDITURES", formatNum(totals.expenditureBudget), formatNum(totals.expenditureCumulative), formatNum(totals.expenditureBalance)],
+      [],
+      
+      // Net total
+      [
+        "", 
+        "NET TOTAL",
+        formatNum(totals.incomeBudget + totals.expenditureBudget),
+        formatNum(totals.incomeCumulative + totals.expenditureCumulative),
+        formatNum(totals.incomeBalance + totals.expenditureBalance)
+      ],
+      [],
+      
+      // Summary section
+      ["SUMMARY"],
+      ["Total Income Budget", formatNum(totals.incomeBudget)],
+      ["Total Income Cumulative", formatNum(totals.incomeCumulative)],
+      ["Total Expenditure Budget", formatNum(totals.expenditureBudget)],
+      ["Total Expenditure Cumulative", formatNum(totals.expenditureCumulative)],
+      ["Net Total", formatNum(totals.incomeCumulative + totals.expenditureCumulative)],
+      ["Total Records", incomeExpData.length.toString()],
+      [],
+      [`CEB@${new Date().getFullYear()}`]
+    ];
     
-    // Net total
-    summaryRows.push([
-      "", "", "", 
-      "NET TOTAL",
-      escapeCSVField(formatNumber(
-        incomeData.reduce((sum, item) => sum + item.TotalBudget, 0) +
-        expenditureData.reduce((sum, item) => sum + item.TotalBudget, 0)
-      )),
-      escapeCSVField(formatNumber(
-        incomeData.reduce((sum, item) => sum + item.Clbal, 0) + 
-        expenditureData.reduce((sum, item) => sum + item.Clbal, 0)
-      )),
-      escapeCSVField(formatNumber(
-        incomeData.reduce((sum, item) => sum + item.Varience, 0) +
-        expenditureData.reduce((sum, item) => sum + item.Varience, 0)
-      ))
-    ]);
-    
-    // Create CSV content with proper topic section
-    const csvContent = [
-      // Topic section
-      `"Income & Expenditure Report - Cost Center Wise"`,
-      `"Department: ${selectedDepartment?.DeptName || 'N/A'} (${selectedDepartment?.DeptId || 'N/A'})"`,
-      `"Period: ${getMonthName(selectedMonth)} ${selectedYear}"`,
-      `"Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}"`,
-      `"Total Records: ${incomeExpData.length}"`,
-      "", // Empty line
-      // Data section
-      headers.join(","),
-      ...dataRows.map(row => row.join(",")),
-      ...summaryRows.map(row => row.join(",")),
-      "", // Empty line
-      `"Report generated by CEB Report System"`,
-      `"For technical support, contact IT Department"`
-    ].join("\n");
-    
-    // Create download link
+    const csvContent = csvRows.map(r => r.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -749,15 +833,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
                     >
                       <Printer className="w-3 h-3" /> PDF
                     </button>
-                    <button
-                      onClick={() => {
-                        setIncomeExpModalOpen(false);
-                        setShowDateSelection(true);
-                      }}
-                      className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
-                    >
-                      <ChevronLeft className="w-4 h-4" /> Back to Date Selection
-                    </button>
+                   
                     <button
                       onClick={closeIncomeExpModal}
                       className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
@@ -770,7 +846,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
                 <div className="w-full overflow-x-auto text-xs">
                   <table className="w-full border-collapse">
                   <thead>
-                    <tr className={`${maroonBg} text-white`}>
+                    <tr className="text-gray-800" style={{backgroundColor: '#D3D3D3'}}>
                       <th className="px-2 py-1 text-center"></th>
                       <th className="px-2 py-1 text-left"></th>
                       <th className="px-2 py-1 text-left">Ledger Code</th>
@@ -1009,37 +1085,62 @@ const CostCenterIncomeExpenditure: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Controls */}
-      <div className="flex flex-wrap gap-3 justify-end mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-          <input
-            type="text"
-            value={searchId}
-            placeholder="Search by Dept ID"
-            onChange={(e) => setSearchId(e.target.value)}
-            className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-            autoComplete="off"
-          />
+      {/* Search and Date Selection Section */}
+      <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          {/* Search by Code */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search by Code</label>
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+              <input
+                type="text"
+                value={searchId}
+                placeholder="Code"
+                onChange={(e) => setSearchId(e.target.value)}
+                className="pl-7 pr-2 py-1.5 w-full rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#7A0000] text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Search by Name */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search by Name</label>
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+              <input
+                type="text"
+                value={searchName}
+                placeholder="Name"
+                onChange={(e) => setSearchName(e.target.value)}
+                className="pl-7 pr-2 py-1.5 w-full rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#7A0000] text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Year Dropdown */}
+          <YearDropdown />
+
+          {/* Month Dropdown */}
+          <MonthDropdown />
+
+          {/* Clear Filters Button */}
+          <div>
+            {(searchId || searchName) && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm w-full justify-center"
+              >
+                <RotateCcw className="w-3 h-3" /> Clear
+              </button>
+            )}
+          </div>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-          <input
-            type="text"
-            value={searchName}
-            placeholder="Search by Name"
-            onChange={(e) => setSearchName(e.target.value)}
-            className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-            autoComplete="off"
-          />
-        </div>
-        {(searchId || searchName) && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm"
-          >
-            <RotateCcw className="w-3 h-3" /> Clear
-          </button>
+        
+        {selectedDepartment && (
+          <div className="mt-2 text-xs text-gray-600">
+            Selected: <span className="font-semibold">{selectedDepartment.DeptName}</span> ({selectedDepartment.DeptId})
+          </div>
         )}
       </div>
 
@@ -1079,15 +1180,25 @@ const CostCenterIncomeExpenditure: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedDepartments.map((department, i) => (
-                    <tr key={`${department.DeptId}-${i}`} className={i % 2 ? "bg-white" : "bg-gray-50"}>
+                    <tr 
+                      key={`${department.DeptId}-${i}`} 
+                      className={`${i % 2 ? "bg-white" : "bg-gray-50"} ${
+                        selectedDepartment?.DeptId === department.DeptId ? "ring-2 ring-[#7A0000] ring-inset" : ""
+                      }`}
+                    >
                       <td className="px-4 py-2 truncate font-mono">{department.DeptId}</td>
                       <td className="px-4 py-2 truncate">{department.DeptName}</td>
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleDepartmentSelect(department)}
-                          className={`px-3 py-1 ${maroonGrad} text-white rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                          className={`px-3 py-1 ${
+                            selectedDepartment?.DeptId === department.DeptId 
+                              ? "bg-green-600 text-white" 
+                              : maroonGrad + " text-white"
+                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
                         >
-                          <Eye className="inline-block mr-1 w-3 h-3" /> View
+                          <Eye className="inline-block mr-1 w-3 h-3" /> 
+                          {selectedDepartment?.DeptId === department.DeptId ? "Viewing" : "View"}
                         </button>
                       </td>
                     </tr>
@@ -1120,75 +1231,6 @@ const CostCenterIncomeExpenditure: React.FC = () => {
         </>
       )}
 
-      {/* Date Selection Modal */}
-      {selectedDepartment && showDateSelection && (
-        <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-4xl rounded-xl shadow-xl border border-gray-200 relative max-h-[90vh] overflow-y-auto p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className={`text-lg font-bold ${maroon}`}>
-                Select Period for {selectedDepartment.DeptName}
-              </h3>
-              <button 
-                onClick={() => setShowDateSelection(false)}
-                className="text-gray-500 hover:text-red-500"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Year</label>
-              <div className="grid grid-cols-7 gap-2 max-h-32 overflow-y-auto mb-4">
-                {years.map((year) => (
-                  <button
-                    key={year}
-                    onClick={() => setSelectedYear(year)}
-                    className={`text-xs py-1 rounded cursor-pointer border transition-colors duration-150
-                    ${selectedYear === year
-                      ? "bg-[#7A0000] text-white border-[#7A0000]"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                    }`}
-                    style={{ minWidth: "40px" }}
-                  >
-                    {year}
-                  </button>
-                ))}
-              </div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Month</label>
-              <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
-                {months.map((month) => (
-                  <button
-                    key={month}
-                    onClick={() => setSelectedMonth(month)}
-                    className={`text-xs py-1 rounded cursor-pointer border transition-colors duration-150
-                    ${selectedMonth === month
-                      ? "bg-[#7A0000] text-white border-[#7A0000]"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                    }`}
-                    style={{ minWidth: "50px" }}
-                  >
-                    {getMonthName(month)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDateSelection(false)}
-                className="bg-gray-500 text-white py-2 px-6 rounded hover:brightness-110 text-sm"
-              >
-                Back
-              </button>
-              <button
-                onClick={fetchIncomeExpenditureData}
-                className="bg-[#7A0000] text-white py-2 px-6 rounded hover:brightness-110 text-sm"
-              >
-                View Income & Expenditure
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Income & Expenditure Modal */}
       <IncomeExpenditureModal />

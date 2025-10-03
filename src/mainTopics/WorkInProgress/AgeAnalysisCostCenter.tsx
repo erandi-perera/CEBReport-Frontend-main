@@ -146,11 +146,11 @@ const AgeAnalysisCostCenter = () => {
     try {
       // Fetch data from both APIs in parallel
       const [commitmentResponse, ageAnalysisResponse] = await Promise.all([
-        fetch(`/workprogress/api/projectcommitmentsummary/${deptId}`, {
+        fetch(`/misapi/api/projectcommitmentsummary/${deptId}`, {
           credentials: 'include',
           headers: { 'Accept': 'application/json' }
         }),
-        fetch(`/workprogress/api/projectageanalysis/${deptId}`, {
+        fetch(`/misapi/api/projectageanalysis/${deptId}`, {
           credentials: 'include',
           headers: { 'Accept': 'application/json' }
         })
@@ -589,7 +589,7 @@ const AgeAnalysisCostCenter = () => {
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                       <thead>
-                        <tr className="bg-gray-100 text-gray-700">
+                        <tr className="text-gray-800" style={{backgroundColor: '#D3D3D3'}}>
                           <th className="px-3 py-2 text-left border-r font-semibold text-xs">Period</th>
                           <th className="px-3 py-2 text-center border-r font-semibold text-xs">No of Projects</th>
                           <th className="px-3 py-2 text-right font-semibold text-xs">Amount (LKR)</th>
@@ -643,8 +643,8 @@ const AgeAnalysisCostCenter = () => {
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                           data={chartData}
-                          margin={{ top: 15, right: 35, left: 25, bottom: 15 }}
-                          barSize={60}
+                          margin={{ top: 15, right: 50, left: 30, bottom: 60 }}
+                          maxBarSize={80}
                         >
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis 
@@ -653,7 +653,8 @@ const AgeAnalysisCostCenter = () => {
                             interval={0}
                             angle={-45}
                             textAnchor="end"
-                            height={80}
+                            height={60}
+                            tickMargin={10}
                           />
                           <YAxis 
                             yAxisId="left"
@@ -661,6 +662,7 @@ const AgeAnalysisCostCenter = () => {
                             tick={{ fontSize: 10 }}
                             tickFormatter={(value) => value.toLocaleString()}
                             width={70}
+                            label={{ value: 'No of Projects', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
                           />
                           <YAxis 
                             yAxisId="right"
@@ -668,6 +670,7 @@ const AgeAnalysisCostCenter = () => {
                             tick={{ fontSize: 10 }}
                             tickFormatter={(value) => (value / 1000000).toFixed(1) + 'M'}
                             width={70}
+                            label={{ value: 'Amount (LKR)', angle: 90, position: 'insideRight', style: { textAnchor: 'middle' } }}
                           />
                           <Tooltip content={<CustomTooltip />} />
                           <Legend />
@@ -825,15 +828,25 @@ const AgeAnalysisCostCenter = () => {
                 </thead>
                 <tbody>
                   {paginatedDepartments.map((department, i) => (
-                    <tr key={`${department.DeptId}-${i}`} className={i % 2 ? "bg-white" : "bg-gray-50"}>
+                    <tr 
+                      key={`${department.DeptId}-${i}`} 
+                      className={`${i % 2 ? "bg-white" : "bg-gray-50"} ${
+                        selectedDepartment?.DeptId === department.DeptId ? "ring-2 ring-[#7A0000] ring-inset" : ""
+                      }`}
+                    >
                       <td className="px-4 py-2 truncate font-mono">{department.DeptId}</td>
                       <td className="px-4 py-2 truncate">{department.DeptName}</td>
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleDepartmentSelect(department)}
-                          className={`px-3 py-1 ${maroonGrad} text-white rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                          className={`px-3 py-1 ${
+                            selectedDepartment?.DeptId === department.DeptId 
+                              ? "bg-green-600 text-white" 
+                              : maroonGrad + " text-white"
+                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
                         >
-                          <Eye className="inline-block mr-1 w-3 h-3" /> View Age Analysis
+                          <Eye className="inline-block mr-1 w-3 h-3" /> 
+                          {selectedDepartment?.DeptId === department.DeptId ? "Viewing" : "View Age Analysis"}
                         </button>
                       </td>
                     </tr>

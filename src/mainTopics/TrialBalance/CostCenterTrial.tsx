@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaSearch, FaSyncAlt, FaEye, FaTimes } from "react-icons/fa";
+import { FaSearch, FaSyncAlt, FaEye, FaChevronDown } from "react-icons/fa";
 import TrialBalanceModal from "../../components/mainTopics/CostCenterTrial/TrialBalanceModal";
 import { useUser } from "../../contexts/UserContext";
 
@@ -7,7 +7,6 @@ interface CostCenter {
   compId: string;
   CompName: string;
 }
-
 
 interface TrialBalanceData {
   AcCd: string;
@@ -34,12 +33,16 @@ const CostCenterTrial: React.FC = () => {
   const [page, setPage] = useState(1);
   const pageSize = 9;
 
-
   // Selection state
   const [selectedCostCenter, setSelectedCostCenter] = useState<CostCenter | null>(null);
-  const [showDateSelection, setShowDateSelection] = useState(false);
+
+  // Date selection state
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  
+  // Dropdown state
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
 
   // Trial balance modal state
   const [trialModalOpen, setTrialModalOpen] = useState(false);
@@ -72,7 +75,21 @@ const CostCenterTrial: React.FC = () => {
 
   // Available years and months
   const years = Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - i);
-  const months = Array.from({ length: 12 }, (_, i) => i + 1); // [1, 2, ..., 12]
+  const months = Array.from({ length: 13 }, (_, i) => i + 1); // [1, 2, ..., 13] - Added 13th period
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.year-dropdown') && !target.closest('.month-dropdown')) {
+        setYearDropdownOpen(false);
+        setMonthDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch cost centers
   useEffect(() => {
@@ -160,22 +177,23 @@ const CostCenterTrial: React.FC = () => {
 
   const paginatedCostCenters = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  // Handle cost center selection
+  // Handle cost center selection - Auto fetch data when selected
   const handleCostCenterSelect = (costCenter: CostCenter) => {
     console.log('Cost center selected:', costCenter);
     setSelectedCostCenter(costCenter);
-    setShowDateSelection(true);
-    console.log('Date selection should be visible now');
+    // Auto fetch trial balance data when cost center is selected
+    fetchTrialBalanceData(costCenter);
   };
 
   // Fetch trial balance data
-  const fetchTrialBalanceData = async () => {
-    if (!selectedCostCenter) return;
+  const fetchTrialBalanceData = async (costCenter?: CostCenter) => {
+    const targetCostCenter = costCenter || selectedCostCenter;
+    if (!targetCostCenter) return;
     
     setTrialLoading(true);
     setTrialError(null);
     try {
-      const apiUrl = `/misapi/api/trialbalance/${selectedCostCenter.compId}/${selectedYear}/${selectedMonth}`;
+      const apiUrl = `/misapi/api/trialbalance/${targetCostCenter.compId}/${selectedYear}/${selectedMonth}`;
       const response = await fetch(apiUrl, {
         credentials: 'include',
         headers: { 'Accept': 'application/json' }
@@ -196,14 +214,13 @@ const CostCenterTrial: React.FC = () => {
       
       // Set trial data for modal
       setTrialData({
-        costctr: selectedCostCenter.compId,
+        costctr: targetCostCenter.compId,
         year: selectedYear,
         month: getMonthName(selectedMonth),
-        deptName: selectedCostCenter.CompName
+        deptName: targetCostCenter.CompName
       });
       
       setTrialModalOpen(true);
-      setShowDateSelection(false);
     } catch (error: any) {
       setTrialError(error.message.includes("JSON.parse") ? "Invalid data format received from server" : error.message);
     } finally {
@@ -211,17 +228,14 @@ const CostCenterTrial: React.FC = () => {
     }
   };
 
-  // Remove the old useEffect since we now call fetchTrialBalanceData directly
-
   // Helper functions
   const getMonthName = (monthNum: number): string => {
     const monthNames = [
       "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
+      "July", "August", "September", "October", "November", "December", "13th Period"
     ];
     return monthNames[monthNum - 1] || "";
   };
-
 
   const clearFilters = () => {
     setSearchId("");
@@ -289,6 +303,81 @@ const CostCenterTrial: React.FC = () => {
     };
     return { categoryTotals, grandTotals };
   };
+
+  // Custom Dropdown Components
+  const YearDropdown = () => (
+    <div className="year-dropdown relative">
+      <label className="block text-xs font-medium text-gray-700 mb-1">Year</label>
+      <button
+        type="button"
+        onClick={() => {
+          setYearDropdownOpen(!yearDropdownOpen);
+          setMonthDropdownOpen(false);
+        }}
+        className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
+      >
+        <span>{selectedYear}</span>
+        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {yearDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {years.map((year) => (
+            <button
+              key={year}
+              type="button"
+              onClick={() => {
+                setSelectedYear(year);
+                setYearDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedYear === year ? 'bg-[#7A0000] text-white' : 'text-gray-700'
+              }`}
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const MonthDropdown = () => (
+    <div className="month-dropdown relative">
+      <label className="block text-xs font-medium text-gray-700 mb-1">Month</label>
+      <button
+        type="button"
+        onClick={() => {
+          setMonthDropdownOpen(!monthDropdownOpen);
+          setYearDropdownOpen(false);
+        }}
+        className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
+      >
+        <span>{getMonthName(selectedMonth)}</span>
+        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {monthDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {months.map((month) => (
+            <button
+              key={month}
+              type="button"
+              onClick={() => {
+                setSelectedMonth(month);
+                setMonthDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedMonth === month ? 'bg-[#7A0000] text-white' : 'text-gray-700'
+              }`}
+            >
+              {getMonthName(month)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   // Improved CSV export function
   const downloadAsCSV = () => {
@@ -580,92 +669,6 @@ const CostCenterTrial: React.FC = () => {
     };
   };
 
-  // Date Selection Modal
-  const DateSelectionModal = () => {
-    console.log('DateSelectionModal render - selectedCostCenter:', selectedCostCenter, 'showDateSelection:', showDateSelection);
-    if (!selectedCostCenter || !showDateSelection) return null;
-
-    return (
-      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-end z-[9999] p-4 backdrop-blur-sm">
-        <div className="bg-white w-80 rounded-lg shadow-2xl border border-gray-200 relative max-h-[60vh] overflow-y-auto mr-8">
-          {/* Header with Work In Progress style */}
-          <div className="flex items-center w-full p-4 border-b border-gray-200 relative">
-            <div className="flex-shrink-0 mr-3">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon" className="h-5 w-5 text-[#800000] transition-transform duration-300 rotate-180">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"></path>
-              </svg>
-            </div>
-            <div className="text-sm text-[#800000] tracking-wide">Select Period - {selectedCostCenter.CompName}</div>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#800000]/20 rounded-l-full"></div>
-            <button
-              onClick={() => setShowDateSelection(false)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-red-500"
-            >
-              <FaTimes className="w-4 h-4" />
-            </button>
-          </div>
-          
-          <div className="p-4">
-         
-          <div className="mb-3">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Year</label>
-            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1 max-h-32 overflow-y-auto mb-3">
-              {years.map((year) => (
-                <button
-                  key={year}
-                  onClick={() => setSelectedYear(year)}
-                  className={`text-xs py-0.5 px-1 rounded cursor-pointer border transition-colors duration-150
-                  ${selectedYear === year
-                    ? "bg-[#7A0000] text-white border-[#7A0000]"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                  }`}
-                >
-                  {year}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Month</label>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1">
-              {months.map((month) => (
-                <button
-                  key={month}
-                  onClick={() => setSelectedMonth(month)}
-                  className={`text-xs py-1 px-1 rounded cursor-pointer border transition-colors duration-150
-                  ${selectedMonth === month
-                    ? "bg-[#7A0000] text-white border-[#7A0000]"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                  }`}
-                >
-                  {getMonthName(month)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 mt-4">
-            <button
-              onClick={() => setShowDateSelection(false)}
-              className="px-2 py-1 text-xs border border-gray-300 rounded bg-white hover:bg-gray-50 text-gray-700"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={fetchTrialBalanceData}
-              disabled={trialLoading}
-              className={`px-2 py-1 text-xs ${maroonBg} text-white rounded hover:brightness-110 disabled:opacity-50`}
-            >
-              {trialLoading ? "Loading..." : "View"}
-            </button>
-          </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans relative">
       
@@ -676,36 +679,65 @@ const CostCenterTrial: React.FC = () => {
             Cost Center Trial Balance
           </h2>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <div className="relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-            <input
-              type="text"
-              value={searchId}
-              placeholder="Search by Code"
-              onChange={(e) => setSearchId(e.target.value)}
-              className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition"
-            />
+      </div>
+
+      {/* Search and Date Selection Section */}
+      <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          {/* Search by Code */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search by Code</label>
+            <div className="relative">
+              <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+              <input
+                type="text"
+                value={searchId}
+                placeholder="Code"
+                onChange={(e) => setSearchId(e.target.value)}
+                className="pl-7 pr-2 py-1.5 w-full rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#7A0000] text-sm"
+              />
+            </div>
           </div>
-          <div className="relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-            <input
-              type="text"
-              value={searchName}
-              placeholder="Search by Name"
-              onChange={(e) => setSearchName(e.target.value)}
-              className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition"
-            />
+
+          {/* Search by Name */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search by Name</label>
+            <div className="relative">
+              <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+              <input
+                type="text"
+                value={searchName}
+                placeholder="Name"
+                onChange={(e) => setSearchName(e.target.value)}
+                className="pl-7 pr-2 py-1.5 w-full rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#7A0000] text-sm"
+              />
+            </div>
           </div>
-          {(searchId || searchName) && (
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700"
-            >
-              <FaSyncAlt className="w-3 h-3" /> Clear
-            </button>
-          )}
+
+          {/* Year Dropdown */}
+          <YearDropdown />
+
+          {/* Month Dropdown */}
+          <MonthDropdown />
+
+          {/* Clear Filters Button */}
+          <div>
+            {(searchId || searchName) && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm w-full justify-center"
+              >
+                <FaSyncAlt className="w-3 h-3" /> Clear
+              </button>
+            )}
+          </div>
         </div>
+        
+        {selectedCostCenter && (
+          <div className="mt-2 text-xs text-gray-600">
+            Selected: <span className="font-semibold">{selectedCostCenter.CompName}</span> ({selectedCostCenter.compId})
+          </div>
+        )}
       </div>
 
       {/* Loading State */}
@@ -715,7 +747,6 @@ const CostCenterTrial: React.FC = () => {
           <p className="mt-2 text-gray-600">Loading cost centers...</p>
         </div>
       )}
-
 
       {/* Error State */}
       {error && (
@@ -744,15 +775,25 @@ const CostCenterTrial: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedCostCenters.map((costCenter, i) => (
-                    <tr key={`${costCenter.compId}-${i}`} className={i % 2 ? "bg-white" : "bg-gray-50"}>
+                    <tr 
+                      key={`${costCenter.compId}-${i}`} 
+                      className={`${i % 2 ? "bg-white" : "bg-gray-50"} ${
+                        selectedCostCenter?.compId === costCenter.compId ? "ring-2 ring-[#7A0000] ring-inset" : ""
+                      }`}
+                    >
                       <td className="px-4 py-2 truncate font-mono">{costCenter.compId}</td>
                       <td className="px-4 py-2 truncate">{costCenter.CompName}</td>
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleCostCenterSelect(costCenter)}
-                          className={`px-3 py-1 ${maroonGrad} text-white rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                          className={`px-3 py-1 ${
+                            selectedCostCenter?.compId === costCenter.compId 
+                              ? "bg-green-600 text-white" 
+                              : maroonGrad + " text-white"
+                          } rounded text-xs font-medium hover:brightness-110 transition shadow`}
                         >
-                          <FaEye className="inline-block mr-1 w-3 h-3" /> View
+                          <FaEye className="inline-block mr-1 w-3 h-3" /> 
+                          {selectedCostCenter?.compId === costCenter.compId ? "Viewing" : "View"}
                         </button>
                       </td>
                     </tr>
@@ -783,9 +824,6 @@ const CostCenterTrial: React.FC = () => {
         </>
       )}
 
-      {/* Date Selection Modal */}
-      <DateSelectionModal />
-
       {/* Trial Balance Modal */}
       <TrialBalanceModal
         trialModalOpen={trialModalOpen}
@@ -803,7 +841,6 @@ const CostCenterTrial: React.FC = () => {
         printPDF={printPDF}
         goBack={() => {
           setTrialModalOpen(false);
-          setShowDateSelection(true);
         }}
       />
     </div>

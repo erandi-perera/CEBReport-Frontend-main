@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaSearch, FaSyncAlt, FaEye, FaDownload, FaPrint, FaTimes } from "react-icons/fa";
-import { ChevronLeft } from "lucide-react";
+import { FaSearch, FaSyncAlt, FaEye, FaDownload, FaPrint, FaChevronDown } from "react-icons/fa";
 import { useUser } from "../../contexts/UserContext";
 
 interface Company {
@@ -36,9 +35,14 @@ const ProvintionalWiseTrial: React.FC = () => {
 
   // Selection state
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const [showDateSelection, setShowDateSelection] = useState(false);
+
+  // Date selection state - moved to table header
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  
+  // Dropdown state
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
 
   // Trial balance modal state
   const [trialModalOpen, setTrialModalOpen] = useState(false);
@@ -66,6 +70,20 @@ const ProvintionalWiseTrial: React.FC = () => {
 
   // Paginated companies
   const paginatedCompanies = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.year-dropdown') && !target.closest('.month-dropdown')) {
+        setYearDropdownOpen(false);
+        setMonthDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch companies
   useEffect(() => {
@@ -113,20 +131,23 @@ const ProvintionalWiseTrial: React.FC = () => {
     setPage(1);
   }, [searchId, searchName, data]);
 
-  // View date selection for selected company
+  // Handle company selection - Auto fetch data when selected
   const handleCompanySelect = (company: Company) => {
+    console.log('Company selected:', company);
     setSelectedCompany(company);
-    setShowDateSelection(true);
+    // Auto fetch trial balance data when company is selected
+    fetchTrialBalanceData(company);
   };
 
   // Fetch trial balance data
-  const fetchTrialBalanceData = async () => {
-    if (!selectedCompany) return;
+  const fetchTrialBalanceData = async (company?: Company) => {
+    const targetCompany = company || selectedCompany;
+    if (!targetCompany) return;
    
     setTrialLoading(true);
     setTrialError(null);
     try {
-      const apiUrl = `/misapi/api/trialbalance?companyId=${selectedCompany.compId}&month=${selectedMonth}&year=${selectedYear}`;
+      const apiUrl = `/misapi/api/trialbalance?companyId=${targetCompany.compId}&month=${selectedMonth}&year=${selectedYear}`;
      
       const response = await fetch(apiUrl, {
         credentials: 'include',
@@ -159,7 +180,6 @@ const ProvintionalWiseTrial: React.FC = () => {
      
       setTrialBalanceData(trialBalanceArray);
       setTrialModalOpen(true);
-      setShowDateSelection(false);
     } catch (error: any) {
       setTrialError(error.message.includes("JSON.parse") ? "Invalid data format received from server" : error.message);
     } finally {
@@ -280,88 +300,154 @@ const ProvintionalWiseTrial: React.FC = () => {
     return num < 0 ? `(${formatted})` : formatted;
   };
 
-  // IMPROVED CSV export function based on CostCenterTrial
+  // Custom Dropdown Components
+  const YearDropdown = () => (
+    <div className="year-dropdown relative">
+      <label className="block text-xs font-medium text-gray-700 mb-1">Year</label>
+      <button
+        type="button"
+        onClick={() => {
+          setYearDropdownOpen(!yearDropdownOpen);
+          setMonthDropdownOpen(false);
+        }}
+        className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
+      >
+        <span>{selectedYear}</span>
+        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {yearDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {years.map((year) => (
+            <button
+              key={year}
+              type="button"
+              onClick={() => {
+                setSelectedYear(year);
+                setYearDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedYear === year ? 'bg-[#7A0000] text-white' : 'text-gray-700'
+              }`}
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const MonthDropdown = () => (
+    <div className="month-dropdown relative">
+      <label className="block text-xs font-medium text-gray-700 mb-1">Month</label>
+      <button
+        type="button"
+        onClick={() => {
+          setMonthDropdownOpen(!monthDropdownOpen);
+          setYearDropdownOpen(false);
+        }}
+        className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
+      >
+        <span>{getMonthName(selectedMonth)}</span>
+        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {monthDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {months.map((month) => (
+            <button
+              key={month}
+              type="button"
+              onClick={() => {
+                setSelectedMonth(month);
+                setMonthDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedMonth === month ? 'bg-[#7A0000] text-white' : 'text-gray-700'
+              }`}
+            >
+              {getMonthName(month)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // UPDATED CSV export function to match completed cost center format
   const downloadAsCSV = () => {
     if (!trialBalanceData || trialBalanceData.length === 0) return;
 
     const { costCenters, grouped } = getConsolidatedData();
-    const { categoryTotals } = calculateCategoryTotals();
+    calculateCategoryTotals();
 
-    // Helper function to format numbers for CSV (similar to CostCenterTrial)
+    // Helper function to format numbers for CSV (matching completed cost center)
     const formatNumberCSV = (num: number): string => {
-      // Handle undefined, null, or NaN values
       if (num === undefined || num === null || isNaN(num)) return "0.00";
-      
-      // Convert to number if it's a string
       const numValue = typeof num === 'string' ? parseFloat(num) : num;
-      
-      // Handle zero values
-      if (numValue === 0) return "0.00";
-      
-      // Get absolute value for formatting
-      const absValue = Math.abs(numValue);
-      const formatted = new Intl.NumberFormat('en-US', { 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
-      }).format(absValue);
-      
-      // Return negative values in parentheses, positive as normal
-      return numValue < 0 ? `(${formatted})` : formatted;
+      return numValue.toFixed(2);
     };
 
-    // Sort grouped data by category in correct order: Assets, Expenditure, Liabilities, Revenue, Other
+    // Sort grouped data by category in correct order
     const sortedEntries = Object.values(grouped).sort((a, b) => {
-      const categoryOrder: { [key: string]: number } = { 'Assets': 1, 'Expenditure': 2, 'Liabilities': 3, 'Revenue': 4, 'Other': 5 };
+      const categoryOrder: { [key: string]: number } = { 
+        'Assets': 1, 'Expenditure': 2, 'Liabilities': 3, 'Revenue': 4, 'Other': 5 
+      };
       const aCat = getCategory(a.AccountCode, a.TitleFlag);
       const bCat = getCategory(b.AccountCode, b.TitleFlag);
       return (categoryOrder[aCat] || 6) - (categoryOrder[bCat] || 6);
     });
 
-    // Start with header information
+    // HEADER SECTION (matching completed cost center format)
     const csvRows = [
-      [`COMPANY-WISE TRIAL BALANCE - ${getMonthName(selectedMonth).toUpperCase()}/${selectedYear}`],
-      [`Company: ${selectedCompany?.compId} - ${selectedCompany?.CompName}`],
-      [`Generated on: ${new Date().toLocaleDateString()}`],
-      [`Total Records: ${trialBalanceData.length}`],
-      [''], // Empty row for spacing
+      // Main header
+      [`COMPANY-WISE TRIAL BALANCE - ${getMonthName(selectedMonth).toUpperCase()} ${selectedYear}`],
+      // Company info
+      [`Company : ${selectedCompany?.compId} / ${selectedCompany?.CompName?.toUpperCase()}`],
+      // Empty row for spacing
+      [],
     ];
 
     // Create dynamic column headers
     const headers = ['Account Code', 'Account Name', ...costCenters, 'Total'];
     csvRows.push(headers);
 
-    // Process data with category grouping
+    // DATA ROWS with category grouping
     let currentCategory = '';
+    const categorySums: Record<string, { costCenters: Record<string, number>, total: number }> = {};
     
+    // Initialize category sums
+    ['Assets', 'Expenditure', 'Liabilities', 'Revenue', 'Other'].forEach(cat => {
+      categorySums[cat] = { costCenters: {}, total: 0 };
+      costCenters.forEach(cc => {
+        categorySums[cat].costCenters[cc] = 0;
+      });
+    });
+
     sortedEntries.forEach((row, index) => {
       const rowCategory = getCategory(row.AccountCode, row.TitleFlag);
       
-      // Add enhanced category header if category changes
+      // Add category header if category changes
       if (rowCategory !== currentCategory) {
         currentCategory = rowCategory;
-        csvRows.push(['']); // Empty row for spacing
-        
-        // Get category info for CSV
-        const getCategoryInfo = (cat: string) => {
-          switch (cat) {
-            case 'Assets': return '🏦 ASSETS';
-            case 'Expenditure': return '💸 EXPENDITURE';
-            case 'Liabilities': return '📋 LIABILITIES';
-            case 'Revenue': return '💰 REVENUE';
-            default: return '📊 OTHER - Miscellaneous accounts';
-          }
-        };
-        
-        csvRows.push([`=== ${getCategoryInfo(rowCategory)} ===`]); // Enhanced category separator
+        csvRows.push([]); // Empty row for spacing
+        csvRows.push([`=== ${rowCategory.toUpperCase()} ===`]);
       }
       
       // Calculate row total
       const rowTotal = costCenters.reduce((sum, cc) => sum + (row.balances[cc] || 0), 0);
       
+      // Add to category sums
+      costCenters.forEach(cc => {
+        categorySums[rowCategory].costCenters[cc] += row.balances[cc] || 0;
+      });
+      categorySums[rowCategory].total += rowTotal;
+      
       // Add data row
       const dataRow = [
         row.AccountCode,
-        row.AccountName,
+        `"${row.AccountName.replace(/"/g, '""')}"`, // Escape quotes in account name
         ...costCenters.map(cc => formatNumberCSV(row.balances[cc] || 0)),
         formatNumberCSV(rowTotal)
       ];
@@ -372,39 +458,30 @@ const ProvintionalWiseTrial: React.FC = () => {
       const isLastInCategory = nextIndex >= sortedEntries.length || 
                               getCategory(sortedEntries[nextIndex].AccountCode, sortedEntries[nextIndex].TitleFlag) !== currentCategory;
       
-      // Add enhanced category total if this is the last row of the category
+      // Add category total if this is the last row of the category
       if (isLastInCategory) {
-        const getCategoryIcon = (cat: string) => {
-          switch (cat) {
-            case 'Assets': return '🏦';
-            case 'Expenditure': return '💸';
-            case 'Liabilities': return '📋';
-            case 'Revenue': return '💰';
-            default: return '📊';
-          }
-        };
-        
         const categoryTotalRow = [
           '',
-          `${getCategoryIcon(rowCategory)} TOTAL ${rowCategory.toUpperCase()}`,
-          ...costCenters.map(cc => formatNumberCSV(categoryTotals[rowCategory][cc] || 0)),
-          formatNumberCSV(categoryTotals[rowCategory]['total'] || 0)
+          `TOTAL ${rowCategory.toUpperCase()}`,
+          ...costCenters.map(cc => formatNumberCSV(categorySums[rowCategory].costCenters[cc])),
+          formatNumberCSV(categorySums[rowCategory].total)
         ];
         csvRows.push(categoryTotalRow);
-        csvRows.push(['']); // Empty row after category total
+        csvRows.push([]); // Empty row after category total
       }
     });
 
-    // Calculate grand totals
+    // GRAND TOTALS SECTION (matching completed cost center format)
     const grandTotalByCostCenter: Record<string, number> = {};
     costCenters.forEach(cc => {
-      grandTotalByCostCenter[cc] = Object.values(categoryTotals).reduce((sum, category) => sum + (category[cc] || 0), 0);
+      grandTotalByCostCenter[cc] = Object.values(categorySums).reduce((sum, category) => sum + (category.costCenters[cc] || 0), 0);
     });
-    const overallGrandTotal = Object.values(categoryTotals).reduce((sum, category) => sum + (category['total'] || 0), 0);
+    const overallGrandTotal = Object.values(categorySums).reduce((sum, category) => sum + (category.total || 0), 0);
 
-    // Add grand total
+    // Add grand total section
     csvRows.push(
-      ['=== GRAND TOTAL ==='],
+      [],
+      ['GRAND TOTAL'],
       [
         '',
         'GRAND TOTAL',
@@ -413,15 +490,22 @@ const ProvintionalWiseTrial: React.FC = () => {
       ]
     );
 
-    // Add footer information
+    // SUMMARY SECTION (matching completed cost center format)
     csvRows.push(
-      [''],
-      [`Report generated on: ${new Date().toLocaleDateString()} | CEB@2025`]
+      [],
+      ['SUMMARY'],
+      ...Object.entries(categorySums).map(([category, sums]) => [
+        `Total ${category}`,
+        formatNumberCSV(sums.total)
+      ]),
+      ['Total Records', trialBalanceData.length.toString()],
+      [],
+      [`Generated: ${new Date().toLocaleString()}`],
+      [`CEB@${new Date().getFullYear()}`]
     );
 
     // Convert to CSV format with proper escaping
     const csvContent = csvRows.map(row => {
-      // Handle rows with different lengths and escape commas in content
       return row.map(cell => {
         const cellStr = String(cell || '');
         // If cell contains comma, quote, or newline, wrap in quotes and escape internal quotes
@@ -676,37 +760,68 @@ const ProvintionalWiseTrial: React.FC = () => {
     <>
       <div className="flex justify-between items-center mb-4">
         <div>
+          <h2 className={`text-xl font-bold ${maroon}`}>
+            Company-Wise Trial Balance
+          </h2>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 justify-end mb-4">
-        <div className="relative">
-          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-          <input
-            type="text"
-            value={searchId}
-            placeholder="Search by Code"
-            onChange={(e) => setSearchId(e.target.value)}
-            className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition"
-          />
+      {/* Search and Date Selection Section */}
+      <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          {/* Search by Code */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search by Code</label>
+            <div className="relative">
+              <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+              <input
+                type="text"
+                value={searchId}
+                placeholder="Code"
+                onChange={(e) => setSearchId(e.target.value)}
+                className="pl-7 pr-2 py-1.5 w-full rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#7A0000] text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Search by Name */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search by Name</label>
+            <div className="relative">
+              <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+              <input
+                type="text"
+                value={searchName}
+                placeholder="Name"
+                onChange={(e) => setSearchName(e.target.value)}
+                className="pl-7 pr-2 py-1.5 w-full rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#7A0000] text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Year Dropdown */}
+          <YearDropdown />
+
+          {/* Month Dropdown */}
+          <MonthDropdown />
+
+          {/* Clear Filters Button */}
+          <div>
+            {(searchId || searchName) && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm w-full justify-center"
+              >
+                <FaSyncAlt className="w-3 h-3" /> Clear
+              </button>
+            )}
+          </div>
         </div>
-        <div className="relative">
-          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-          <input
-            type="text"
-            value={searchName}
-            placeholder="Search by Name"
-            onChange={(e) => setSearchName(e.target.value)}
-            className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition"
-          />
-        </div>
-        {(searchId || searchName) && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700"
-          >
-            <FaSyncAlt className="w-3 h-3" /> Clear
-          </button>
+        
+        {selectedCompany && (
+          <div className="mt-2 text-xs text-gray-600">
+            Selected: <span className="font-semibold">{selectedCompany.CompName}</span> ({selectedCompany.compId})
+          </div>
         )}
       </div>
 
@@ -716,7 +831,6 @@ const ProvintionalWiseTrial: React.FC = () => {
           <p className="mt-2 text-gray-600">Loading companies...</p>
         </div>
       )}
-
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -742,15 +856,25 @@ const ProvintionalWiseTrial: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedCompanies.map((company, i) => (
-                    <tr key={i} className={i % 2 ? "bg-white" : "bg-gray-50"}>
+                    <tr 
+                      key={i} 
+                      className={`${i % 2 ? "bg-white" : "bg-gray-50"} ${
+                        selectedCompany?.compId === company.compId ? "ring-2 ring-[#7A0000] ring-inset" : ""
+                      }`}
+                    >
                       <td className="px-4 py-2 truncate">{company.compId}</td>
                       <td className="px-4 py-2 truncate">{company.CompName}</td>
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleCompanySelect(company)}
-                          className={`px-3 py-1 ${maroonGrad} text-white rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                          className={`px-3 py-1 ${
+                            selectedCompany?.compId === company.compId 
+                              ? "bg-green-600 text-white" 
+                              : maroonGrad + " text-white"
+                          } rounded text-xs font-medium hover:brightness-110 transition shadow`}
                         >
-                          <FaEye className="inline-block mr-1 w-3 h-3" /> View
+                          <FaEye className="inline-block mr-1 w-3 h-3" /> 
+                          {selectedCompany?.compId === company.compId ? "Viewing" : "View"}
                         </button>
                       </td>
                     </tr>
@@ -782,80 +906,6 @@ const ProvintionalWiseTrial: React.FC = () => {
       )}
     </>
   );
-
-  // Date Selection Modal
-  const DateSelectionModal = () => {
-    if (!selectedCompany || !showDateSelection) return null;
-
-    return (
-      <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-50 p-4 overflow-auto">
-        <div className="bg-white w-full max-w-4xl rounded-xl shadow-xl border border-gray-200 relative max-h-[90vh] overflow-y-auto p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className={`text-lg font-bold ${maroon}`}>
-              Select Period for {selectedCompany.CompName}
-            </h3>
-            <button
-              onClick={() => setShowDateSelection(false)}
-              className="text-gray-500 hover:text-red-500"
-            >
-              <FaTimes className="w-5 h-5" />
-            </button>
-          </div>
-         
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Year</label>
-            <div className="grid grid-cols-7 gap-2 max-h-32 overflow-y-auto mb-4">
-              {years.map((year) => (
-                <button
-                  key={year}
-                  onClick={() => setSelectedYear(year)}
-                  className={`text-xs py-1 rounded cursor-pointer border transition-colors duration-150
-                  ${selectedYear === year
-                    ? "bg-[#7A0000] text-white border-[#7A0000]"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                  }`}
-                  style={{ minWidth: "40px" }}
-                >
-                  {year}
-                </button>
-              ))}
-            </div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Month</label>
-            <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
-              {months.map((month) => (
-                <button
-                  key={month}
-                  onClick={() => setSelectedMonth(month)}
-                  className={`text-xs py-1 rounded cursor-pointer border transition-colors duration-150
-                  ${selectedMonth === month
-                    ? "bg-[#7A0000] text-white border-[#7A0000]"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                  }`}
-                  style={{ minWidth: "50px" }}
-                >
-                  {getMonthName(month)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowDateSelection(false)}
-              className="bg-gray-500 text-white py-2 px-6 rounded hover:brightness-110 text-sm"
-            >
-              Back to Home
-            </button>
-            <button
-              onClick={fetchTrialBalanceData}
-              className="bg-[#7A0000] text-white py-2 px-6 rounded hover:brightness-110 text-sm"
-            >
-              View Trial Balance
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // Trial Balance Modal Component with category-based structure
   const TrialBalanceModal = () => {
@@ -910,15 +960,7 @@ const ProvintionalWiseTrial: React.FC = () => {
                     >
                       <FaPrint className="w-3 h-3" /> PDF
                     </button>
-                    <button
-                      onClick={() => {
-                        setTrialModalOpen(false);
-                        setShowDateSelection(true);
-                      }}
-                      className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
-                    >
-                      <ChevronLeft className="w-4 h-4" /> Back to Date Selection
-                    </button>
+                   
                     <button
                       onClick={closeTrialModal}
                       className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`} 
@@ -998,7 +1040,7 @@ const ProvintionalWiseTrial: React.FC = () => {
                             <td className="px-2 py-1 sticky left-0 bg-gray-200 text-[#7A0000]">
                               <div className="flex items-center gap-1">
                                 <span className="text-sm">{categoryInfo.icon}</span>
-                                <span>TOTAL {category.toUpperCase()}</span>
+                                <span>TOTAL ${category.toUpperCase()}</span>
                               </div>
                             </td>
                             {costCenters.map((cc) => (
@@ -1044,7 +1086,6 @@ const ProvintionalWiseTrial: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
       <CompanyTable />
-      <DateSelectionModal />
       <TrialBalanceModal />
     </div>
   );

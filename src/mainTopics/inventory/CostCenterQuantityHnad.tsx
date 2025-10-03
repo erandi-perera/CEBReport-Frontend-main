@@ -138,7 +138,7 @@ const CostCenterQuantityHnad: React.FC = () => {
     setQuantityError(null);
     try {
       // Build API URL based on selection type
-      let apiUrl = `/materials/api/inventoryonhand/${selectedCostCenter.CostCenterId}`;
+      let apiUrl = `/misapi/api/inventoryonhand/${selectedCostCenter.CostCenterId}`;
       if (materialSelectionType === 'specific' && materialCode.trim()) {
         apiUrl += `?matCode=${encodeURIComponent(materialCode.trim())}`;
       }
@@ -214,40 +214,60 @@ const CostCenterQuantityHnad: React.FC = () => {
     }).format(num);
   };
 
-  // Escape CSV field function
-  const escapeCSVField = (field: string | number): string => {
-    const stringField = String(field);
-    if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
-      return '"' + stringField.replace(/"/g, '""') + '"';
-    }
-    return stringField;
-  };
-
-  // Download as CSV function
+  // Download as CSV function - Updated to match the second code's structure
   const downloadAsCSV = () => {
     if (!quantityData || quantityData.length === 0) return;
-    
-    const headers = [
-      "Material Code", "Material Name", "Grade Code", "Unit", "Allocated", 
-      "Quantity On Hand", "Unit Price", "Value"
+
+    // Calculate totals
+    const totals = {
+      allocated: quantityData.reduce((sum, item) => sum + (item.Alocated || 0), 0),
+      qtyOnHand: quantityData.reduce((sum, item) => sum + (item.QtyOnHand || 0), 0),
+      value: quantityData.reduce((sum, item) => sum + (item.Value || 0), 0)
+    };
+
+    // Format number for CSV (no thousands separator, 2 decimals)
+    const formatNum = (num: number) => num.toFixed(2);
+
+    const csvRows = [
+      // Header section
+      [`Quantity On Hand Report - ${new Date().toLocaleDateString()}`],
+      [`Cost Centre : ${selectedCostCenter?.CostCenterId} / ${selectedCostCenter?.CostCenterName.toUpperCase()}${materialSelectionType === 'specific' && materialCode ? ` / Material Code - ${materialCode}` : ''}`],
+      [],
+      // Column headers
+      ["Material Code", "Material Name", "Grade Code", "Unit", "Allocated", "Quantity On Hand", "Unit Price", "Value"],
+      // Data rows
+      ...quantityData.map((item) => [
+        item.MatCd?.trim() || "",
+        `"${(item.MatNm?.trim() || "").replace(/"/g, '""')}"`,
+        item.GrdCd?.trim() || "",
+        item.MajUom?.trim() || "",
+        formatNum(item.Alocated || 0),
+        formatNum(item.QtyOnHand || 0),
+        formatNum(item.UnitPrice || 0),
+        formatNum(item.Value || 0)
+      ]),
+      // Total row
+      [],
+      [
+        "", "", "", "", 
+        formatNum(totals.allocated),
+        formatNum(totals.qtyOnHand),
+        "TOTAL",
+        formatNum(totals.value)
+      ],
+      [],
+      // Summary section
+      ["SUMMARY"],
+      ["Total Allocated", formatNum(totals.allocated)],
+      ["Total Quantity On Hand", formatNum(totals.qtyOnHand)],
+      ["Total Value", formatNum(totals.value)],
+      ["Total Records", quantityData.length.toString()],
+      [],
+      [`Generated: ${new Date().toLocaleString()}`],
+      [`CEB@${new Date().getFullYear()}`]
     ];
-    
-    const dataRows = quantityData.map(item => [
-      escapeCSVField(item.MatCd?.trim() || ""),
-      escapeCSVField(item.MatNm?.trim() || ""),
-      escapeCSVField(item.GrdCd?.trim() || ""),
-      escapeCSVField(item.MajUom?.trim() || ""),
-      escapeCSVField(item.Alocated || item.Alocated === 0 ? (item.Alocated === 0 ? "-" : item.Alocated) : "-"),
-      escapeCSVField(item.QtyOnHand || item.QtyOnHand === 0 ? (item.QtyOnHand === 0 ? "-" : item.QtyOnHand) : "-"),
-      escapeCSVField(item.UnitPrice || item.UnitPrice === 0 ? (item.UnitPrice === 0 ? "-" : formatNumber(item.UnitPrice)) : "-"),
-      escapeCSVField(item.Value || item.Value === 0 ? (item.Value === 0 ? "-" : formatNumber(item.Value)) : "-")
-    ]);
-    
-    const csvContent = [
-      headers.join(","),
-      ...dataRows.map(row => row.join(","))
-    ].join("\n");
-    
+
+    const csvContent = csvRows.map(r => r.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -398,83 +418,127 @@ const CostCenterQuantityHnad: React.FC = () => {
       printWindow.close();
     };
   };
-
-  // Material Selection Modal Component
+// Material Selection Modal Component
   const MaterialSelectionModal = () => {
     if (!showMaterialSelection || !selectedCostCenter) return null;
 
     return (
-      <div className="fixed inset-0 bg-white flex items-center justify-center z-50 pt-24 pb-8 pl-64">
-        <div className="bg-white rounded-lg shadow-lg border border-gray-300 w-full max-w-lg mx-4">
-          <div className="p-8">
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-3">
-                Material Selection
-              </h3>
-              <p className="text-base text-gray-600">
-                Cost Center: <span className="font-semibold">{selectedCostCenter.CostCenterId} - {selectedCostCenter.CostCenterName}</span>
+      <div className="fixed inset-0 bg-white bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 pt-24 pb-8 pl-64 animate-fadeIn">
+        <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-xl mx-4 transform transition-all animate-slideUp">
+          {/* Header with gradient */}
+          <div className={`${maroonGrad} rounded-t-2xl p-4 text-white`}>
+            <h3 className="text-lg font-bold">
+              Material Selection
+            </h3>
+            <p className="text-xs text-white text-opacity-90 mt-1">
+              Configure your inventory report parameters
+            </p>
+          </div>
+
+          {/* Body */}
+          <div className="p-5">
+            {/* Cost Center Info Card */}
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-3 mb-4 border border-gray-200">
+              <p className="text-xs text-gray-500 mb-0.5 font-medium">Selected Cost Center</p>
+              <p className="text-sm font-bold text-gray-800">
+                {selectedCostCenter.CostCenterId}
+              </p>
+              <p className="text-xs text-gray-700 mt-0.5">
+                {selectedCostCenter.CostCenterName}
               </p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Selection Type */}
               <div>
-                <label className="block text-base font-medium text-gray-700 mb-3">
-                  Select Material Type:
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  Select Report Scope
                 </label>
-                <div className="space-y-3">
-                  <label className="flex items-center cursor-pointer">
+                <div className="space-y-2">
+                  <label className={`flex items-center cursor-pointer p-2 rounded-lg border-2 transition-all ${
+                    materialSelectionType === 'all' 
+                      ? 'border-[#7A0000] bg-red-50 shadow-sm' 
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                  }`}>
                     <input
                       type="radio"
                       name="materialType"
                       value="all"
                       checked={materialSelectionType === 'all'}
                       onChange={(e) => setMaterialSelectionType(e.target.value as 'all' | 'specific')}
-                      className="mr-3 w-4 h-4"
+                      className="mr-2.5 w-4 h-4 text-[#7A0000] focus:ring-[#7A0000]"
                     />
-                    <span className="text-base">All Materials</span>
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold text-gray-800 block">All Materials</span>
+                      <span className="text-xs text-gray-500">Generate report for all materials</span>
+                    </div>
                   </label>
-                  <label className="flex items-center cursor-pointer">
+                  <label className={`flex items-center cursor-pointer p-2 rounded-lg border-2 transition-all ${
+                    materialSelectionType === 'specific' 
+                      ? 'border-[#7A0000] bg-red-50 shadow-sm' 
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                  }`}>
                     <input
                       type="radio"
                       name="materialType"
                       value="specific"
                       checked={materialSelectionType === 'specific'}
                       onChange={(e) => setMaterialSelectionType(e.target.value as 'all' | 'specific')}
-                      className="mr-3 w-4 h-4"
+                      className="mr-2.5 w-4 h-4 text-[#7A0000] focus:ring-[#7A0000]"
                     />
-                    <span className="text-base">Specific Material</span>
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold text-gray-800 block">Specific Material</span>
+                      <span className="text-xs text-gray-500">Generate report for single material</span>
+                    </div>
                   </label>
                 </div>
               </div>
 
-              {/* Material Code Input */}
+              {/* Material Code Input with animation */}
               {materialSelectionType === 'specific' && (
-                <div>
-                  <label className="block text-base font-medium text-gray-700 mb-3">
-                    Material Code:
+                <div className="animate-slideDown">
+                  <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+                    Material Code
                   </label>
-                  <input
-                    type="text"
-                    value={materialCode}
-                    onChange={(e) => setMaterialCode(e.target.value)}
-                    placeholder="Enter material code"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-base"
-                    autoComplete="off"
-                    autoFocus={materialSelectionType === 'specific'}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={materialCode}
+                      onChange={(e) => setMaterialCode(e.target.value.toUpperCase())}
+                      placeholder="Enter material code"
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7A0000] focus:border-transparent text-sm font-mono tracking-wide transition-all"
+                      autoComplete="off"
+                      autoFocus={materialSelectionType === 'specific'}
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      <Search className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 ml-1">
+                    💡 Enter exact material code
+                  </p>
                 </div>
               )}
 
-              {/* Error Message */}
+              {/* Error Message with icon */}
               {quantityError && (
-                <div className="text-red-600 text-base">
-                  {quantityError}
+                <div className="bg-red-50 border-l-4 border-red-500 p-2 rounded-lg animate-shake">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="h-4 w-4 text-red-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-2">
+                      <p className="text-xs font-medium text-red-800">{quantityError}</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end gap-4 mt-8">
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200">
               <button
                 onClick={() => {
                   setShowMaterialSelection(false);
@@ -483,15 +547,26 @@ const CostCenterQuantityHnad: React.FC = () => {
                   setMaterialSelectionType('all');
                   setQuantityError(null);
                 }}
-                className="px-6 py-3 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-base font-medium"
+                className="px-6 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:border-gray-400 text-sm font-semibold transition-all shadow-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleViewData}
-                className={`px-6 py-3 ${maroonBg} text-white rounded-md hover:brightness-110 text-base font-medium`}
+                disabled={quantityLoading}
+                className={`px-6 py-2.5 ${maroonGrad} text-white rounded-xl hover:brightness-110 text-sm font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2`}
               >
-                View Data
+                {quantityLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    View Report
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -499,7 +574,6 @@ const CostCenterQuantityHnad: React.FC = () => {
       </div>
     );
   };
-
   // Quantity On Hand Modal Component
   const QuantityOnHandModal = () => {
     if (!quantityModalOpen || !selectedCostCenter) return null;
@@ -516,9 +590,9 @@ const CostCenterQuantityHnad: React.FC = () => {
                   CEYLON ELECTRICITY BOARD - INVENTORY REPORT
                 </h2>
                 <h3 className="text-sm font-semibold text-gray-700">
-                  COST CENTRE: {selectedCostCenter.CostCenterId} / {selectedCostCenter.CostCenterName}
+                  COST CENTRE: {selectedCostCenter.CostCenterId} / ${selectedCostCenter.CostCenterName}
                   {materialSelectionType === 'specific' && materialCode && (
-                    <span className="ml-2 text-blue-600">/ MATERIAL CODE - {materialCode}</span>
+                    <span className="ml-2 text-blue-600">/ MATERIAL CODE - ${materialCode}</span>
                   )}
                 </h3>
                 <h4 className={`text-sm ${maroon} font-medium`}>
@@ -572,14 +646,14 @@ const CostCenterQuantityHnad: React.FC = () => {
               <div className="w-full overflow-x-auto text-xs">
                 <table className="w-full border-collapse border border-gray-200">
                   <thead>
-                    <tr className={`${maroonGrad} text-white`}>
-                      <th className="px-4 py-3 text-left border-r border-white font-bold">MATERIAL<br/>CODE</th>
-                      <th className="px-4 py-3 text-left border-r border-white font-bold">MATERIAL<br/>NAME</th>
-                      <th className="px-4 py-3 text-center border-r border-white font-bold">GRADE<br/>CODE</th>
-                      <th className="px-4 py-3 text-center border-r border-white font-bold">UNIT</th>
-                      <th className="px-4 py-3 text-center border-r border-white font-bold">ALLOCATED</th>
-                      <th className="px-4 py-3 text-center border-r border-white font-bold">QUANTITY<br/>ON HAND</th>
-                      <th className="px-4 py-3 text-center border-r border-white font-bold">UNIT<br/>PRICE</th>
+                    <tr className="text-gray-800" style={{backgroundColor: '#D3D3D3'}}>
+                      <th className="px-4 py-3 text-left border-r border-gray-300 font-bold">MATERIAL<br/>CODE</th>
+                      <th className="px-4 py-3 text-left border-r border-gray-300 font-bold">MATERIAL<br/>NAME</th>
+                      <th className="px-4 py-3 text-center border-r border-gray-300 font-bold">GRADE<br/>CODE</th>
+                      <th className="px-4 py-3 text-center border-r border-gray-300 font-bold">UNIT</th>
+                      <th className="px-4 py-3 text-center border-r border-gray-300 font-bold">ALLOCATED</th>
+                      <th className="px-4 py-3 text-center border-r border-gray-300 font-bold">QUANTITY<br/>ON HAND</th>
+                      <th className="px-4 py-3 text-center border-r border-gray-300 font-bold">UNIT<br/>PRICE</th>
                       <th className="px-4 py-3 text-center font-bold">VALUE</th>
                     </tr>
                   </thead>
@@ -705,15 +779,25 @@ const CostCenterQuantityHnad: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedCostCenters.map((costCenter, i) => (
-                    <tr key={`${costCenter.CostCenterId}-${i}`} className={i % 2 ? "bg-white" : "bg-gray-50"}>
+                    <tr 
+                      key={`${costCenter.CostCenterId}-${i}`} 
+                      className={`${i % 2 ? "bg-white" : "bg-gray-50"} ${
+                        selectedCostCenter?.CostCenterId === costCenter.CostCenterId ? "ring-2 ring-[#7A0000] ring-inset" : ""
+                      }`}
+                    >
                       <td className="px-4 py-2 truncate font-mono">{costCenter.CostCenterId}</td>
                       <td className="px-4 py-2 truncate">{costCenter.CostCenterName}</td>
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleCostCenterSelect(costCenter)}
-                          className={`px-3 py-1 ${maroonGrad} text-white rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                          className={`px-3 py-1 ${
+                            selectedCostCenter?.CostCenterId === costCenter.CostCenterId 
+                              ? "bg-green-600 text-white" 
+                              : maroonGrad + " text-white"
+                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
                         >
-                          <Eye className="inline-block mr-1 w-3 h-3" /> View
+                          <Eye className="inline-block mr-1 w-3 h-3" /> 
+                          {selectedCostCenter?.CostCenterId === costCenter.CostCenterId ? "Viewing" : "View"}
                         </button>
                       </td>
                     </tr>

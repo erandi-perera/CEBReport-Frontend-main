@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Search, RotateCcw, Eye, X, Download, Printer, ChevronLeft } from "lucide-react";
+import { Search, RotateCcw, Eye, Download, Printer } from "lucide-react";
+import { FaChevronDown } from "react-icons/fa";
 import { useUser } from "../../contexts/UserContext";
 
 interface Company {
@@ -38,9 +39,12 @@ const ProvinceExpenditure: React.FC = () => {
 
   // Selection state
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const [showDateSelection, setShowDateSelection] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+
+  // Dropdown state
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
 
   // Income & Expenditure modal state
   const [incomeExpModalOpen, setIncomeExpModalOpen] = useState(false);
@@ -68,6 +72,20 @@ const ProvinceExpenditure: React.FC = () => {
 
   // Paginated companies
   const paginatedCompanies = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.year-dropdown') && !target.closest('.month-dropdown')) {
+        setYearDropdownOpen(false);
+        setMonthDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch companies
   useEffect(() => {
@@ -116,13 +134,14 @@ const ProvinceExpenditure: React.FC = () => {
   }, [searchId, searchName, data]);
 
   // Fetch province income & expenditure data
-  const fetchProvinceIncomeExpenditureData = async () => {
-    if (!selectedCompany) return;
+  const fetchProvinceIncomeExpenditureData = async (company?: Company) => {
+    const targetCompany = company || selectedCompany;
+    if (!targetCompany) return;
     
     setIncomeExpLoading(true);
     setIncomeExpError(null);
     try {
-      const apiUrl = `/misapi/api/provinceincomeexpenditure/${selectedCompany.compId}/${selectedYear}/${selectedMonth}`;
+      const apiUrl = `/misapi/api/provinceincomeexpenditure/${targetCompany.compId}/${selectedYear}/${selectedMonth}`;
       
       const response = await fetch(apiUrl, {
         credentials: 'include',
@@ -152,7 +171,6 @@ const ProvinceExpenditure: React.FC = () => {
       
       setIncomeExpData(incomeExpArray);
       setIncomeExpModalOpen(true);
-      setShowDateSelection(false);
     } catch (error: any) {
       setIncomeExpError(error.message.includes("JSON.parse") ? "Invalid data format received from server" : error.message);
     } finally {
@@ -161,8 +179,10 @@ const ProvinceExpenditure: React.FC = () => {
   };
 
   const handleCompanySelect = (company: Company) => {
+    console.log('Company selected:', company);
     setSelectedCompany(company);
-    setShowDateSelection(true);
+    // Auto fetch province income & expenditure data when company is selected
+    fetchProvinceIncomeExpenditureData(company);
   };
 
   const closeIncomeExpModal = () => {
@@ -197,6 +217,81 @@ const ProvinceExpenditure: React.FC = () => {
     // Return negative values in parentheses, positive values as is
     return num < 0 ? `(${formatted})` : formatted;
   };
+
+  // Custom Dropdown Components
+  const YearDropdown = () => (
+    <div className="year-dropdown relative">
+      <label className="block text-xs font-medium text-gray-700 mb-1">Year</label>
+      <button
+        type="button"
+        onClick={() => {
+          setYearDropdownOpen(!yearDropdownOpen);
+          setMonthDropdownOpen(false);
+        }}
+        className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
+      >
+        <span>{selectedYear}</span>
+        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {yearDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {years.map((year) => (
+            <button
+              key={year}
+              type="button"
+              onClick={() => {
+                setSelectedYear(year);
+                setYearDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedYear === year ? 'bg-[#7A0000] text-white' : 'text-gray-700'
+              }`}
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const MonthDropdown = () => (
+    <div className="month-dropdown relative">
+      <label className="block text-xs font-medium text-gray-700 mb-1">Month</label>
+      <button
+        type="button"
+        onClick={() => {
+          setMonthDropdownOpen(!monthDropdownOpen);
+          setYearDropdownOpen(false);
+        }}
+        className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
+      >
+        <span>{getMonthName(selectedMonth)}</span>
+        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {monthDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {months.map((month) => (
+            <button
+              key={month}
+              type="button"
+              onClick={() => {
+                setSelectedMonth(month);
+                setMonthDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                selectedMonth === month ? 'bg-[#7A0000] text-white' : 'text-gray-700'
+              }`}
+            >
+              {getMonthName(month)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   // Function to get category names based on actual data
   const getCategoryName = (categoryCode: string): string => {
@@ -292,115 +387,133 @@ const ProvinceExpenditure: React.FC = () => {
     };
   };
 
-  // Escape CSV field function
-  const escapeCSVField = (field: string | number): string => {
-    const stringField = String(field);
-    if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
-      return '"' + stringField.replace(/"/g, '""') + '"';
-    }
-    return stringField;
-  };
-
-  // Download as CSV function
+  // UPDATED Download as CSV function to match CompletedCostCenterWise style
   const downloadAsCSV = () => {
     if (!incomeExpData || incomeExpData.length === 0) return;
     
     const { grouped, areas } = groupDataByArea();
     const totals = calculateTotals();
     
-    const headers = [
-      "Account Code", "Description", "Type", ...areas.map(area => `Area ${area}`), "Total"
-    ];
+    // Format number for CSV (no thousands separator, 2 decimals)
+    const formatNum = (num: number) => {
+      if (num === undefined || num === null || isNaN(num)) return "0.00";
+      if (num === 0) return "0.00";
+      return num.toFixed(2);
+    };
     
-    const dataRows: string[][] = [];
+    // Escape CSV field
+    const escape = (field: string | number): string => {
+      const str = String(field || '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    };
+    
+    const csvRows = [
+      // Header section
+      [`Consolidated Income & Expenditure Provincial Statement`],
+      [`Period Ended: ${getMonthName(selectedMonth).toUpperCase()} ${selectedYear}`],
+      [`Province Company: ${selectedCompany?.compId} / ${selectedCompany?.CompName.toUpperCase()}`],
+      [`Generated: ${new Date().toLocaleString()}`],
+      [],
+      // Column headers
+      ["Account Code", "Description", ...areas.map(area => `Area ${area}`), "Company Total"]
+    ];
     
     // Income section
     const incomeKeys = Object.keys(grouped).filter(key => grouped[key][0].CatFlag === "I");
     if (incomeKeys.length > 0) {
-      dataRows.push(["", "INCOME", "", ...areas.map(() => ""), ""]);
+      csvRows.push([]);
+      csvRows.push(["INCOME"]);
       
       incomeKeys.forEach(key => {
         const items = grouped[key];
         const firstItem = items[0];
         const row = [
-          escapeCSVField(firstItem.Account.trim()),
-          escapeCSVField(firstItem.CatName.trim()),
-          escapeCSVField("INCOME"),
+          firstItem.Account.trim(),
+          escape(firstItem.CatName.trim()),
         ];
         
         areas.forEach(area => {
           const areaItem = items.find(item => item.AreaNum === area);
-          row.push(escapeCSVField(formatNumber(areaItem?.Actual || 0)));
+          row.push(formatNum(areaItem?.Actual || 0));
         });
         
         const total = items.reduce((sum, item) => sum + item.Actual, 0);
-        row.push(escapeCSVField(formatNumber(total)));
-        dataRows.push(row);
+        row.push(formatNum(total));
+        csvRows.push(row);
       });
       
       // Total Income row
-      const totalIncomeRow = ["", "TOTAL INCOME", "", 
-        ...areas.map(area => escapeCSVField(formatNumber(totals.incomeTotalsByArea[area]))),
-        escapeCSVField(formatNumber(totals.totalIncomeGrand))
+      csvRows.push([]);
+      const totalIncomeRow = [
+        "",
+        "TOTAL INCOME",
+        ...areas.map(area => formatNum(totals.incomeTotalsByArea[area])),
+        formatNum(totals.totalIncomeGrand)
       ];
-      dataRows.push(totalIncomeRow);
+      csvRows.push(totalIncomeRow);
     }
     
     // Expenditure section
     const expenditureKeys = Object.keys(grouped).filter(key => grouped[key][0].CatFlag === "E" || grouped[key][0].CatFlag === "X");
     if (expenditureKeys.length > 0) {
-      dataRows.push(["", "EXPENDITURES", "", ...areas.map(() => ""), ""]);
+      csvRows.push([]);
+      csvRows.push(["EXPENDITURES"]);
       
       expenditureKeys.forEach(key => {
         const items = grouped[key];
         const firstItem = items[0];
         const row = [
-          escapeCSVField(firstItem.Account.trim()),
-          escapeCSVField(firstItem.CatName.trim()),
-          escapeCSVField("EXPENDITURE"),
+          firstItem.Account.trim(),
+          escape(firstItem.CatName.trim()),
         ];
         
         areas.forEach(area => {
           const areaItem = items.find(item => item.AreaNum === area);
-          row.push(escapeCSVField(formatNumber(areaItem?.Actual || 0)));
+          row.push(formatNum(areaItem?.Actual || 0));
         });
         
         const total = items.reduce((sum, item) => sum + item.Actual, 0);
-        row.push(escapeCSVField(formatNumber(total)));
-        dataRows.push(row);
+        row.push(formatNum(total));
+        csvRows.push(row);
       });
       
       // Total Expenditure row
-      const totalExpenditureRow = ["", "TOTAL EXPENDITURE", "", 
-        ...areas.map(area => escapeCSVField(formatNumber(totals.expenditureTotalsByArea[area]))),
-        escapeCSVField(formatNumber(totals.totalExpenditureGrand))
+      csvRows.push([]);
+      const totalExpenditureRow = [
+        "",
+        "TOTAL EXPENDITURE",
+        ...areas.map(area => formatNum(totals.expenditureTotalsByArea[area])),
+        formatNum(totals.totalExpenditureGrand)
       ];
-      dataRows.push(totalExpenditureRow);
+      csvRows.push(totalExpenditureRow);
     }
     
     // Net Total row
-    const netTotalRow = ["", "NET TOTAL", "", 
-      ...areas.map(area => escapeCSVField(formatNumber(totals.netTotalsByArea[area]))),
-      escapeCSVField(formatNumber(totals.netTotalGrand))
+    csvRows.push([]);
+    const netTotalRow = [
+      "",
+      "NET TOTAL",
+      ...areas.map(area => formatNum(totals.netTotalsByArea[area])),
+      formatNum(totals.netTotalGrand)
     ];
-    dataRows.push(netTotalRow);
+    csvRows.push(netTotalRow);
     
-    // Create CSV content with proper topic section
-    const csvContent = [
-      // Topic section
-      `"Income & Expenditure Report - Province Wise"`,
-      `"Company: ${selectedCompany?.CompName || 'N/A'} (${selectedCompany?.compId || 'N/A'})"`,
-      `"Period: ${getMonthName(selectedMonth)} ${selectedYear}"`,
-      `"Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}"`,
-      `"Total Records: ${incomeExpData.length}"`,
-      "", // Empty line
-      // Data section
-      headers.join(","),
-      ...dataRows.map(row => row.join(",")),
-      "", // Empty line
-      `"Report generated by CEB Report System"`,
-      `"For technical support, contact IT Department"`
-    ].join("\n");
+    // Summary section
+    csvRows.push([]);
+    csvRows.push(["SUMMARY"]);
+    csvRows.push(["Total Income", formatNum(totals.totalIncomeGrand)]);
+    csvRows.push(["Total Expenditure", formatNum(totals.totalExpenditureGrand)]);
+    csvRows.push(["Net Total", formatNum(totals.netTotalGrand)]);
+    csvRows.push(["Total Records", incomeExpData.length.toString()]);
+    csvRows.push(["Number of Areas", areas.length.toString()]);
+    csvRows.push([]);
+    csvRows.push([`CEB@${new Date().getFullYear()}`]);
+    
+    // Convert to CSV format
+    const csvContent = csvRows.map(row => row.join(',')).join('\n');
     
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -739,15 +852,7 @@ const ProvinceExpenditure: React.FC = () => {
                     >
                       <Printer className="w-3 h-3" /> PDF
                     </button>
-                    <button
-                      onClick={() => {
-                        setIncomeExpModalOpen(false);
-                        setShowDateSelection(true);
-                      }}
-                      className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
-                    >
-                      <ChevronLeft className="w-4 h-4" /> Back to Date Selection
-                    </button>
+                   
                     <button
                       onClick={closeIncomeExpModal}
                       className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
@@ -760,9 +865,9 @@ const ProvinceExpenditure: React.FC = () => {
                 <div className="w-full overflow-x-auto text-xs">
                   <table className="w-full border-collapse">
                   <thead>
-                    <tr className={`${maroonBg} text-white`}>
-                      <th className="px-2 py-1 text-left sticky left-0 bg-[#7A0000] z-10 min-w-[100px]">Account</th>
-                      <th className="px-2 py-1 text-left sticky left-0 bg-[#7A0000] z-10 min-w-[200px]">Description</th>
+                    <tr className="text-gray-800" style={{backgroundColor: '#D3D3D3'}}>
+                      <th className="px-2 py-1 text-left sticky left-0 z-10 min-w-[100px]" style={{backgroundColor: '#D3D3D3'}}>Account</th>
+                      <th className="px-2 py-1 text-left sticky left-0 z-10 min-w-[200px]" style={{backgroundColor: '#D3D3D3'}}>Description</th>
                       {areas.map(area => (
                         <th key={area} className="px-2 py-1 text-right min-w-[100px]">
                           Area {area}
@@ -962,35 +1067,62 @@ const ProvinceExpenditure: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Controls */}
-      <div className="flex flex-wrap gap-3 justify-end mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-          <input
-            type="text"
-            value={searchId}
-            placeholder="Search by Code"
-            onChange={(e) => setSearchId(e.target.value)}
-            className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-          />
+      {/* Search and Date Selection Section */}
+      <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          {/* Search by Code */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search by Code</label>
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+              <input
+                type="text"
+                value={searchId}
+                placeholder="Code"
+                onChange={(e) => setSearchId(e.target.value)}
+                className="pl-7 pr-2 py-1.5 w-full rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#7A0000] text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Search by Name */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search by Name</label>
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+              <input
+                type="text"
+                value={searchName}
+                placeholder="Name"
+                onChange={(e) => setSearchName(e.target.value)}
+                className="pl-7 pr-2 py-1.5 w-full rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#7A0000] text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Year Dropdown */}
+          <YearDropdown />
+
+          {/* Month Dropdown */}
+          <MonthDropdown />
+
+          {/* Clear Filters Button */}
+          <div>
+            {(searchId || searchName) && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm w-full justify-center"
+              >
+                <RotateCcw className="w-3 h-3" /> Clear
+              </button>
+            )}
+          </div>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-          <input
-            type="text"
-            value={searchName}
-            placeholder="Search by Name"
-            onChange={(e) => setSearchName(e.target.value)}
-            className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-          />
-        </div>
-        {(searchId || searchName) && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm"
-          >
-            <RotateCcw className="w-3 h-3" /> Clear
-          </button>
+        
+        {selectedCompany && (
+          <div className="mt-2 text-xs text-gray-600">
+            Selected: <span className="font-semibold">{selectedCompany.CompName}</span> ({selectedCompany.compId})
+          </div>
         )}
       </div>
 
@@ -1030,15 +1162,25 @@ const ProvinceExpenditure: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedCompanies.map((company, i) => (
-                    <tr key={i} className={i % 2 ? "bg-white" : "bg-gray-50"}>
+                    <tr 
+                      key={i} 
+                      className={`${i % 2 ? "bg-white" : "bg-gray-50"} ${
+                        selectedCompany?.compId === company.compId ? "ring-2 ring-[#7A0000] ring-inset" : ""
+                      }`}
+                    >
                       <td className="px-4 py-2 truncate">{company.compId}</td>
                       <td className="px-4 py-2 truncate">{company.CompName}</td>
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleCompanySelect(company)}
-                          className={`px-3 py-1 ${maroonGrad} text-white rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                          className={`px-3 py-1 ${
+                            selectedCompany?.compId === company.compId 
+                              ? "bg-green-600 text-white" 
+                              : maroonGrad + " text-white"
+                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
                         >
-                          <Eye className="inline-block mr-1 w-3 h-3" /> View
+                          <Eye className="inline-block mr-1 w-3 h-3" /> 
+                          {selectedCompany?.compId === company.compId ? "Viewing" : "View"}
                         </button>
                       </td>
                     </tr>
@@ -1071,75 +1213,6 @@ const ProvinceExpenditure: React.FC = () => {
         </>
       )}
 
-      {/* Date Selection Modal */}
-      {selectedCompany && showDateSelection && (
-        <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-50 p-4 overflow-auto">
-          <div className="bg-white w-full max-w-4xl rounded-xl shadow-xl border border-gray-200 relative max-h-[90vh] overflow-y-auto p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className={`text-lg font-bold ${maroon}`}>
-                Select Period for Province Expenditure - {selectedCompany.CompName}
-              </h3>
-              <button 
-                onClick={() => setShowDateSelection(false)} 
-                className="text-gray-500 hover:text-red-500"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Year</label>
-              <div className="grid grid-cols-7 gap-2 max-h-32 overflow-y-auto mb-4">
-                {years.map((year) => (
-                  <button
-                    key={year}
-                    onClick={() => setSelectedYear(year)}
-                    className={`text-xs py-1 rounded cursor-pointer border transition-colors duration-150
-                    ${selectedYear === year
-                      ? "bg-[#7A0000] text-white border-[#7A0000]"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                    }`}
-                    style={{ minWidth: "40px" }}
-                  >
-                    {year}
-                  </button>
-                ))}
-              </div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Month</label>
-              <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
-                {months.map((month) => (
-                  <button
-                    key={month}
-                    onClick={() => setSelectedMonth(month)}
-                    className={`text-xs py-1 rounded cursor-pointer border transition-colors duration-150
-                    ${selectedMonth === month
-                      ? "bg-[#7A0000] text-white border-[#7A0000]"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                    }`}
-                    style={{ minWidth: "50px" }}
-                  >
-                    {getMonthName(month)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDateSelection(false)}
-                className="bg-gray-500 text-white py-2 px-6 rounded hover:brightness-110 text-sm"
-              >
-                Back
-              </button>
-              <button
-                onClick={fetchProvinceIncomeExpenditureData}
-                className="bg-[#7A0000] text-white py-2 px-6 rounded hover:brightness-110 text-sm"
-              >
-                View Province Expenditure
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Income & Expenditure Modal */}
       <IncomeExpenditureModal />
