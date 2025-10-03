@@ -901,7 +901,7 @@ const SolarProgressClarificationOrdinary: React.FC = () => {
       {!reportVisible && (
         <>
           <h2 className={`text-xl font-bold mb-6 ${maroon}`}>
-            Solar Progress Clarification (Bulk)
+            Solar Progress Clarification (Ordinary)
           </h2>
 
           <form onSubmit={handleSubmit}>

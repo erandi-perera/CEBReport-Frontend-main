@@ -132,6 +132,12 @@ const AgeAnalysis: React.FC = () => {
     }));
   };
 
+  // Helper function to get formatted bill cycle display
+  const getFormattedBillCycle = (): string => {
+    const cycleOption = billCycleOptions.find(c => c.code === formData.billCycle);
+    return cycleOption ? `${formData.billCycle} - ${cycleOption.display}` : formData.billCycle;
+  };
+
   const fetchWithErrorHandling = async (url: string, timeout = 60000) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -595,13 +601,11 @@ const AgeAnalysis: React.FC = () => {
       `"Age Analysis Report - ${
         customerTypeOptions.find((t) => t.value === formData.custType)?.display
       } Customers"`,
-      `"Bill Cycle: ${
-        billCycleOptions.find((b) => b.code === formData.billCycle)?.display
-      } - ${formData.billCycle}"`,
+      `"Bill Cycle: ${getFormattedBillCycle()}"`,
       `"Area: ${
         areas.find((a) => a.AreaCode === formData.areaCode)?.AreaName
       } (${formData.areaCode})"`,
-      `"Total Records: ${totalRecords}"`,
+      
       "",
       headers.map((h) => `"${h}"`).join(","),
       ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
@@ -845,11 +849,8 @@ const AgeAnalysis: React.FC = () => {
             Area: <span class="bold">${
               areas.find((a) => a.AreaCode === formData.areaCode)?.AreaName
             } (${formData.areaCode})</span><br>
-            Bill Cycle: <span class="bold">${
-              billCycleOptions.find((b) => b.code === formData.billCycle)
-                ?.display
-            } - ${formData.billCycle}</span><br>
-            Total Records: <span class="bold">${totalRecords}</span>
+            Bill Cycle: <span class="bold">${getFormattedBillCycle()}</span><br>
+            
           </div>
           ${generateTableHTML()}
           <div class="footer">
@@ -1168,7 +1169,7 @@ const AgeAnalysis: React.FC = () => {
                   value={option.code}
                   className="text-xs py-1"
                 >
-                  {option.display} - {option.code}
+                  {option.code} - {option.display}
                 </option>
               ))}
             </select>
@@ -1347,9 +1348,7 @@ const AgeAnalysis: React.FC = () => {
         </div>
 
         <p className="text-sm text-gray-600 mb-2">
-          Bill Cycle:{" "}
-          {billCycleOptions.find((b) => b.code === formData.billCycle)?.display}{" "}
-          - {formData.billCycle}
+          Bill Cycle: {getFormattedBillCycle()}
         </p>
         <p className="text-sm text-gray-600 mb-2">
           Area: {areas.find((a) => a.AreaCode === formData.areaCode)?.AreaName}{" "}
