@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useUser } from "../contexts/UserContext";
 import { 
   BarChart3, FileText, TrendingUp, ArrowRight, Database, 
-  PieChart, Activity, Clock, Building2, Target, CheckCircle, Shield
+  PieChart, Activity, Target, CheckCircle, Shield
 } from "lucide-react";
 
 const Home: React.FC = () => {
