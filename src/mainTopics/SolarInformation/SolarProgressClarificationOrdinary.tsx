@@ -131,7 +131,7 @@ const SolarProgressClarificationOrdinary: React.FC = () => {
       setIsLoadingAreas(true);
       setAreaError(null);
       try {
-        // Using the same API endpoint pattern as AgeAnalysis
+        // Using the same API endpoint pattern as AgeAnalysisgg
         const areaData = await fetchWithErrorHandling("/misapi/api/areas");
         setAreas(areaData.data || []);
       } catch (err: any) {
