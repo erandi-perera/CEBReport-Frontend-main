@@ -37,8 +37,8 @@ const CostCenterTrial: React.FC = () => {
   const [selectedCostCenter, setSelectedCostCenter] = useState<CostCenter | null>(null);
 
   // Date selection state
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   
   // Dropdown state
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
@@ -48,8 +48,8 @@ const CostCenterTrial: React.FC = () => {
   const [trialModalOpen, setTrialModalOpen] = useState(false);
   const [trialData, setTrialData] = useState({
     costctr: "",
-    year: new Date().getFullYear(),
-    month: "January",
+    year: null as number | null,
+    month: "",
     deptName: ""
   });
 
@@ -175,20 +175,29 @@ const CostCenterTrial: React.FC = () => {
     setPage(1);
   }, [searchId, searchName, data]);
 
+  // Auto fetch trial balance data when both year and month are selected and a cost center is already selected
+  useEffect(() => {
+    if (selectedCostCenter && selectedYear && selectedMonth) {
+      fetchTrialBalanceData();
+    }
+  }, [selectedYear, selectedMonth]);
+
   const paginatedCostCenters = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  // Handle cost center selection - Auto fetch data when selected
+  // Handle cost center selection
   const handleCostCenterSelect = (costCenter: CostCenter) => {
     console.log('Cost center selected:', costCenter);
     setSelectedCostCenter(costCenter);
-    // Auto fetch trial balance data when cost center is selected
-    fetchTrialBalanceData(costCenter);
+    // Only fetch trial balance data if both year and month are selected
+    if (selectedYear && selectedMonth) {
+      fetchTrialBalanceData(costCenter);
+    }
   };
 
   // Fetch trial balance data
   const fetchTrialBalanceData = async (costCenter?: CostCenter) => {
     const targetCostCenter = costCenter || selectedCostCenter;
-    if (!targetCostCenter) return;
+    if (!targetCostCenter || !selectedYear || !selectedMonth) return;
     
     setTrialLoading(true);
     setTrialError(null);
@@ -316,7 +325,7 @@ const CostCenterTrial: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{selectedYear}</span>
+        <span>{selectedYear || "Select Year"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -353,7 +362,7 @@ const CostCenterTrial: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{getMonthName(selectedMonth)}</span>
+        <span>{selectedMonth ? getMonthName(selectedMonth) : "Select Month"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -786,11 +795,14 @@ const CostCenterTrial: React.FC = () => {
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleCostCenterSelect(costCenter)}
+                          disabled={!selectedYear || !selectedMonth}
                           className={`px-3 py-1 ${
-                            selectedCostCenter?.compId === costCenter.compId 
-                              ? "bg-green-600 text-white" 
-                              : maroonGrad + " text-white"
-                          } rounded text-xs font-medium hover:brightness-110 transition shadow`}
+                            !selectedYear || !selectedMonth
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : selectedCostCenter?.compId === costCenter.compId 
+                                ? "bg-green-600 text-white" 
+                                : maroonGrad + " text-white"
+                          } rounded text-xs font-medium hover:brightness-110 transition shadow disabled:hover:brightness-100`}
                         >
                           <FaEye className="inline-block mr-1 w-3 h-3" /> 
                           {selectedCostCenter?.compId === costCenter.compId ? "Viewing" : "View"}

@@ -204,7 +204,7 @@ const DishonouredCheques: React.FC = () => {
     const rows = cheques.map(getRowData);
 
     let csvContent = [
-      `Dishonoured Cheques Report`,
+      `CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - DISHONOURED CHEQUES REPORT`,
       selectedOption === "Single Account"
         ? `Account No: ${inputValue || ""}\nAddress: ${
             cheques[0]?.address || "-"
@@ -323,7 +323,7 @@ const DishonouredCheques: React.FC = () => {
         </style>
       </head>
       <body>
-        <div class="header">DISHONOURED CHEQUES REPORT</div>
+        <div class="header">CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - DISHONOURED CHEQUES REPORT</div>
         <div class="subheader">
           ${headerContent}
         </div>
@@ -861,7 +861,7 @@ const DishonouredCheques: React.FC = () => {
           <div className="mt-8">
             <div className="flex justify-between items-center mb-2">
               <h3 className={`text-lg font-semibold ${maroon}`}>
-                Dishonoured Cheques Report
+                CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - DISHONOURED CHEQUES REPORT
               </h3>
 
               <div className="flex space-x-2 mt-2 md:mt-0">

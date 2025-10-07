@@ -39,8 +39,8 @@ const RegionTrial: React.FC = () => {
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
 
   // Date selection state - moved to table header
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   
   // Dropdown state
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
@@ -50,8 +50,8 @@ const RegionTrial: React.FC = () => {
   const [trialModalOpen, setTrialModalOpen] = useState(false);
   const [trialData, setTrialData] = useState({
     companyId: "",
-    year: new Date().getFullYear(),
-    month: "January",
+    year: null as number | null,
+    month: "",
     regionName: ""
   });
 
@@ -130,20 +130,29 @@ const RegionTrial: React.FC = () => {
     setPage(1);
   }, [searchId, searchName, data]);
 
+  // Auto fetch trial balance data when both year and month are selected and a region is already selected
+  useEffect(() => {
+    if (selectedRegion && selectedYear && selectedMonth) {
+      fetchTrialBalanceData();
+    }
+  }, [selectedYear, selectedMonth]);
+
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  // Handle region selection - Auto fetch data when selected
+  // Handle region selection
   const handleRegionSelect = (region: Region) => {
     console.log('Region selected:', region);
     setSelectedRegion(region);
-    // Auto fetch trial balance data when region is selected
-    fetchTrialBalanceData(region);
+    // Only fetch trial balance data if both year and month are selected
+    if (selectedYear && selectedMonth) {
+      fetchTrialBalanceData(region);
+    }
   };
 
   // Fetch trial balance data
   const fetchTrialBalanceData = async (region?: Region) => {
     const targetRegion = region || selectedRegion;
-    if (!targetRegion) return;
+    if (!targetRegion || !selectedYear || !selectedMonth) return;
     
     setTrialLoading(true);
     setTrialError(null);
@@ -285,7 +294,7 @@ const RegionTrial: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{selectedYear}</span>
+        <span>{selectedYear || "Select Year"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -322,7 +331,7 @@ const RegionTrial: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{getMonthName(selectedMonth)}</span>
+        <span>{selectedMonth ? getMonthName(selectedMonth) : "Select Month"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -380,7 +389,7 @@ const RegionTrial: React.FC = () => {
 
     const csvRows = [
       // Header section
-      [`Region Wise Trial Balance - ${trialData.month.toUpperCase()}/${trialData.year}`],
+      [`Region Wise Trial Balance - ${trialData.month ? trialData.month.toUpperCase() : 'N/A'}/${trialData.year || 'N/A'}`],
       [`Region: ${trialData.companyId} / ${trialData.regionName.toUpperCase()}`],
       [`Generated: ${new Date().toLocaleString()}`],
       [],
@@ -466,7 +475,7 @@ const RegionTrial: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `RegionTrialBalance_${trialData.regionName}_${trialData.month}_${trialData.year}.csv`;
+    link.download = `RegionTrialBalance_${trialData.regionName}_${trialData.month || 'N/A'}_${trialData.year || 'N/A'}.csv`;
     link.style.display = 'none';
     
     document.body.appendChild(link);
@@ -549,7 +558,7 @@ const RegionTrial: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Region Trial Balance - ${trialData.month}/${trialData.year}</title>
+        <title>Region Trial Balance - ${trialData.month || 'N/A'}/${trialData.year || 'N/A'}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -618,7 +627,7 @@ const RegionTrial: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>REGION WISE TRIAL BALANCE - ${trialData.month.toUpperCase()}/${trialData.year}</h1>
+          <h1>REGION WISE TRIAL BALANCE - ${trialData.month ? trialData.month.toUpperCase() : 'N/A'}/${trialData.year || 'N/A'}</h1>
           <h2>Region: ${trialData.regionName}</h2>
           <div class="header-info">
             Generated on: ${new Date().toLocaleDateString()} | Total Records: ${trialBalanceData.length}
@@ -775,11 +784,14 @@ const RegionTrial: React.FC = () => {
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleRegionSelect(region)}
+                          disabled={!selectedYear || !selectedMonth}
                           className={`px-3 py-1 ${
-                            selectedRegion?.compId === region.compId 
-                              ? "bg-green-600 text-white" 
-                              : maroonGrad + " text-white"
-                          } rounded text-xs font-medium hover:brightness-110 transition shadow`}
+                            !selectedYear || !selectedMonth
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : selectedRegion?.compId === region.compId 
+                                ? "bg-green-600 text-white" 
+                                : maroonGrad + " text-white"
+                          } rounded text-xs font-medium hover:brightness-110 transition shadow disabled:hover:brightness-100`}
                         >
                           <FaEye className="inline-block mr-1 w-3 h-3" /> 
                           {selectedRegion?.compId === region.compId ? "Viewing" : "View"}

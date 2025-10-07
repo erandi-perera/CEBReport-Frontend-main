@@ -36,8 +36,8 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 
   // Selection state
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
   // Income & Expenditure modal state
   const [incomeExpModalOpen, setIncomeExpModalOpen] = useState(false);
@@ -149,10 +149,17 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     setPage(1);
   }, [searchId, searchName, data]);
 
+  // Auto fetch income & expenditure data when both year and month are selected and a department is already selected
+  useEffect(() => {
+    if (selectedDepartment && selectedYear && selectedMonth) {
+      fetchIncomeExpenditureData();
+    }
+  }, [selectedYear, selectedMonth]);
+
   // Fetch income & expenditure data
   const fetchIncomeExpenditureData = async (department?: Department) => {
     const targetDepartment = department || selectedDepartment;
-    if (!targetDepartment) return;
+    if (!targetDepartment || !selectedYear || !selectedMonth) return;
     
     setIncomeExpLoading(true);
     setIncomeExpError(null);
@@ -197,8 +204,10 @@ const CostCenterIncomeExpenditure: React.FC = () => {
   const handleDepartmentSelect = (department: Department) => {
     console.log('Department selected:', department);
     setSelectedDepartment(department);
-    // Auto fetch income & expenditure data when department is selected
-    fetchIncomeExpenditureData(department);
+    // Only fetch income & expenditure data if both year and month are selected
+    if (selectedYear && selectedMonth) {
+      fetchIncomeExpenditureData(department);
+    }
   };
 
   const closeIncomeExpModal = () => {
@@ -260,7 +269,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{selectedYear}</span>
+        <span>{selectedYear || "Select Year"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -297,7 +306,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{getMonthName(selectedMonth)}</span>
+        <span>{selectedMonth ? getMonthName(selectedMonth) : "Select Month"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -354,9 +363,8 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     
     const csvRows = [
       // Header section
-      [`Income & Expenditure Report - Cost Center Wise`],
-      [`Department: ${selectedDepartment?.DeptId} / ${selectedDepartment?.DeptName.toUpperCase()}`],
-      [`Period: ${getMonthName(selectedMonth)} ${selectedYear}`],
+      [`CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - COST CENTRE : ${selectedDepartment?.DeptId} / ${selectedDepartment?.DeptName.toUpperCase()}`],
+      [`INCOME & EXPENDITURE STATEMENT - Period Ended ${selectedMonth ? getMonthName(selectedMonth) : 'N/A'} / ${selectedYear || 'N/A'}`],
       [`Generated: ${new Date().toLocaleString()}`],
       [],
       // Column headers
@@ -415,7 +423,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `IncomeExpenditure_${selectedDepartment?.DeptId}_${getMonthName(selectedMonth)}_${selectedYear}.csv`;
+    link.download = `IncomeExpenditure_${selectedDepartment?.DeptId}_${selectedMonth ? getMonthName(selectedMonth) : 'N/A'}_${selectedYear || 'N/A'}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -633,7 +641,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Income & Expenditure - ${getMonthName(selectedMonth)} ${selectedYear}</title>
+        <title>CEB Financial Statement</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -719,11 +727,8 @@ const CostCenterIncomeExpenditure: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>COST CENTER INCOME & EXPENDITURE - ${getMonthName(selectedMonth).toUpperCase()} ${selectedYear}</h1>
-          <h2>Department: ${selectedDepartment?.DeptId} - ${selectedDepartment?.DeptName}</h2>
-          <div class="header-info">
-            Generated on: ${new Date().toLocaleDateString()} | Total Records: ${incomeExpData.length}
-          </div>
+          <h1>CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - COST CENTER WISE : ${selectedDepartment?.DeptId} / ${selectedDepartment?.DeptName.toUpperCase()}</h1>
+          <h2>INCOME & EXPENDITURE STATEMENT - Period Ended ${selectedMonth ? getMonthName(selectedMonth) : 'N/A'} / ${selectedYear || 'N/A'}</h2>
         </div>
         
         <table>
@@ -781,10 +786,10 @@ const CostCenterIncomeExpenditure: React.FC = () => {
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h2 className="text-base font-bold text-gray-800">
-                  COST CENTER INCOME & EXPENDITURE - {getMonthName(selectedMonth).toUpperCase()} {selectedYear}
+                  CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - COST CENTRE : {selectedDepartment.DeptId} / {selectedDepartment.DeptName.toUpperCase()}
                 </h2>
                 <h3 className={`text-sm ${maroon}`}>
-                  Department: {selectedDepartment.DeptId} - {selectedDepartment.DeptName}
+                  INCOME & EXPENDITURE STATEMENT - Period Ended {selectedMonth ? getMonthName(selectedMonth) : 'N/A'} / {selectedYear || 'N/A'}
                 </h3>
               </div>
             </div>
@@ -809,7 +814,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
                 </div>
                 <h3 className="text-lg font-medium text-gray-700 mb-2">No Financial Data Available</h3>
                 <p className="text-gray-500 text-center max-w-md">
-                  We couldn't find any income or expenditure records for <strong>{selectedDepartment.DeptName}</strong> in {getMonthName(selectedMonth)} {selectedYear}.
+                  We couldn't find any income or expenditure records for <strong>{selectedDepartment.DeptName}</strong> in {selectedMonth ? getMonthName(selectedMonth) : 'N/A'} {selectedYear || 'N/A'}.
                 </p>
                 <p className="text-xs text-gray-400 mt-2">
                   Try selecting a different month or year, or contact your administrator if you believe this is an error.
@@ -1080,7 +1085,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className={`text-xl font-bold ${maroon}`}>
-            Cost Center Income & Expenditure
+            CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - COST CENTER INCOME & EXPENDITURE
           </h2>
         </div>
       </div>
@@ -1191,11 +1196,14 @@ const CostCenterIncomeExpenditure: React.FC = () => {
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleDepartmentSelect(department)}
+                          disabled={!selectedYear || !selectedMonth}
                           className={`px-3 py-1 ${
-                            selectedDepartment?.DeptId === department.DeptId 
-                              ? "bg-green-600 text-white" 
-                              : maroonGrad + " text-white"
-                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                            !selectedYear || !selectedMonth
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : selectedDepartment?.DeptId === department.DeptId 
+                                ? "bg-green-600 text-white" 
+                                : maroonGrad + " text-white"
+                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow disabled:hover:brightness-100`}
                         >
                           <Eye className="inline-block mr-1 w-3 h-3" /> 
                           {selectedDepartment?.DeptId === department.DeptId ? "Viewing" : "View"}

@@ -37,8 +37,8 @@ const ProvintionalWiseTrial: React.FC = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   // Date selection state - moved to table header
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   
   // Dropdown state
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
@@ -131,18 +131,27 @@ const ProvintionalWiseTrial: React.FC = () => {
     setPage(1);
   }, [searchId, searchName, data]);
 
-  // Handle company selection - Auto fetch data when selected
+  // Auto fetch trial balance data when both year and month are selected and a company is already selected
+  useEffect(() => {
+    if (selectedCompany && selectedYear && selectedMonth) {
+      fetchTrialBalanceData();
+    }
+  }, [selectedYear, selectedMonth]);
+
+  // Handle company selection
   const handleCompanySelect = (company: Company) => {
     console.log('Company selected:', company);
     setSelectedCompany(company);
-    // Auto fetch trial balance data when company is selected
-    fetchTrialBalanceData(company);
+    // Only fetch trial balance data if both year and month are selected
+    if (selectedYear && selectedMonth) {
+      fetchTrialBalanceData(company);
+    }
   };
 
   // Fetch trial balance data
   const fetchTrialBalanceData = async (company?: Company) => {
     const targetCompany = company || selectedCompany;
-    if (!targetCompany) return;
+    if (!targetCompany || !selectedYear || !selectedMonth) return;
    
     setTrialLoading(true);
     setTrialError(null);
@@ -312,7 +321,7 @@ const ProvintionalWiseTrial: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{selectedYear}</span>
+        <span>{selectedYear || "Select Year"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -349,7 +358,7 @@ const ProvintionalWiseTrial: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{getMonthName(selectedMonth)}</span>
+        <span>{selectedMonth ? getMonthName(selectedMonth) : "Select Month"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -402,7 +411,7 @@ const ProvintionalWiseTrial: React.FC = () => {
     // HEADER SECTION (matching completed cost center format)
     const csvRows = [
       // Main header
-      [`COMPANY-WISE TRIAL BALANCE - ${getMonthName(selectedMonth).toUpperCase()} ${selectedYear}`],
+      [`PROVINCE-WISE TRIAL BALANCE - ${selectedMonth ? getMonthName(selectedMonth).toUpperCase() : 'N/A'} ${selectedYear || 'N/A'}`],
       // Company info
       [`Company : ${selectedCompany?.compId} / ${selectedCompany?.CompName?.toUpperCase()}`],
       // Empty row for spacing
@@ -521,7 +530,7 @@ const ProvintionalWiseTrial: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `CompanyWiseTrialBalance_${selectedCompany?.compId}_${getMonthName(selectedMonth)}_${selectedYear}.csv`;
+    link.download = `ProvinceWiseTrialBalance_${selectedCompany?.compId}_${selectedMonth ? getMonthName(selectedMonth) : 'N/A'}_${selectedYear || 'N/A'}.csv`;
     link.style.display = 'none';
     
     document.body.appendChild(link);
@@ -628,7 +637,7 @@ const ProvintionalWiseTrial: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Trial Balance - ${getMonthName(selectedMonth)} ${selectedYear}</title>
+        <title>Trial Balance - ${selectedMonth ? getMonthName(selectedMonth) : 'N/A'} ${selectedYear || 'N/A'}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -714,7 +723,7 @@ const ProvintionalWiseTrial: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>MONTHLY TRIAL BALANCE - ${getMonthName(selectedMonth).toUpperCase()} ${selectedYear}</h1>
+          <h1>MONTHLY TRIAL BALANCE - ${selectedMonth ? getMonthName(selectedMonth).toUpperCase() : 'N/A'} ${selectedYear || 'N/A'}</h1>
           <h2>Company: ${selectedCompany?.compId} - ${selectedCompany?.CompName}</h2>
           <div class="header-info">
             Generated on: ${new Date().toLocaleDateString()} | Total Records: ${trialBalanceData.length}
@@ -761,7 +770,7 @@ const ProvintionalWiseTrial: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className={`text-xl font-bold ${maroon}`}>
-            Company-Wise Trial Balance
+            Province-Wise Trial Balance
           </h2>
         </div>
       </div>
@@ -867,11 +876,14 @@ const ProvintionalWiseTrial: React.FC = () => {
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleCompanySelect(company)}
+                          disabled={!selectedYear || !selectedMonth}
                           className={`px-3 py-1 ${
-                            selectedCompany?.compId === company.compId 
-                              ? "bg-green-600 text-white" 
-                              : maroonGrad + " text-white"
-                          } rounded text-xs font-medium hover:brightness-110 transition shadow`}
+                            !selectedYear || !selectedMonth
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : selectedCompany?.compId === company.compId 
+                                ? "bg-green-600 text-white" 
+                                : maroonGrad + " text-white"
+                          } rounded text-xs font-medium hover:brightness-110 transition shadow disabled:hover:brightness-100`}
                         >
                           <FaEye className="inline-block mr-1 w-3 h-3" /> 
                           {selectedCompany?.compId === company.compId ? "Viewing" : "View"}
@@ -920,7 +932,7 @@ const ProvintionalWiseTrial: React.FC = () => {
           <div className="p-5 border-b">
             <div className="space-y-1">
               <h2 className="text-base font-bold text-gray-800">
-                MONTHLY TRIAL BALANCE - {getMonthName(selectedMonth).toUpperCase()} {selectedYear}
+                MONTHLY TRIAL BALANCE - {selectedMonth ? getMonthName(selectedMonth).toUpperCase() : 'N/A'} {selectedYear || 'N/A'}
               </h2>
               <h3 className={`text-sm ${maroon}`}>
                 Company: {selectedCompany.compId} - {selectedCompany.CompName}

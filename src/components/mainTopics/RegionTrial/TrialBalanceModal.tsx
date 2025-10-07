@@ -17,7 +17,7 @@ interface TrialBalanceData {
 
 interface TrialData {
   companyId: string;
-  year: number;
+  year: number | null;
   month: string;
   regionName: string;
 }
@@ -91,7 +91,7 @@ const TrialBalanceModal: React.FC<TrialBalanceModalProps> = ({
         <div className="p-5 border-b no-print">
           <div className="space-y-1">
             <h2 className="text-base font-bold text-gray-800">
-              REGION WISE TRIAL BALANCE - {trialData.month.toUpperCase()}/{trialData.year}
+              REGION WISE TRIAL BALANCE - {trialData.month.toUpperCase()}/{trialData.year || 'N/A'}
             </h2>
             <h3 className={`text-sm ${maroon}`}>
               Region: {trialData.regionName}

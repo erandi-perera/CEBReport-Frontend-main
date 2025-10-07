@@ -15,7 +15,7 @@ interface TrialBalanceData {
 
 interface TrialData {
   costctr: string;
-  year: number;
+  year: number | null;
   month: string;
   deptName: string;
 }
@@ -84,7 +84,7 @@ const TrialBalanceModal: React.FC<TrialBalanceModalProps> = ({
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               <h2 className="text-base font-bold text-gray-800">
-                MONTHLY TRIAL BALANCE - {trialData.month.toUpperCase()}/{trialData.year}
+                MONTHLY TRIAL BALANCE - {trialData.month.toUpperCase()}/{trialData.year || 'N/A'}
               </h2>
               <h3 className={`text-sm ${maroon}`}>
                 Cost Center- {trialData.costctr} - {trialData.deptName}

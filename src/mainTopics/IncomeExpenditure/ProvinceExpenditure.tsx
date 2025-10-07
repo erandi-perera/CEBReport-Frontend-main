@@ -39,8 +39,8 @@ const ProvinceExpenditure: React.FC = () => {
 
   // Selection state
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
   // Dropdown state
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
@@ -133,10 +133,17 @@ const ProvinceExpenditure: React.FC = () => {
     setPage(1);
   }, [searchId, searchName, data]);
 
+  // Auto fetch province income & expenditure data when both year and month are selected and a company is already selected
+  useEffect(() => {
+    if (selectedCompany && selectedYear && selectedMonth) {
+      fetchProvinceIncomeExpenditureData();
+    }
+  }, [selectedYear, selectedMonth]);
+
   // Fetch province income & expenditure data
   const fetchProvinceIncomeExpenditureData = async (company?: Company) => {
     const targetCompany = company || selectedCompany;
-    if (!targetCompany) return;
+    if (!targetCompany || !selectedYear || !selectedMonth) return;
     
     setIncomeExpLoading(true);
     setIncomeExpError(null);
@@ -181,8 +188,10 @@ const ProvinceExpenditure: React.FC = () => {
   const handleCompanySelect = (company: Company) => {
     console.log('Company selected:', company);
     setSelectedCompany(company);
-    // Auto fetch province income & expenditure data when company is selected
-    fetchProvinceIncomeExpenditureData(company);
+    // Only fetch province income & expenditure data if both year and month are selected
+    if (selectedYear && selectedMonth) {
+      fetchProvinceIncomeExpenditureData(company);
+    }
   };
 
   const closeIncomeExpModal = () => {
@@ -230,7 +239,7 @@ const ProvinceExpenditure: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{selectedYear}</span>
+        <span>{selectedYear || "Select Year"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -267,7 +276,7 @@ const ProvinceExpenditure: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{getMonthName(selectedMonth)}</span>
+        <span>{selectedMonth ? getMonthName(selectedMonth) : "Select Month"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -412,9 +421,8 @@ const ProvinceExpenditure: React.FC = () => {
     
     const csvRows = [
       // Header section
-      [`Consolidated Income & Expenditure Provincial Statement`],
-      [`Period Ended: ${getMonthName(selectedMonth).toUpperCase()} ${selectedYear}`],
-      [`Province Company: ${selectedCompany?.compId} / ${selectedCompany?.CompName.toUpperCase()}`],
+      [`CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - PROVINCE COMPANY : ${selectedCompany?.compId} / ${selectedCompany?.CompName.toUpperCase()}`],
+      [`INCOME & EXPENDITURE STATEMENT - Period Ended ${selectedMonth ? getMonthName(selectedMonth) : 'N/A'} / ${selectedYear || 'N/A'}`],
       [`Generated: ${new Date().toLocaleString()}`],
       [],
       // Column headers
@@ -519,7 +527,7 @@ const ProvinceExpenditure: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `ProvinceIncomeExpenditure_${selectedCompany?.compId}_${getMonthName(selectedMonth)}_${selectedYear}.csv`;
+    link.download = `ProvinceIncomeExpenditure_${selectedCompany?.compId}_${selectedMonth ? getMonthName(selectedMonth) : 'N/A'}_${selectedYear || 'N/A'}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -677,7 +685,7 @@ const ProvinceExpenditure: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Consolidated Income & Expenditure Provincial Statement - ${getMonthName(selectedMonth)} ${selectedYear}</title>
+        <title>CEB Financial Statement</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -745,9 +753,8 @@ const ProvinceExpenditure: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT</h1>
-          <h1>PERIOD ENDED ${getMonthName(selectedMonth).toUpperCase()} ${selectedYear}</h1>
-          <h2>ProvinceCompany: ${selectedCompany?.compId} - ${selectedCompany?.CompName}</h2>
+          <h1>CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - PROVINCE WISE : ${selectedCompany?.compId} / ${selectedCompany?.CompName.toUpperCase()}</h1>
+          <h2>INCOME & EXPENDITURE STATEMENT - Period Ended ${selectedMonth ? getMonthName(selectedMonth) : 'N/A'} / ${selectedYear || 'N/A'}</h2>
         </div>
         
         <table>
@@ -799,13 +806,10 @@ const ProvinceExpenditure: React.FC = () => {
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h2 className="text-base font-bold text-gray-800">
-                  CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT
+                  CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - PROVINCE WISE : {selectedCompany.compId} / {selectedCompany.CompName.toUpperCase()}
                 </h2>
-                <h3 className="text-base font-bold text-gray-800">
-                  PERIOD ENDED {getMonthName(selectedMonth).toUpperCase()} {selectedYear}
-                </h3>
                 <h3 className={`text-sm ${maroon}`}>
-                  ProvinceCompany: {selectedCompany.compId} - {selectedCompany.CompName}
+                  INCOME & EXPENDITURE STATEMENT - Period Ended {selectedMonth ? getMonthName(selectedMonth) : 'N/A'} / {selectedYear || 'N/A'}
                 </h3>
               </div>
             </div>
@@ -831,7 +835,7 @@ const ProvinceExpenditure: React.FC = () => {
                 </div>
                 <h3 className="text-lg font-medium text-gray-700 mb-2">No Financial Data Available</h3>
                 <p className="text-gray-500 text-center max-w-md">
-                  We couldn't find any province income or expenditure records for <strong>{selectedCompany.CompName}</strong> in {getMonthName(selectedMonth)} {selectedYear}.
+                  We couldn't find any province income or expenditure records for <strong>{selectedCompany.CompName}</strong> in {selectedMonth ? getMonthName(selectedMonth) : 'N/A'} {selectedYear || 'N/A'}.
                 </p>
               </div>
             ) : (
@@ -1062,7 +1066,7 @@ const ProvinceExpenditure: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className={`text-xl font-bold ${maroon}`}>
-            Province Income & Expenditure
+            CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - PROVINCE INCOME & EXPENDITURE
           </h2>
         </div>
       </div>
@@ -1173,11 +1177,14 @@ const ProvinceExpenditure: React.FC = () => {
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleCompanySelect(company)}
+                          disabled={!selectedYear || !selectedMonth}
                           className={`px-3 py-1 ${
-                            selectedCompany?.compId === company.compId 
-                              ? "bg-green-600 text-white" 
-                              : maroonGrad + " text-white"
-                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                            !selectedYear || !selectedMonth
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : selectedCompany?.compId === company.compId 
+                                ? "bg-green-600 text-white" 
+                                : maroonGrad + " text-white"
+                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow disabled:hover:brightness-100`}
                         >
                           <Eye className="inline-block mr-1 w-3 h-3" /> 
                           {selectedCompany?.compId === company.compId ? "Viewing" : "View"}

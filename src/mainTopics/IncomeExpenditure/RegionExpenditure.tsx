@@ -36,8 +36,8 @@ const RegionExpenditure: React.FC = () => {
 
   // Selection state
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
   // Income/Expenditure modal state
   const [incomeExpModalOpen, setIncomeExpModalOpen] = useState(false);
@@ -145,10 +145,17 @@ const RegionExpenditure: React.FC = () => {
     setPage(1);
   }, [searchId, searchName, companies]);
 
+  // Auto fetch income & expenditure data when both year and month are selected and a company is already selected
+  useEffect(() => {
+    if (selectedCompany && selectedYear && selectedMonth) {
+      fetchIncomeExpenditureData();
+    }
+  }, [selectedYear, selectedMonth]);
+
   // Fetch income & expenditure data
   const fetchIncomeExpenditureData = async (company?: Company) => {
     const targetCompany = company || selectedCompany;
-    if (!targetCompany) return;
+    if (!targetCompany || !selectedYear || !selectedMonth) return;
     
     setIncomeExpLoading(true);
     setIncomeExpError(null);
@@ -195,8 +202,10 @@ const RegionExpenditure: React.FC = () => {
   const handleCompanySelect = (company: Company) => {
     console.log('Company selected:', company);
     setSelectedCompany(company);
-    // Auto fetch income & expenditure data when company is selected
-    fetchIncomeExpenditureData(company);
+    // Only fetch income & expenditure data if both year and month are selected
+    if (selectedYear && selectedMonth) {
+      fetchIncomeExpenditureData(company);
+    }
   };
 
   const closeIncomeExpModal = () => {
@@ -241,7 +250,7 @@ const RegionExpenditure: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{selectedYear}</span>
+        <span>{selectedYear || "Select Year"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -278,7 +287,7 @@ const RegionExpenditure: React.FC = () => {
         }}
         className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
       >
-        <span>{getMonthName(selectedMonth)}</span>
+        <span>{selectedMonth ? getMonthName(selectedMonth) : "Select Month"}</span>
         <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -495,9 +504,8 @@ const RegionExpenditure: React.FC = () => {
     // Create CSV content with proper topic section
     const csvContent = [
       // Topic section
-      `"Income & Expenditure Report - Region Wise"`,
-      `"Company: ${selectedCompany?.CompName || 'N/A'} (${selectedCompany?.compId || 'N/A'})"`,
-      `"Period: ${getMonthName(selectedMonth)} ${selectedYear}"`,
+      `"CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - REGION COMPANY : ${selectedCompany?.compId} / ${selectedCompany?.CompName.toUpperCase()}"`,
+      `"INCOME & EXPENDITURE STATEMENT - Period Ended ${selectedMonth ? getMonthName(selectedMonth) : 'N/A'} / ${selectedYear || 'N/A'}"`,
       `"Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}"`,
       `"Total Records: ${incomeExpData.length}"`,
       "", // Empty line
@@ -514,7 +522,7 @@ const RegionExpenditure: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `RegionIncomeExpenditure_${selectedCompany?.compId}_${getMonthName(selectedMonth)}_${selectedYear}.csv`;
+    link.download = `RegionIncomeExpenditure_${selectedCompany?.compId}_${selectedMonth ? getMonthName(selectedMonth) : 'N/A'}_${selectedYear || 'N/A'}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -741,7 +749,7 @@ const RegionExpenditure: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Region Income & Expenditure - ${getMonthName(selectedMonth)} ${selectedYear}</title>
+        <title>CEB Financial Statement</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -828,11 +836,8 @@ const RegionExpenditure: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT - PERIOD ENDED OF ${getMonthName(selectedMonth).toUpperCase()} / ${selectedYear}</h1>
-          <h2>Province/Company: ${selectedCompany?.compId} / ${selectedCompany?.CompName}</h2>
-          <div class="header-info">
-            Currency: LKR | Generated on: ${new Date().toLocaleDateString()} | Total Records: ${incomeExpData.length}
-          </div>
+          <h1>CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - REGION WISE : ${selectedCompany?.compId} / ${selectedCompany?.CompName.toUpperCase()}</h1>
+          <h2>INCOME & EXPENDITURE STATEMENT - Period Ended ${selectedMonth ? getMonthName(selectedMonth) : 'N/A'} / ${selectedYear || 'N/A'}</h2>
         </div>
         
         <table>
@@ -933,10 +938,10 @@ const RegionExpenditure: React.FC = () => {
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h2 className="text-base font-bold text-gray-800">
-                  CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT - PERIOD ENDED OF {getMonthName(selectedMonth)} / {selectedYear}
+                  CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - REGION WISE : {selectedCompany.compId} / {selectedCompany.CompName.toUpperCase()}
                 </h2>
                 <h3 className={`text-sm ${maroon}`}>
-                  Province/Company: {selectedCompany.compId} / {selectedCompany.CompName}
+                  INCOME & EXPENDITURE STATEMENT - Period Ended {selectedMonth ? getMonthName(selectedMonth) : 'N/A'} / {selectedYear || 'N/A'}
                 </h3>
                 <p className="text-xs text-gray-600">Currency: LKR</p>
               </div>
@@ -962,7 +967,7 @@ const RegionExpenditure: React.FC = () => {
                 </div>
                 <h3 className="text-lg font-medium text-gray-700 mb-2">No Financial Data Available</h3>
                 <p className="text-gray-500 text-center max-w-md">
-                  We couldn't find any consolidated income or expenditure records for <strong>{selectedCompany.CompName}</strong> in {getMonthName(selectedMonth)} {selectedYear}.
+                  We couldn't find any consolidated income or expenditure records for <strong>{selectedCompany.CompName}</strong> in {selectedMonth ? getMonthName(selectedMonth) : 'N/A'} {selectedYear || 'N/A'}.
                 </p>
                 <p className="text-xs text-gray-400 mt-2">
                   Try selecting a different month or year, or contact your administrator if you believe this is an error.
@@ -1256,7 +1261,7 @@ const RegionExpenditure: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className={`text-xl font-bold ${maroon}`}>
-            Region Income & Expenditure Report
+            CEYLON ELECTRICITY BOARD - FINANCIAL STATEMENT - REGION INCOME & EXPENDITURE
           </h2>
         </div>
       </div>
@@ -1359,11 +1364,14 @@ const RegionExpenditure: React.FC = () => {
                       <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleCompanySelect(company)}
+                          disabled={!selectedYear || !selectedMonth}
                           className={`px-3 py-1 ${
-                            selectedCompany?.compId === company.compId 
-                              ? "bg-green-600 text-white" 
-                              : maroonGrad + " text-white"
-                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+                            !selectedYear || !selectedMonth
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : selectedCompany?.compId === company.compId 
+                                ? "bg-green-600 text-white" 
+                                : maroonGrad + " text-white"
+                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow disabled:hover:brightness-100`}
                         >
                           <Eye className="inline-block mr-1 w-3 h-3" /> 
                           {selectedCompany?.compId === company.compId ? "Viewing" : "View"}
