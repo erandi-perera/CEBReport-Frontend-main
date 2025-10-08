@@ -549,7 +549,9 @@ const RegionTrial: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Region Trial Balance - ${trialData.month}/${trialData.year}</title>
+        <title>Region Trial Balance - ${trialData.month}/${
+			trialData.year
+		}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -613,15 +615,26 @@ const RegionTrial: React.FC = () => {
             .header { page-break-inside: avoid; }
             table { page-break-inside: auto; }
             tr { page-break-inside: avoid; }
+            @page {
+                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
+							"en-US",
+							{timeZone: "Asia/Colombo"}
+						)}"; font-size: 0.75rem; color: gray; }
+                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
+              }
           }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>REGION WISE TRIAL BALANCE - ${trialData.month.toUpperCase()}/${trialData.year}</h1>
+          <h1>REGION WISE TRIAL BALANCE - ${trialData.month.toUpperCase()}/${
+			trialData.year
+		}</h1>
           <h2>Region: ${trialData.regionName}</h2>
           <div class="header-info">
-            Generated on: ${new Date().toLocaleDateString()} | Total Records: ${trialBalanceData.length}
+            Generated on: ${new Date().toLocaleDateString()} | Total Records: ${
+			trialBalanceData.length
+		}
         </div>
         </div>
         

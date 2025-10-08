@@ -16,6 +16,7 @@ const WorkInProgress = () => {
 
   useEffect(() => {
     
+    
     const analysisTopic = sidebarData.find(
       (topic) => topic.name === "Work In Progress"
     );

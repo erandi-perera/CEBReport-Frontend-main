@@ -521,25 +521,31 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
             .subheader { margin-bottom: 12px; font-size: 12px; text-align: center; font-weight: 600; }
             .department-info { margin-bottom: 15px; font-size: 11px; text-align: center; }
             .currency { text-align: right; font-size: 8px; color: #666; margin-bottom: 5px; }
-            th { background-color: #f0f0f0; font-weight: bold; text-align: left; }
+            th { background-color: #f0f0f0; font-weight: bold; text-align: left; font-size: 8px; }
             @media print {
               body { margin: 0; }
               .no-print { display: none; }
               @page {
                 margin: 0.5in;
-                @top-left { content: ""; }
-                @top-right { content: ""; }
-                @bottom-left { content: ""; }
-                @bottom-right { content: ""; }
-                @bottom-center { content: ""; }
+                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
+							"en-US",
+							{timeZone: "Asia/Colombo"}
+						)}"; font-size: 0.75rem; color: gray; }
+                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
+              }
+            }
               }
             }
           </style>
         </head>
         <body>
-          <div class="header">COST CENTER WORK IN PROGRESS REPORT</div>
+          <div class="header">WORK IN PROGRESS AS AT - ${new Date().toLocaleDateString(
+					"en-GB"
+				)}</div>
           <div class="subheader">CEB - Ceylon Electricity Board</div>
-          <div class="department-info">Department: ${selectedDepartment.DeptName} (${selectedDepartment.DeptId})</div>
+          <div class="department-info">Cost Center: ${
+					selectedDepartment.DeptName
+				} (${selectedDepartment.DeptId})</div>
           <div class="currency">Currency: LKR</div>
           <table>
             <thead>
@@ -581,296 +587,534 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
     if (!showWorkInProgress || !selectedDepartment) return null;
     
     return (
-      <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pr-4 pl-[1cm]">
-        <div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4 ml-[2cm]">
-          {/* Header with 1cm top margin */}
-          <div className="p-5 border-b mt-[1cm]">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <h2 className="text-base font-bold text-gray-800">
-                  WORK IN PROGRESS - {selectedDepartment.DeptName}
-                </h2>
-                <h3 className={`text-sm ${maroon}`}>
-                  Department: {selectedDepartment.DeptId}
-                </h3>
-              </div>
-            </div>
-            {workInProgressError && (
-              <div className="text-red-600 text-xs mt-2 text-center">
-                {workInProgressError.includes("JSON.parse") ? "Data format error" : workInProgressError}
-              </div>
-            )}
-          </div>
-          <div className="px-6 py-5 overflow-y-auto flex-grow">
-            {workInProgressLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mr-3"></div>
-                <span className={`${maroon} text-sm`}>Loading work in progress data...</span>
-              </div>
-            ) : workInProgressData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="text-gray-400 mb-4">
-                  <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-700 mb-2">No Work In Progress Data Available</h3>
-                <p className="text-gray-500 text-center max-w-md">
-                  We couldn't find any work in progress records for <strong>{selectedDepartment.DeptName}</strong>.
-                </p>
-                <p className="text-xs text-gray-400 mt-2">
-                  Contact your administrator if you believe this is an error.
-                </p>
-              </div>
-            ) : (
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <div></div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={downloadAsCSV}
-                      className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
-                    >
-                      <Download className="w-3 h-3" /> CSV
-                    </button>
-                    <button
-                      onClick={printPDF}
-                      className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
-                    >
-                      <Printer className="w-3 h-3" /> PDF
-                    </button>
-                    {onBack ? (
-                      <button
-                        onClick={onBack}
-                        className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
-                      >
-                        <ChevronLeft className="w-4 h-4" /> Back to Age Analysis
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setShowWorkInProgress(false);
-                        }}
-                        className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
-                      >
-                        <ChevronLeft className="w-4 h-4" /> Back to Department List
-                      </button>
-                    )}
-                    <button
-                      onClick={closeWorkInProgressModal}
-                      className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
-                    >
-                      Back To Home
-                    </button>
-                  </div>
-                </div>
-                
-                <div ref={printRef} className="w-full overflow-x-auto text-xs">
-                {(() => {
-                  const consolidatedMap = new Map<string, WorkInProgressData>();
-                  
-                  workInProgressData.forEach((item) => {
-                    const key = `${item.ProjectNo?.trim()}-${item.CategoryCode?.trim()}`;
-                    
-                    if (consolidatedMap.has(key)) {
-                      const existing = consolidatedMap.get(key)!;
-                      const resourceType = item.ResourceType?.trim().toUpperCase();
-                      const committedCost = item.CommittedCost || 0;
-                      
-                      if (resourceType === 'LAB' || resourceType === 'LABOUR') {
-                        existing.CommittedLabourCost = (existing.CommittedLabourCost || 0) + committedCost;
-                      } else if (resourceType === 'MAT' || resourceType === 'MATERIAL') {
-                        existing.CommittedMaterialCost = (existing.CommittedMaterialCost || 0) + committedCost;
-                      } else if (resourceType === 'OTHER') {
-                        existing.CommittedOtherCost = (existing.CommittedOtherCost || 0) + committedCost;
-                      }
-                    } else {
-                      const resourceType = item.ResourceType?.trim().toUpperCase();
-                      const committedCost = item.CommittedCost || 0;
-                      
-                      const consolidatedItem: WorkInProgressData = {
-                        ...item,
-                        CommittedLabourCost: 0,
-                        CommittedMaterialCost: 0,
-                        CommittedOtherCost: 0,
-                      };
-                      
-                      if (resourceType === 'LAB' || resourceType === 'LABOUR') {
-                        consolidatedItem.CommittedLabourCost = committedCost;
-                      } else if (resourceType === 'MAT' || resourceType === 'MATERIAL') {
-                        consolidatedItem.CommittedMaterialCost = committedCost;
-                      } else if (resourceType === 'OTHER') {
-                        consolidatedItem.CommittedOtherCost = committedCost;
-                      }
-                      
-                      consolidatedMap.set(key, consolidatedItem);
-                    }
-                  });
-                  
-                  const sortedData = Array.from(consolidatedMap.values()).sort((a, b) => {
-                    const yearCompare = (b.AssignmentYear || '').localeCompare(a.AssignmentYear || '');
-                    if (yearCompare !== 0) return yearCompare;
-                    return (a.CategoryCode || '').localeCompare(b.CategoryCode || '');
-                  });
+			<div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pr-4 pl-[1cm]">
+				<div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4 ml-[2cm]">
+					{/* Header with 1cm top margin */}
+					<div className="p-5 border-b mt-[1cm]">
+						<div className="flex justify-between items-start">
+							<div className="space-y-1">
+								<h2 className="text-base font-bold text-gray-800">
+									WORK IN PROGRESS AS AT -{" "}
+									{` ${new Date().toLocaleDateString("en-GB")}`}
+								</h2>
+								<h3 className={`text-sm ${maroon}`}>
+									Cost Center: {selectedDepartment.DeptId}
+								</h3>
+							</div>
+						</div>
+						{workInProgressError && (
+							<div className="text-red-600 text-xs mt-2 text-center">
+								{workInProgressError.includes("JSON.parse")
+									? "Data format error"
+									: workInProgressError}
+							</div>
+						)}
+					</div>
+					<div className="px-6 py-5 overflow-y-auto flex-grow">
+						{workInProgressLoading ? (
+							<div className="flex items-center justify-center py-8">
+								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mr-3"></div>
+								<span className={`${maroon} text-sm`}>
+									Loading work in progress data...
+								</span>
+							</div>
+						) : workInProgressData.length === 0 ? (
+							<div className="flex flex-col items-center justify-center py-12">
+								<div className="text-gray-400 mb-4">
+									<svg
+										className="w-16 h-16 mx-auto"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={1}
+											d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+										/>
+									</svg>
+								</div>
+								<h3 className="text-lg font-medium text-gray-700 mb-2">
+									No Work In Progress Data Available
+								</h3>
+								<p className="text-gray-500 text-center max-w-md">
+									We couldn't find any work in progress records for{" "}
+									<strong>{selectedDepartment.DeptName}</strong>.
+								</p>
+								<p className="text-xs text-gray-400 mt-2">
+									Contact your administrator if you believe this is an
+									error.
+								</p>
+							</div>
+						) : (
+							<div>
+								<div className="flex justify-between items-center mb-2">
+									<div></div>
+									<div className="flex gap-2">
+										<button
+											onClick={downloadAsCSV}
+											className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+										>
+											<Download className="w-3 h-3" /> CSV
+										</button>
+										<button
+											onClick={printPDF}
+											className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
+										>
+											<Printer className="w-3 h-3" /> PDF
+										</button>
+										{onBack ? (
+											<button
+												onClick={onBack}
+												className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+											>
+												<ChevronLeft className="w-4 h-4" /> Back to
+												Age Analysis
+											</button>
+										) : (
+											<button
+												onClick={() => {
+													setShowWorkInProgress(false);
+												}}
+												className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+											>
+												<ChevronLeft className="w-4 h-4" /> Back to
+												Department List
+											</button>
+										)}
+										<button
+											onClick={closeWorkInProgressModal}
+											className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
+										>
+											Back To Home
+										</button>
+									</div>
+								</div>
 
-                  const totals = sortedData.reduce((acc, item) => {
-                    const labCost = item.CommittedLabourCost || item.LabourCost || 0;
-                    const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
-                    const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
-                    const total = labCost + matCost + otherCost;
-                    const variance = (item.EstimatedCost || 0) - total;
+								<div
+									ref={printRef}
+									className="w-full overflow-x-auto text-xs"
+								>
+									{(() => {
+										const consolidatedMap = new Map<
+											string,
+											WorkInProgressData
+										>();
 
-                    return {
-                      estimatedCost: acc.estimatedCost + (item.EstimatedCost || 0),
-                      labCost: acc.labCost + labCost,
-                      matCost: acc.matCost + matCost,
-                      otherCost: acc.otherCost + otherCost,
-                      total: acc.total + total,
-                      variance: acc.variance + variance
-                    };
-                  }, {
-                    estimatedCost: 0,
-                    labCost: 0,
-                    matCost: 0,
-                    otherCost: 0,
-                    total: 0,
-                    variance: 0
-                  });
+										workInProgressData.forEach((item) => {
+											const key = `${item.ProjectNo?.trim()}-${item.CategoryCode?.trim()}`;
 
-                  return (
-                    <div className="border border-gray-200 rounded-lg">
-                      <div className="flex justify-end p-2 bg-gray-50 border-b">
-                        <span className="text-xs font-semibold text-gray-600">Currency: LKR</span>
-                      </div>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr className="text-gray-800" style={{backgroundColor: '#D3D3D3'}}>
-                              <th className="px-2 py-1 text-left border-r">Year</th>
-                              <th className="px-2 py-1 text-left border-r">Project No.</th>
-                              <th className="px-2 py-1 text-left border-r">Category Code</th>
-                              <th className="px-2 py-1 text-left border-r">Fund Source</th>
-                              <th className="px-2 py-1 text-center border-r">WIP Year</th>
-                              <th className="px-2 py-1 text-center border-r">WIP Month</th>
-                              <th className="px-2 py-1 text-right border-r">Estimated Cost</th>
-                              <th className="px-2 py-1 text-left border-r">Description</th>
-                              <th className="px-2 py-1 text-center border-r">Status</th>
-                              <th className="px-2 py-1 text-right border-r">Labour</th>
-                              <th className="px-2 py-1 text-right border-r">Material</th>
-                              <th className="px-2 py-1 text-right border-r">Other</th>
-                              <th className="px-2 py-1 text-right border-r">Total</th>
-                              <th className="px-2 py-1 text-right">Variance</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {sortedData.map((item, index) => {
-                              const labCost = item.CommittedLabourCost || item.LabourCost || 0;
-                              const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
-                              const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
-                              const total = labCost + matCost + otherCost;
-                              const variance = (item.EstimatedCost || 0) - total;
-                              
-                              return (
-                                <tr key={`${item.ProjectNo}-${index}`} className="border-b hover:bg-gray-50">
-                                  <td className="px-2 py-1 text-xs border-r font-medium">{item.AssignmentYear}</td>
-                                  <td className="px-2 py-1 font-mono text-xs border-r">{item.ProjectNo}</td>
-                                  <td className="px-2 py-1 text-xs border-r">{item.CategoryCode}</td>
-                                  <td className="px-2 py-1 text-xs border-r">{item.FundSource}</td>
-                                  <td className="px-2 py-1 text-center text-xs border-r">{item.WipYear || '0'}</td>
-                                  <td className="px-2 py-1 text-center text-xs border-r">{item.WipMonth || '0'}</td>
-                                  <td className="px-2 py-1 text-right font-mono text-xs border-r">
-                                    {(item.EstimatedCost || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </td>
-                                  <td className="px-2 py-1 text-xs border-r max-w-xs" style={{ fontSize: '10px', lineHeight: '1.2' }}>
-                                    <div className="whitespace-normal break-words">
-                                      {item.Description}
-                                    </div>
-                                  </td>
-                                  <td className="px-2 py-1 text-center border-r">
-                                    <span className={`px-1 py-0.5 rounded text-xs ${
-                                      item.Status === 'Open' 
-                                        ? 'bg-green-100 text-green-800' 
-                                        : 'bg-yellow-100 text-yellow-800'
-                                    }`}>
-                                      {item.Status}
-                                    </span>
-                                  </td>
-                                  <td className="px-2 py-1 text-right font-mono text-xs border-r">
-                                    {labCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </td>
-                                  <td className="px-2 py-1 text-right font-mono text-xs border-r">
-                                    {matCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </td>
-                                  <td className="px-2 py-1 text-right font-mono text-xs border-r">
-                                    {otherCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </td>
-                                  <td className="px-2 py-1 text-right font-mono text-xs border-r font-semibold">
-                                    {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </td>
-                                  <td className="px-2 py-1 text-right font-mono text-xs">
-                                    <span className={variance < 0 ? 'text-red-600' : variance > 0 ? 'text-green-600' : 'text-gray-600'}>
-                                      {variance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                      
-                      <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Summary</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="text-center">
-                            <div className="text-xs text-gray-500 mb-1">Estimated Cost</div>
-                            <div className="text-sm font-mono font-semibold text-gray-800">
-                              {totals.estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xs text-gray-500 mb-1">Total Committed</div>
-                            <div className="text-sm font-mono font-semibold text-gray-800">
-                              {totals.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4 pt-3 border-t border-gray-300">
-                          <div className="text-xs text-gray-500 mb-2">Committed Cost Breakdown</div>
-                          <div className="grid grid-cols-3 gap-4">
-                            <div className="text-center">
-                              <div className="text-xs text-gray-500 mb-1">LAB</div>
-                              <div className="text-sm font-mono font-semibold text-blue-600">
-                                {totals.labCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xs text-gray-500 mb-1">Material</div>
-                              <div className="text-sm font-mono font-semibold text-orange-600">
-                                {totals.matCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xs text-gray-500 mb-1">OTHER</div>
-                              <div className="text-sm font-mono font-semibold text-purple-600">
-                                {totals.otherCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+											if (consolidatedMap.has(key)) {
+												const existing = consolidatedMap.get(key)!;
+												const resourceType =
+													item.ResourceType?.trim().toUpperCase();
+												const committedCost =
+													item.CommittedCost || 0;
+
+												if (
+													resourceType === "LAB" ||
+													resourceType === "LABOUR"
+												) {
+													existing.CommittedLabourCost =
+														(existing.CommittedLabourCost || 0) +
+														committedCost;
+												} else if (
+													resourceType === "MAT" ||
+													resourceType === "MATERIAL"
+												) {
+													existing.CommittedMaterialCost =
+														(existing.CommittedMaterialCost ||
+															0) + committedCost;
+												} else if (resourceType === "OTHER") {
+													existing.CommittedOtherCost =
+														(existing.CommittedOtherCost || 0) +
+														committedCost;
+												}
+											} else {
+												const resourceType =
+													item.ResourceType?.trim().toUpperCase();
+												const committedCost =
+													item.CommittedCost || 0;
+
+												const consolidatedItem: WorkInProgressData =
+													{
+														...item,
+														CommittedLabourCost: 0,
+														CommittedMaterialCost: 0,
+														CommittedOtherCost: 0,
+													};
+
+												if (
+													resourceType === "LAB" ||
+													resourceType === "LABOUR"
+												) {
+													consolidatedItem.CommittedLabourCost =
+														committedCost;
+												} else if (
+													resourceType === "MAT" ||
+													resourceType === "MATERIAL"
+												) {
+													consolidatedItem.CommittedMaterialCost =
+														committedCost;
+												} else if (resourceType === "OTHER") {
+													consolidatedItem.CommittedOtherCost =
+														committedCost;
+												}
+
+												consolidatedMap.set(key, consolidatedItem);
+											}
+										});
+
+										const sortedData = Array.from(
+											consolidatedMap.values()
+										).sort((a, b) => {
+											const yearCompare = (
+												b.AssignmentYear || ""
+											).localeCompare(a.AssignmentYear || "");
+											if (yearCompare !== 0) return yearCompare;
+											return (a.CategoryCode || "").localeCompare(
+												b.CategoryCode || ""
+											);
+										});
+
+										const totals = sortedData.reduce(
+											(acc, item) => {
+												const labCost =
+													item.CommittedLabourCost ||
+													item.LabourCost ||
+													0;
+												const matCost =
+													item.CommittedMaterialCost ||
+													item.MaterialCost ||
+													0;
+												const otherCost =
+													item.CommittedOtherCost ||
+													item.OtherCost ||
+													0;
+												const total = labCost + matCost + otherCost;
+												const variance =
+													(item.EstimatedCost || 0) - total;
+
+												return {
+													estimatedCost:
+														acc.estimatedCost +
+														(item.EstimatedCost || 0),
+													labCost: acc.labCost + labCost,
+													matCost: acc.matCost + matCost,
+													otherCost: acc.otherCost + otherCost,
+													total: acc.total + total,
+													variance: acc.variance + variance,
+												};
+											},
+											{
+												estimatedCost: 0,
+												labCost: 0,
+												matCost: 0,
+												otherCost: 0,
+												total: 0,
+												variance: 0,
+											}
+										);
+
+										return (
+											<div className="border border-gray-200 rounded-lg">
+												<div className="flex justify-end p-2 bg-gray-50 border-b">
+													<span className="text-xs font-semibold text-gray-600">
+														Currency: LKR
+													</span>
+												</div>
+
+												<div className="overflow-x-auto">
+													<table className="w-full border-collapse">
+														<thead>
+															<tr
+																className="text-gray-800"
+																style={{
+																	backgroundColor: "#D3D3D3",
+																}}
+															>
+																<th className="px-2 py-1 text-left border-r">
+																	Year
+																</th>
+																<th className="px-2 py-1 text-left border-r">
+																	Project No.
+																</th>
+																<th className="px-2 py-1 text-left border-r">
+																	Category Code
+																</th>
+																<th className="px-2 py-1 text-left border-r">
+																	Fund Source
+																</th>
+																<th className="px-2 py-1 text-center border-r">
+																	WIP Year
+																</th>
+																<th className="px-2 py-1 text-center border-r">
+																	WIP Month
+																</th>
+																<th className="px-2 py-1 text-right border-r">
+																	Estimated Cost
+																</th>
+																<th className="px-2 py-1 text-left border-r">
+																	Description
+																</th>
+																<th className="px-2 py-1 text-center border-r">
+																	Status
+																</th>
+																<th className="px-2 py-1 text-right border-r">
+																	Labour
+																</th>
+																<th className="px-2 py-1 text-right border-r">
+																	Material
+																</th>
+																<th className="px-2 py-1 text-right border-r">
+																	Other
+																</th>
+																<th className="px-2 py-1 text-right border-r">
+																	Total
+																</th>
+																<th className="px-2 py-1 text-right">
+																	Variance
+																</th>
+															</tr>
+														</thead>
+														<tbody>
+															{sortedData.map((item, index) => {
+																const labCost =
+																	item.CommittedLabourCost ||
+																	item.LabourCost ||
+																	0;
+																const matCost =
+																	item.CommittedMaterialCost ||
+																	item.MaterialCost ||
+																	0;
+																const otherCost =
+																	item.CommittedOtherCost ||
+																	item.OtherCost ||
+																	0;
+																const total =
+																	labCost +
+																	matCost +
+																	otherCost;
+																const variance =
+																	(item.EstimatedCost || 0) -
+																	total;
+
+																return (
+																	<tr
+																		key={`${item.ProjectNo}-${index}`}
+																		className="border-b hover:bg-gray-50"
+																	>
+																		<td className="px-2 py-1 text-xs border-r font-medium">
+																			{item.AssignmentYear}
+																		</td>
+																		<td className="px-2 py-1 font-mono text-xs border-r">
+																			{item.ProjectNo}
+																		</td>
+																		<td className="px-2 py-1 text-xs border-r">
+																			{item.CategoryCode}
+																		</td>
+																		<td className="px-2 py-1 text-xs border-r">
+																			{item.FundSource}
+																		</td>
+																		<td className="px-2 py-1 text-center text-xs border-r">
+																			{item.WipYear || "0"}
+																		</td>
+																		<td className="px-2 py-1 text-center text-xs border-r">
+																			{item.WipMonth || "0"}
+																		</td>
+																		<td className="px-2 py-1 text-right font-mono text-xs border-r">
+																			{(
+																				item.EstimatedCost ||
+																				0
+																			).toLocaleString(
+																				"en-US",
+																				{
+																					minimumFractionDigits: 2,
+																					maximumFractionDigits: 2,
+																				}
+																			)}
+																		</td>
+																		<td
+																			className="px-2 py-1 text-xs border-r max-w-xs"
+																			style={{
+																				fontSize: "10px",
+																				lineHeight: "1.2",
+																			}}
+																		>
+																			<div className="whitespace-normal break-words">
+																				{item.Description}
+																			</div>
+																		</td>
+																		<td className="px-2 py-1 text-center border-r">
+																			<span
+																				className={`px-1 py-0.5 rounded text-xs ${
+																					item.Status ===
+																					"Open"
+																						? "bg-green-100 text-green-800"
+																						: "bg-yellow-100 text-yellow-800"
+																				}`}
+																			>
+																				{item.Status}
+																			</span>
+																		</td>
+																		<td className="px-2 py-1 text-right font-mono text-xs border-r">
+																			{labCost.toLocaleString(
+																				"en-US",
+																				{
+																					minimumFractionDigits: 2,
+																					maximumFractionDigits: 2,
+																				}
+																			)}
+																		</td>
+																		<td className="px-2 py-1 text-right font-mono text-xs border-r">
+																			{matCost.toLocaleString(
+																				"en-US",
+																				{
+																					minimumFractionDigits: 2,
+																					maximumFractionDigits: 2,
+																				}
+																			)}
+																		</td>
+																		<td className="px-2 py-1 text-right font-mono text-xs border-r">
+																			{otherCost.toLocaleString(
+																				"en-US",
+																				{
+																					minimumFractionDigits: 2,
+																					maximumFractionDigits: 2,
+																				}
+																			)}
+																		</td>
+																		<td className="px-2 py-1 text-right font-mono text-xs border-r font-semibold">
+																			{total.toLocaleString(
+																				"en-US",
+																				{
+																					minimumFractionDigits: 2,
+																					maximumFractionDigits: 2,
+																				}
+																			)}
+																		</td>
+																		<td className="px-2 py-1 text-right font-mono text-xs">
+																			<span
+																				className={
+																					variance < 0
+																						? "text-red-600"
+																						: variance > 0
+																						? "text-green-600"
+																						: "text-gray-600"
+																				}
+																			>
+																				{variance.toLocaleString(
+																					"en-US",
+																					{
+																						minimumFractionDigits: 2,
+																						maximumFractionDigits: 2,
+																					}
+																				)}
+																			</span>
+																		</td>
+																	</tr>
+																);
+															})}
+														</tbody>
+													</table>
+												</div>
+
+												<div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+													<h4 className="text-sm font-semibold text-gray-700 mb-3">
+														Summary
+													</h4>
+													<div className="grid grid-cols-2 gap-4">
+														<div className="text-center">
+															<div className="text-xs text-gray-500 mb-1">
+																Estimated Cost
+															</div>
+															<div className="text-sm font-mono font-semibold text-gray-800">
+																{totals.estimatedCost.toLocaleString(
+																	"en-US",
+																	{
+																		minimumFractionDigits: 2,
+																		maximumFractionDigits: 2,
+																	}
+																)}
+															</div>
+														</div>
+														<div className="text-center">
+															<div className="text-xs text-gray-500 mb-1">
+																Total Committed
+															</div>
+															<div className="text-sm font-mono font-semibold text-gray-800">
+																{totals.total.toLocaleString(
+																	"en-US",
+																	{
+																		minimumFractionDigits: 2,
+																		maximumFractionDigits: 2,
+																	}
+																)}
+															</div>
+														</div>
+													</div>
+
+													<div className="mt-4 pt-3 border-t border-gray-300">
+														<div className="text-xs text-gray-500 mb-2">
+															Committed Cost Breakdown
+														</div>
+														<div className="grid grid-cols-3 gap-4">
+															<div className="text-center">
+																<div className="text-xs text-gray-500 mb-1">
+																	LAB
+																</div>
+																<div className="text-sm font-mono font-semibold text-blue-600">
+																	{totals.labCost.toLocaleString(
+																		"en-US",
+																		{
+																			minimumFractionDigits: 2,
+																			maximumFractionDigits: 2,
+																		}
+																	)}
+																</div>
+															</div>
+															<div className="text-center">
+																<div className="text-xs text-gray-500 mb-1">
+																	Material
+																</div>
+																<div className="text-sm font-mono font-semibold text-orange-600">
+																	{totals.matCost.toLocaleString(
+																		"en-US",
+																		{
+																			minimumFractionDigits: 2,
+																			maximumFractionDigits: 2,
+																		}
+																	)}
+																</div>
+															</div>
+															<div className="text-center">
+																<div className="text-xs text-gray-500 mb-1">
+																	OTHER
+																</div>
+																<div className="text-sm font-mono font-semibold text-purple-600">
+																	{totals.otherCost.toLocaleString(
+																		"en-US",
+																		{
+																			minimumFractionDigits: 2,
+																			maximumFractionDigits: 2,
+																		}
+																	)}
+																</div>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										);
+									})()}
+								</div>
+							</div>
+						)}
+					</div>
+				</div>
+			</div>
+		);
   };
 
   if (preSelectedDepartment) {
@@ -878,131 +1122,163 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h2 className={`text-xl font-bold ${maroon}`}>
-            Cost Center Work In Progress
-          </h2>
-        </div>
-      </div>
+		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
+			<div className="flex justify-between items-center mb-4">
+				<div>
+					<h2 className={`text-xl font-bold ${maroon}`}>
+						Cost Center Work In Progress
+					</h2>
+				</div>
+			</div>
 
-      <div className="flex flex-wrap gap-3 justify-end mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-          <input
-            type="text"
-            value={searchId}
-            placeholder="Search by Dept ID"
-            onChange={(e) => setSearchId(e.target.value)}
-            className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-            autoComplete="off"
-          />
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-          <input
-            type="text"
-            value={searchName}
-            placeholder="Search by Name"
-            onChange={(e) => setSearchName(e.target.value)}
-            className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-            autoComplete="off"
-          />
-        </div>
-        {(searchId || searchName) && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm"
-          >
-            <RotateCcw className="w-3 h-3" /> Clear
-          </button>
-        )}
-      </div>
+			<div className="flex flex-wrap gap-3 justify-end mb-4">
+				<div className="relative">
+					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+					<input
+						type="text"
+						value={searchId}
+						placeholder="Search by Dept ID"
+						onChange={(e) => setSearchId(e.target.value)}
+						className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+						autoComplete="off"
+					/>
+				</div>
+				<div className="relative">
+					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+					<input
+						type="text"
+						value={searchName}
+						placeholder="Search by Name"
+						onChange={(e) => setSearchName(e.target.value)}
+						className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+						autoComplete="off"
+					/>
+				</div>
+				{(searchId || searchName) && (
+					<button
+						onClick={clearFilters}
+						className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm"
+					>
+						<RotateCcw className="w-3 h-3" /> Clear
+					</button>
+				)}
+			</div>
 
-      {loading && (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading departments...</p>
-        </div>
-      )}
+			{loading && (
+				<div className="text-center py-8">
+					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
+					<p className="mt-2 text-gray-600">Loading departments...</p>
+				</div>
+			)}
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          Error: {error}
-        </div>
-      )}
+			{error && (
+				<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+					Error: {error}
+				</div>
+			)}
 
-      {!loading && !error && filtered.length === 0 && (
-        <div className="text-gray-600 bg-gray-100 p-4 rounded">No departments found.</div>
-      )}
+			{!loading && !error && filtered.length === 0 && (
+				<div className="text-gray-600 bg-gray-100 p-4 rounded">
+					No departments found.
+				</div>
+			)}
 
-      {!loading && !error && filtered.length > 0 && (
-        <>
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <div className="max-h-[50vh] overflow-y-auto">
-              <table className="w-full table-fixed text-left text-gray-700 text-sm">
-                <thead className={`${maroonGrad} text-white sticky top-0`}>
-                  <tr>
-                    <th className="px-4 py-2 w-1/4">Department ID</th>
-                    <th className="px-4 py-2 w-1/2">Department Name</th>
-                    <th className="px-4 py-2 w-1/4 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedDepartments.map((department, i) => (
-                    <tr 
-                      key={`${department.DeptId}-${i}`} 
-                      className={`${i % 2 ? "bg-white" : "bg-gray-50"} ${
-                        selectedDepartment?.DeptId === department.DeptId ? "ring-2 ring-[#7A0000] ring-inset" : ""
-                      }`}
-                    >
-                      <td className="px-4 py-2 truncate font-mono">{department.DeptId}</td>
-                      <td className="px-4 py-2 truncate">{department.DeptName}</td>
-                      <td className="px-4 py-2 text-center">
-                        <button
-                          onClick={() => handleDepartmentSelect(department)}
-                          className={`px-3 py-1 ${
-                            selectedDepartment?.DeptId === department.DeptId 
-                              ? "bg-green-600 text-white" 
-                              : maroonGrad + " text-white"
-                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
-                        >
-                          <Eye className="inline-block mr-1 w-3 h-3" /> 
-                          {selectedDepartment?.DeptId === department.DeptId ? "Viewing" : "View"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+			{!loading && !error && filtered.length > 0 && (
+				<>
+					<div className="overflow-x-auto rounded-lg border border-gray-200">
+						<div className="max-h-[50vh] overflow-y-auto">
+							<table className="w-full table-fixed text-left text-gray-700 text-sm">
+								<thead
+									className={`${maroonGrad} text-white sticky top-0`}
+								>
+									<tr>
+										<th className="px-4 py-2 w-1/4">
+											Cost Center Code
+										</th>
+										<th className="px-4 py-2 w-1/2">
+											Cost Center Name
+										</th>
+										<th className="px-4 py-2 w-1/4 text-center">
+											Action
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									{paginatedDepartments.map((department, i) => (
+										<tr
+											key={`${department.DeptId}-${i}`}
+											className={`${
+												i % 2 ? "bg-white" : "bg-gray-50"
+											} ${
+												selectedDepartment?.DeptId ===
+												department.DeptId
+													? "ring-2 ring-[#7A0000] ring-inset"
+													: ""
+											}`}
+										>
+											<td className="px-4 py-2 truncate font-mono">
+												{department.DeptId}
+											</td>
+											<td className="px-4 py-2 truncate">
+												{department.DeptName}
+											</td>
+											<td className="px-4 py-2 text-center">
+												<button
+													onClick={() =>
+														handleDepartmentSelect(department)
+													}
+													className={`px-3 py-1 ${
+														selectedDepartment?.DeptId ===
+														department.DeptId
+															? "bg-green-600 text-white"
+															: maroonGrad + " text-white"
+													} rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+												>
+													<Eye className="inline-block mr-1 w-3 h-3" />
+													{selectedDepartment?.DeptId ===
+													department.DeptId
+														? "Viewing"
+														: "View"}
+												</button>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					</div>
 
-          <div className="flex justify-end items-center gap-3 mt-3">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="text-xs text-gray-500">
-              Page {page} of {Math.ceil(filtered.length / pageSize)}
-            </span>
-            <button
-              onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / pageSize), p + 1))}
-              disabled={page >= Math.ceil(filtered.length / pageSize)}
-              className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        </>
-      )}
+					<div className="flex justify-end items-center gap-3 mt-3">
+						<button
+							onClick={() => setPage((p) => Math.max(1, p - 1))}
+							disabled={page === 1}
+							className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
+						>
+							Previous
+						</button>
+						<span className="text-xs text-gray-500">
+							Page {page} of {Math.ceil(filtered.length / pageSize)}
+						</span>
+						<button
+							onClick={() =>
+								setPage((p) =>
+									Math.min(
+										Math.ceil(filtered.length / pageSize),
+										p + 1
+									)
+								)
+							}
+							disabled={page >= Math.ceil(filtered.length / pageSize)}
+							className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
+						>
+							Next
+						</button>
+					</div>
+				</>
+			)}
 
-      <WorkInProgressModal />
-    </div>
+			<WorkInProgressModal />
+		</div>
   );
 };
 

@@ -628,7 +628,9 @@ const ProvintionalWiseTrial: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Trial Balance - ${getMonthName(selectedMonth)} ${selectedYear}</title>
+        <title>Trial Balance - ${getMonthName(
+				selectedMonth
+			)} ${selectedYear}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -709,15 +711,28 @@ const ProvintionalWiseTrial: React.FC = () => {
             .header { page-break-inside: avoid; }
             table { page-break-inside: auto; }
             tr { page-break-inside: avoid; }
+            @page {
+                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
+							"en-US",
+							{timeZone: "Asia/Colombo"}
+						)}"; font-size: 0.75rem; color: gray; }
+                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
+              }
           }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>MONTHLY TRIAL BALANCE - ${getMonthName(selectedMonth).toUpperCase()} ${selectedYear}</h1>
-          <h2>Company: ${selectedCompany?.compId} - ${selectedCompany?.CompName}</h2>
+          <h1>MONTHLY TRIAL BALANCE - ${getMonthName(
+					selectedMonth
+				).toUpperCase()} ${selectedYear}</h1>
+          <h2>Company: ${selectedCompany?.compId} - ${
+			selectedCompany?.CompName
+		}</h2>
           <div class="header-info">
-            Generated on: ${new Date().toLocaleDateString()} | Total Records: ${trialBalanceData.length}
+            Generated on: ${new Date().toLocaleDateString()} | Total Records: ${
+			trialBalanceData.length
+		}
           </div>
         </div>
        
@@ -726,9 +741,13 @@ const ProvintionalWiseTrial: React.FC = () => {
             <tr>
               <th style="width: 15%;">Account Code</th>
               <th style="width: 30%;">Account Name</th>
-              ${costCenters.map(cc => `
+              ${costCenters
+						.map(
+							(cc) => `
                 <th style="width: 15%;">${cc}</th>
-              `).join('')}
+              `
+						)
+						.join("")}
               <th style="width: 15%;">Total</th>
             </tr>
           </thead>
