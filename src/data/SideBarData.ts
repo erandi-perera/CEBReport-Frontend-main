@@ -5,6 +5,7 @@ import { BsFolder2Open } from "react-icons/bs";
 import { MdAssignmentTurnedIn } from "react-icons/md";
 import { GiSolarPower } from "react-icons/gi";
 import { FaBalanceScale } from "react-icons/fa";
+import { FiBriefcase } from "react-icons/fi";
 
 export const data = [
   {
@@ -140,52 +141,55 @@ export const data = [
     subtopics: [{ id: 59, name: "Material Details" },
                   { id: 101, name: "Cost Center wise Quantity on Hand" },
 
-                { id: 100, name: "Average Consumptions" }
-              
-    ],
-    path: "/report/inventory",
-  },
-  {
-    id: 9,
-    name: "Trial Balance",
-    icon: FaBalanceScale,
-    subtopics: [{ id: 60, name: "Cost Center Trial Balance - End of Month/Year" },
-               { id: 61, name: "Provintial Trial Balance - End of Month/Year" },
-                { id: 62, name: "Region Trial Balance - End of Month/Year" }
-              
-              ],
-              
+			{id: 100, name: "Average Consumptions"},
+		],
+		path: "/report/inventory",
+	},
+	{
+		id: 9,
+		name: "Trial Balance",
+		icon: FaBalanceScale,
+		subtopics: [
+			{id: 60, name: "Cost Center Trial Balance - End of Month/Year"},
+			{id: 61, name: "Provintial Trial Balance - End of Month/Year"},
+			{id: 62, name: "Region Trial Balance - End of Month/Year"},
+		],
 
-    path: "/report/trialBalance",
-  },
-    {
-    id: 10,
-    name: "Income Expenditure",
-    icon: FaBalanceScale,
-    subtopics: [{ id: 90, name: "Cost Center Wise Income Expenditure" },
-              { id: 91, name: "Province Wise Income Expenditure" },
-           { id: 92, name: "Region Wise Income Expenditure" },
-           
-              ],
-              path: "/report/IncomeExpenditure",
-  },
+		path: "/report/trialBalance",
+	},
+	{
+		id: 10,
+		name: "Income Expenditure",
+		icon: FaBalanceScale,
+		subtopics: [
+			{id: 90, name: "Cost Center Wise Income Expenditure"},
+			{id: 91, name: "Province Wise Income Expenditure"},
+			{id: 92, name: "Region Wise Income Expenditure"},
+		],
+		path: "/report/IncomeExpenditure",
+	},
 
+	{
+		id: 11,
+		name: "Work In Progress",
+		icon: FaBalanceScale,
+		subtopics: [
+			{id: 109, name: "Cost Center Wise Work In Progress With Age Analysis"},
+			{id: 110, name: "Work In  Progress Completed Cost Center wise"},
+		],
 
+		path: "/report/WorkInProgress",
+	},
 
-  {
-    id: 11,
-    name: "Work In Progress",
-    icon: FaBalanceScale,
-    subtopics: [
-                { id: 109, name: "Cost Center Wise Work In Progress With Age Analysis" },
-                { id: 110, name: "Work In  Progress Completed Cost Center wise" }
-    ],
-    
+	//Sidebar data for the JobCard
+	{
+		id: 12,
+		name: "Jobs",
+		icon: FiBriefcase,
+		subtopics: [
+			{id: 111, name: "Job Card Details"},
+		],
 
-    path: "/report/WorkInProgress",
-  },
-
-
-
-  
+		path: "/report/jobs",
+	},
 ];

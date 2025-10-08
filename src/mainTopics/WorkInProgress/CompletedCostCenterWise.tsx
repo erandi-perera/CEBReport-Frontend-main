@@ -320,7 +320,7 @@ const CompletedCostCenterWise = () => {
     const csvRows = [
       // Header section
       [`WIP Close Job Report - End of ${startDate.toLocaleDateString('en-CA')} To ${endDate.toLocaleDateString('en-CA')}`],
-      [`Cost Centre : ${selectedDepartment.DeptId} / ${selectedDepartment.DeptName.toUpperCase()}`],
+      [`Cost Center : ${selectedDepartment.DeptId} / ${selectedDepartment.DeptName.toUpperCase()}`],
       [],
       // Column headers
       ["Account", "Project No.", "Category", "Fund Id", "Stand_Cost", "Description", "Dept_id", "PIV_No", "Project Assigned", "LABOUR", "MATERIAL", "OTHER", "TOTAL"],
@@ -487,13 +487,23 @@ const CompletedCostCenterWise = () => {
             .header { page-break-inside: avoid; }
             table { page-break-inside: auto; }
             tr { page-break-inside: avoid; }
+             @page {
+                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
+							"en-US",
+							{timeZone: "Asia/Colombo"}
+						)}"; font-size: 0.75rem; color: gray; }
+                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
+              }
+            }
           }
         </style>
       </head>
       <body>
         <div class="header">
           <h1>COMPLETED PROJECTS REPORT</h1>
-          <h2>Cost Center: ${selectedDepartment.DeptId} - ${selectedDepartment.DeptName}</h2>
+          <h2>Cost Center: ${selectedDepartment.DeptId} - ${
+			selectedDepartment.DeptName
+		}</h2>
           <div class="header-info">
             Period: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()} | 
             Currency: LKR | 
@@ -520,32 +530,80 @@ const CompletedCostCenterWise = () => {
             </tr>
           </thead>
           <tbody>
-            ${transformedData.map(i => `
+            ${transformedData
+					.map(
+						(i) => `
               <tr>
-                <td>${i.AccountCode||""}</td>
-                <td style="font-family: monospace;">${i.ProjectNo||""}</td>
-                <td>${i.CategoryCode||""}</td>
-                <td style="font-family: monospace;">${i.FundId||""}</td>
-                <td style="text-align:right; font-family: monospace;">${(i.StandCost||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                <td>${i.Description||""}</td>
-                <td>${i.DeptId||""}</td>
-                <td style="font-family: monospace;">${i.PIVNo||"-"}</td>
-                <td style="text-align:center;">${i.CloseDate?new Date(i.CloseDate).toLocaleDateString():"-"}</td>
-                <td style="text-align:right; font-family: monospace;">${(i.Labour||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                <td style="text-align:right; font-family: monospace;">${(i.Material||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                <td style="text-align:right; font-family: monospace;">${(i.Other||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                <td style="text-align:right; font-family: monospace; font-weight: bold;">${(i.Total||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-              </tr>`).join("")}
+                <td>${i.AccountCode || ""}</td>
+                <td style="font-family: monospace;">${i.ProjectNo || ""}</td>
+                <td>${i.CategoryCode || ""}</td>
+                <td style="font-family: monospace;">${i.FundId || ""}</td>
+                <td style="text-align:right; font-family: monospace;">${(
+							i.StandCost || 0
+						).toLocaleString("en-US", {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2,
+						})}</td>
+                <td>${i.Description || ""}</td>
+                <td>${i.DeptId || ""}</td>
+                <td style="font-family: monospace;">${i.PIVNo || "-"}</td>
+                <td style="text-align:center;">${
+							i.CloseDate
+								? new Date(i.CloseDate).toLocaleDateString()
+								: "-"
+						}</td>
+                <td style="text-align:right; font-family: monospace;">${(
+							i.Labour || 0
+						).toLocaleString("en-US", {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2,
+						})}</td>
+                <td style="text-align:right; font-family: monospace;">${(
+							i.Material || 0
+						).toLocaleString("en-US", {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2,
+						})}</td>
+                <td style="text-align:right; font-family: monospace;">${(
+							i.Other || 0
+						).toLocaleString("en-US", {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2,
+						})}</td>
+                <td style="text-align:right; font-family: monospace; font-weight: bold;">${(
+							i.Total || 0
+						).toLocaleString("en-US", {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2,
+						})}</td>
+              </tr>`
+					)
+					.join("")}
           </tbody>
         </table>
         
         <div class="summary-section">
           <h4>SUMMARY</h4>
-          <p><b>Total Labour:</b> ${totals.labour.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
-          <p><b>Total Material:</b> ${totals.material.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
-          <p><b>Total Other:</b> ${totals.other.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
-          <p><b>Total Stand Cost:</b> ${totals.standCost.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
-          <p><b>Grand Total:</b> ${totals.grandTotal.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+          <p><b>Total Labour:</b> ${totals.labour.toLocaleString("en-US", {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+				})}</p>
+          <p><b>Total Material:</b> ${totals.material.toLocaleString("en-US", {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+				})}</p>
+          <p><b>Total Other:</b> ${totals.other.toLocaleString("en-US", {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+				})}</p>
+          <p><b>Total Stand Cost:</b> ${totals.standCost.toLocaleString(
+					"en-US",
+					{minimumFractionDigits: 2, maximumFractionDigits: 2}
+				)}</p>
+          <p><b>Grand Total:</b> ${totals.grandTotal.toLocaleString("en-US", {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+				})}</p>
           <p><b>Total Records:</b> ${transformedData.length}</p>
         </div>
         
@@ -721,8 +779,8 @@ const CompletedCostCenterWise = () => {
               <table className="w-full table-fixed text-left text-gray-700 text-sm">
                 <thead className={`${maroonGrad} text-white sticky top-0`}>
                   <tr>
-                    <th className="px-4 py-2 w-1/4">Department ID</th>
-                    <th className="px-4 py-2 w-1/2">Department Name</th>
+                    <th className="px-4 py-2 w-1/4">Cost Center Code</th>
+                    <th className="px-4 py-2 w-1/2">Cost Center Name</th>
                     <th className="px-4 py-2 w-1/4 text-center">Action</th>
                   </tr>
                 </thead>
@@ -873,7 +931,7 @@ const CompletedCostCenterWise = () => {
                     COMPLETED PROJECTS - {selectedDepartment?.DeptName}
                   </h2>
                   <h3 className="text-sm text-[#7A0000]">
-                    Department: {selectedDepartment?.DeptId}
+                    Cost Center: {selectedDepartment?.DeptId}
                   </h3>
                   <div className="text-xs text-gray-600">
                     Period: {startDate?.toLocaleDateString()} to {endDate?.toLocaleDateString()}

@@ -677,7 +677,9 @@ const ProvinceExpenditure: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Consolidated Income & Expenditure Provincial Statement - ${getMonthName(selectedMonth)} ${selectedYear}</title>
+        <title>Consolidated Income & Expenditure Provincial Statement - ${getMonthName(
+				selectedMonth
+			)} ${selectedYear}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -740,14 +742,25 @@ const ProvinceExpenditure: React.FC = () => {
             body { margin: 0; font-size: 8px; }
             table { font-size: 8px; }
             th, td { padding: 2px; }
+            @page {
+                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
+							"en-US",
+							{timeZone: "Asia/Colombo"}
+						)}"; font-size: 0.75rem; color: gray; }
+                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
+              }
           }
         </style>
       </head>
       <body>
         <div class="header">
           <h1>CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT</h1>
-          <h1>PERIOD ENDED ${getMonthName(selectedMonth).toUpperCase()} ${selectedYear}</h1>
-          <h2>ProvinceCompany: ${selectedCompany?.compId} - ${selectedCompany?.CompName}</h2>
+          <h1>PERIOD ENDED ${getMonthName(
+					selectedMonth
+				).toUpperCase()} ${selectedYear}</h1>
+          <h2>ProvinceCompany: ${selectedCompany?.compId} - ${
+			selectedCompany?.CompName
+		}</h2>
         </div>
         
         <table>
@@ -755,7 +768,14 @@ const ProvinceExpenditure: React.FC = () => {
             <tr>
               <th style="width: 10%;">Account</th>
               <th style="width: 25%;">Description</th>
-              ${areas.map(area => `<th style="width: ${Math.floor(60/areas.length)}%;">Area ${area}</th>`).join('')}
+              ${areas
+						.map(
+							(area) =>
+								`<th style="width: ${Math.floor(
+									60 / areas.length
+								)}%;">Area ${area}</th>`
+						)
+						.join("")}
               <th style="width: 10%;">Total</th>
             </tr>
           </thead>

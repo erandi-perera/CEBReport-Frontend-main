@@ -319,7 +319,7 @@ const AgeAnalysisCostCenter = () => {
     const csvContent = [
       // Topic section
       `"Work In Progress - Age Analysis As At ${new Date().toLocaleDateString()}"`,
-      `"Cost Centre : ${selectedDepartment?.DeptId} / ${selectedDepartment?.DeptName}"`,
+      `"Cost Center : ${selectedDepartment?.DeptId} / ${selectedDepartment?.DeptName}"`,
       "", // Empty line
       // Data section
       headers.join(","),
@@ -447,6 +447,14 @@ const AgeAnalysisCostCenter = () => {
             .header { page-break-inside: avoid; }
             table { page-break-inside: auto; }
             tr { page-break-inside: avoid; }
+             @page {
+                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
+							"en-US",
+							{timeZone: "Asia/Colombo"}
+						)}"; font-size: 0.75rem; color: gray; }
+                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
+              }
+            }
           }
         </style>
       </head>
@@ -454,7 +462,9 @@ const AgeAnalysisCostCenter = () => {
         <div class="header">
           <h1>Work In Progress - Age Analysis As At ${new Date().toLocaleDateString()}</h1>
           <div style="border-bottom: 1px solid #333; margin: 10px 0;"></div>
-          <h2>Cost Centre : ${selectedDepartment?.DeptId} / ${selectedDepartment?.DeptName}</h2>
+          <h2>Cost Center : ${selectedDepartment?.DeptId} / ${
+			selectedDepartment?.DeptName
+		}</h2>
           <div style="border-bottom: 1px solid #333; margin: 10px 0;"></div>
         </div>
         
@@ -508,7 +518,7 @@ const AgeAnalysisCostCenter = () => {
                 </h2>
                 <div className="border-b border-gray-300 my-2"></div>
                 <h3 className={`text-sm ${maroon} text-center`}>
-                  Cost Centre : {selectedDepartment.DeptId} / {selectedDepartment.DeptName}
+                  Cost Center : {selectedDepartment.DeptId} / {selectedDepartment.DeptName}
                 </h3>
                 <div className="border-b border-gray-300 my-2"></div>
               </div>
@@ -727,7 +737,7 @@ const AgeAnalysisCostCenter = () => {
                 </h2>
                 <div className="border-b border-gray-300 my-2"></div>
                 <h3 className={`text-sm ${maroon} text-center`}>
-                  Cost Centre : {selectedDepartment.DeptId} / {selectedDepartment.DeptName}
+                  Cost Center : {selectedDepartment.DeptId} / {selectedDepartment.DeptName}
                 </h3>
                 <div className="border-b border-gray-300 my-2"></div>
               </div>
@@ -748,140 +758,171 @@ const AgeAnalysisCostCenter = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h2 className={`text-xl font-bold ${maroon}`}>
-            Age Analysis - Cost Center Selection
-          </h2>
-        </div>
-      </div>
+		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
+			{/* Header */}
+			<div className="flex justify-between items-center mb-4">
+				<div>
+					<h2 className={`text-xl font-bold ${maroon}`}>
+						Age Analysis - Cost Center Selection
+					</h2>
+				</div>
+			</div>
 
-      {/* Search Controls */}
-      <div className="flex flex-wrap gap-3 justify-end mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-          <input
-            type="text"
-            value={searchId}
-            placeholder="Search by Dept ID"
-            onChange={(e) => setSearchId(e.target.value)}
-            className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-            autoComplete="off"
-          />
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-          <input
-            type="text"
-            value={searchName}
-            placeholder="Search by Name"
-            onChange={(e) => setSearchName(e.target.value)}
-            className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-            autoComplete="off"
-          />
-        </div>
-        {(searchId || searchName) && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm"
-          >
-            <RotateCcw className="w-3 h-3" /> Clear
-          </button>
-        )}
-      </div>
+			{/* Search Controls */}
+			<div className="flex flex-wrap gap-3 justify-end mb-4">
+				<div className="relative">
+					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+					<input
+						type="text"
+						value={searchId}
+						placeholder="Search by Dept ID"
+						onChange={(e) => setSearchId(e.target.value)}
+						className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+						autoComplete="off"
+					/>
+				</div>
+				<div className="relative">
+					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+					<input
+						type="text"
+						value={searchName}
+						placeholder="Search by Name"
+						onChange={(e) => setSearchName(e.target.value)}
+						className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+						autoComplete="off"
+					/>
+				</div>
+				{(searchId || searchName) && (
+					<button
+						onClick={clearFilters}
+						className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm"
+					>
+						<RotateCcw className="w-3 h-3" /> Clear
+					</button>
+				)}
+			</div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading departments...</p>
-        </div>
-      )}
+			{/* Loading State */}
+			{loading && (
+				<div className="text-center py-8">
+					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
+					<p className="mt-2 text-gray-600">Loading departments...</p>
+				</div>
+			)}
 
+			{/* Error State */}
+			{error && (
+				<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+					Error: {error}
+				</div>
+			)}
 
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          Error: {error}
-        </div>
-      )}
+			{/* No Results */}
+			{!loading && !error && filtered.length === 0 && (
+				<div className="text-gray-600 bg-gray-100 p-4 rounded">
+					No departments found.
+				</div>
+			)}
 
-      {/* No Results */}
-      {!loading && !error && filtered.length === 0 && (
-        <div className="text-gray-600 bg-gray-100 p-4 rounded">No departments found.</div>
-      )}
+			{/* Table */}
+			{!loading && !error && filtered.length > 0 && (
+				<>
+					<div className="overflow-x-auto rounded-lg border border-gray-200">
+						<div className="max-h-[50vh] overflow-y-auto">
+							<table className="w-full table-fixed text-left text-gray-700 text-sm">
+								<thead
+									className={`${maroonGrad} text-white sticky top-0`}
+								>
+									<tr>
+										<th className="px-4 py-2 w-1/4">
+											Cost Center Code
+										</th>
+										<th className="px-4 py-2 w-1/2">
+											Cost Center Name
+										</th>
+										<th className="px-4 py-2 w-1/4 text-center">
+											Action
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									{paginatedDepartments.map((department, i) => (
+										<tr
+											key={`${department.DeptId}-${i}`}
+											className={`${
+												i % 2 ? "bg-white" : "bg-gray-50"
+											} ${
+												selectedDepartment?.DeptId ===
+												department.DeptId
+													? "ring-2 ring-[#7A0000] ring-inset"
+													: ""
+											}`}
+										>
+											<td className="px-4 py-2 truncate font-mono">
+												{department.DeptId}
+											</td>
+											<td className="px-4 py-2 truncate">
+												{department.DeptName}
+											</td>
+											<td className="px-4 py-2 text-center">
+												<button
+													onClick={() =>
+														handleDepartmentSelect(department)
+													}
+													className={`px-3 py-1 ${
+														selectedDepartment?.DeptId ===
+														department.DeptId
+															? "bg-green-600 text-white"
+															: maroonGrad + " text-white"
+													} rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+												>
+													<Eye className="inline-block mr-1 w-3 h-3" />
+													{selectedDepartment?.DeptId ===
+													department.DeptId
+														? "Viewing"
+														: "View Age Analysis"}
+												</button>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					</div>
 
-      {/* Table */}
-      {!loading && !error && filtered.length > 0 && (
-        <>
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <div className="max-h-[50vh] overflow-y-auto">
-              <table className="w-full table-fixed text-left text-gray-700 text-sm">
-                <thead className={`${maroonGrad} text-white sticky top-0`}>
-                  <tr>
-                    <th className="px-4 py-2 w-1/4">Department ID</th>
-                    <th className="px-4 py-2 w-1/2">Department Name</th>
-                    <th className="px-4 py-2 w-1/4 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedDepartments.map((department, i) => (
-                    <tr 
-                      key={`${department.DeptId}-${i}`} 
-                      className={`${i % 2 ? "bg-white" : "bg-gray-50"} ${
-                        selectedDepartment?.DeptId === department.DeptId ? "ring-2 ring-[#7A0000] ring-inset" : ""
-                      }`}
-                    >
-                      <td className="px-4 py-2 truncate font-mono">{department.DeptId}</td>
-                      <td className="px-4 py-2 truncate">{department.DeptName}</td>
-                      <td className="px-4 py-2 text-center">
-                        <button
-                          onClick={() => handleDepartmentSelect(department)}
-                          className={`px-3 py-1 ${
-                            selectedDepartment?.DeptId === department.DeptId 
-                              ? "bg-green-600 text-white" 
-                              : maroonGrad + " text-white"
-                          } rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
-                        >
-                          <Eye className="inline-block mr-1 w-3 h-3" /> 
-                          {selectedDepartment?.DeptId === department.DeptId ? "Viewing" : "View Age Analysis"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+					{/* Pagination */}
+					<div className="flex justify-end items-center gap-2 mt-1">
+						<button
+							onClick={() => setPage((p) => Math.max(1, p - 1))}
+							disabled={page === 1}
+							className="px-2 py-0.5 border rounded bg-white text-gray-600 text-[10px] hover:bg-gray-100 disabled:opacity-40"
+						>
+							Previous
+						</button>
+						<span className="text-[10px] text-gray-500">
+							Page {page} of {Math.ceil(filtered.length / pageSize)}
+						</span>
+						<button
+							onClick={() =>
+								setPage((p) =>
+									Math.min(
+										Math.ceil(filtered.length / pageSize),
+										p + 1
+									)
+								)
+							}
+							disabled={page >= Math.ceil(filtered.length / pageSize)}
+							className="px-2 py-0.5 border rounded bg-white text-gray-600 text-[10px] hover:bg-gray-100 disabled:opacity-40"
+						>
+							Next
+						</button>
+					</div>
+				</>
+			)}
 
-          {/* Pagination */}
-          <div className="flex justify-end items-center gap-2 mt-1">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-2 py-0.5 border rounded bg-white text-gray-600 text-[10px] hover:bg-gray-100 disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="text-[10px] text-gray-500">
-              Page {page} of {Math.ceil(filtered.length / pageSize)}
-            </span>
-            <button
-              onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / pageSize), p + 1))}
-              disabled={page >= Math.ceil(filtered.length / pageSize)}
-              className="px-2 py-0.5 border rounded bg-white text-gray-600 text-[10px] hover:bg-gray-100 disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* Age Analysis Modal */}
-      <AgeAnalysisModal />
-    </div>
+			{/* Age Analysis Modal */}
+			<AgeAnalysisModal />
+		</div>
   );
 };
 

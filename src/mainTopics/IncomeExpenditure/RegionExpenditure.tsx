@@ -741,7 +741,9 @@ const RegionExpenditure: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Region Income & Expenditure - ${getMonthName(selectedMonth)} ${selectedYear}</title>
+        <title>Region Income & Expenditure - ${getMonthName(
+				selectedMonth
+			)} ${selectedYear}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -823,15 +825,28 @@ const RegionExpenditure: React.FC = () => {
             .header { page-break-inside: avoid; }
             table { page-break-inside: auto; }
             tr { page-break-inside: avoid; }
+            @page {
+                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
+							"en-US",
+							{timeZone: "Asia/Colombo"}
+						)}"; font-size: 0.75rem; color: gray; }
+                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
+              }
           }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT - PERIOD ENDED OF ${getMonthName(selectedMonth).toUpperCase()} / ${selectedYear}</h1>
-          <h2>Province/Company: ${selectedCompany?.compId} / ${selectedCompany?.CompName}</h2>
+          <h1>CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT - PERIOD ENDED OF ${getMonthName(
+					selectedMonth
+				).toUpperCase()} / ${selectedYear}</h1>
+          <h2>Province/Company: ${selectedCompany?.compId} / ${
+			selectedCompany?.CompName
+		}</h2>
           <div class="header-info">
-            Currency: LKR | Generated on: ${new Date().toLocaleDateString()} | Total Records: ${incomeExpData.length}
+            Currency: LKR | Generated on: ${new Date().toLocaleDateString()} | Total Records: ${
+			incomeExpData.length
+		}
           </div>
         </div>
         
@@ -842,7 +857,9 @@ const RegionExpenditure: React.FC = () => {
               <th style="width: 10%;"></th>
               <th style="width: 25%;">ACCOUNTS</th>
               <th style="width: 10%;"></th>
-              ${uniqueCostCenters.map(cc => `<th style="width: 8%;">${cc}</th>`).join('')}
+              ${uniqueCostCenters
+						.map((cc) => `<th style="width: 8%;">${cc}</th>`)
+						.join("")}
               <th style="width: 10%;">Company Total</th>
             </tr>
           </thead>
