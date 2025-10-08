@@ -40,16 +40,16 @@ const SolarInformation = () => {
       case "Solar PV billing information":
         return <SolarPVBilling/>;
       case "Solar PV capacity information":
-      case "Solar progress clarification (ordinary)":
+      case "Solar progress clarification – Ordinary":
         return <SolarProgressClarificationOrdinary/>;
+      case "Solar progress clarification – Bulk":
+        return <SolarProgressClarificationBulk />;
       case "Solar payment information – retail":
         return <SolarPaymentRetail />;
       case "Solar payment information – Bulk":
       case "Solar connection details (incl. Reading and usage) - retail":
       case "Solar connection details (incl. Reading and usage) - bulk":
         return <SolarProgressClarificationOrdinary />;
-      case "Solar progress clarification – Bulk":
-        return <SolarProgressClarificationBulk />;
       case "Solar customer information":
 
       default:
