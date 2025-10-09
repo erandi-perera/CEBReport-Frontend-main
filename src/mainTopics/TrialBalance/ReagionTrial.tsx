@@ -454,7 +454,7 @@ const RegionTrial: React.FC = () => {
     csvRows.push(["Total Debit Amount", formatNum(grandTotals.debit)]);
     csvRows.push(["Total Credit Amount", formatNum(grandTotals.credit)]);
     csvRows.push(["Total Closing Balance", formatNum(grandTotals.closing)]);
-    csvRows.push(["Total Records", trialBalanceData.length.toString()]);
+  
     csvRows.push([]);
     csvRows.push([`CEB@${new Date().getFullYear()}`]);
 
@@ -631,10 +631,7 @@ const RegionTrial: React.FC = () => {
 			trialData.year
 		}</h1>
           <h2>Region: ${trialData.regionName}</h2>
-          <div class="header-info">
-            Generated on: ${new Date().toLocaleDateString()} | Total Records: ${
-			trialBalanceData.length
-		}
+         
         </div>
         </div>
         
@@ -658,9 +655,7 @@ const RegionTrial: React.FC = () => {
           </tbody>
         </table>
         
-        <div class="footer">
-          <p>Generated on: ${new Date().toLocaleDateString()} | CEB@${new Date().getFullYear()}</p>
-        </div>
+  
       </body>
       </html>
     `;
