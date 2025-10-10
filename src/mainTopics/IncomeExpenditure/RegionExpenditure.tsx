@@ -1,7 +1,8 @@
-import React, {useEffect, useState, Fragment, useMemo} from "react";
-import {Search, RotateCcw, Eye, Download, Printer} from "lucide-react";
-import {FaChevronDown} from "react-icons/fa";
-import {useUser} from "../../contexts/UserContext";
+
+import React, { useEffect, useState, Fragment, useMemo } from "react";
+import { Search, RotateCcw, Eye, Download, Printer } from "lucide-react";
+import { FaChevronDown } from "react-icons/fa";
+import { useUser } from "../../contexts/UserContext";
 
 interface Company {
 	compId: string;
@@ -22,7 +23,7 @@ interface IncomeExpenditureData {
 
 const RegionExpenditure: React.FC = () => {
 	// Get user from context
-	const {user} = useUser();
+	const { user } = useUser();
 
 	// Main state
 	const [companies, setCompanies] = useState<Company[]>([]);
@@ -36,18 +37,12 @@ const RegionExpenditure: React.FC = () => {
 
 	// Selection state
 	const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-	const [selectedYear, setSelectedYear] = useState<number>(
-		new Date().getFullYear()
-	);
-	const [selectedMonth, setSelectedMonth] = useState<number>(
-		new Date().getMonth() + 1
-	);
+	const [selectedYear, setSelectedYear] = useState<number | null>(null); // Changed to null
+	const [selectedMonth, setSelectedMonth] = useState<number | null>(null); // Changed to null
 
 	// Income/Expenditure modal state
 	const [incomeExpModalOpen, setIncomeExpModalOpen] = useState(false);
-	const [incomeExpData, setIncomeExpData] = useState<IncomeExpenditureData[]>(
-		[]
-	);
+	const [incomeExpData, setIncomeExpData] = useState<IncomeExpenditureData[]>([]);
 	const [incomeExpLoading, setIncomeExpLoading] = useState(false);
 	const [incomeExpError, setIncomeExpError] = useState<string | null>(null);
 
@@ -66,38 +61,28 @@ const RegionExpenditure: React.FC = () => {
 	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
 	// Available years and months
-	const years = Array.from(
-		{length: 21},
-		(_, i) => new Date().getFullYear() - i
-	);
-	const months = Array.from({length: 13}, (_, i) => i + 1); // 1-13 for 13th period
+	const years = Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - i);
+	const months = Array.from({ length: 13 }, (_, i) => i + 1); // 1-13 for 13th period
 
 	// Dropdown state
 	const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
 	const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
 
 	// Paginated companies
-	const paginatedCompanies = filteredCompanies.slice(
-		(page - 1) * pageSize,
-		page * pageSize
-	);
+	const paginatedCompanies = filteredCompanies.slice((page - 1) * pageSize, page * pageSize);
 
 	// Close dropdowns when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			const target = event.target as HTMLElement;
-			if (
-				!target.closest(".year-dropdown") &&
-				!target.closest(".month-dropdown")
-			) {
+			if (!target.closest(".year-dropdown") && !target.closest(".month-dropdown")) {
 				setYearDropdownOpen(false);
 				setMonthDropdownOpen(false);
 			}
 		};
 
 		document.addEventListener("mousedown", handleClickOutside);
-		return () =>
-			document.removeEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
 	// Fetch companies
@@ -112,19 +97,14 @@ const RegionExpenditure: React.FC = () => {
 
 			setLoading(true);
 			try {
-				const res = await fetch(
-					`/misapi/api/incomeexpenditure/Usercompanies/${epfNo}/70`
-				);
+				const res = await fetch(`/misapi/api/incomeexpenditure/Usercompanies/${epfNo}/70`);
 				if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
 				const contentType = res.headers.get("content-type");
 				if (!contentType || !contentType.includes("application/json")) {
 					const text = await res.text();
 					throw new Error(
-						`Expected JSON but got ${contentType}. Response: ${text.substring(
-							0,
-							100
-						)}`
+						`Expected JSON but got ${contentType}. Response: ${text.substring(0, 100)}`
 					);
 				}
 
@@ -165,10 +145,8 @@ const RegionExpenditure: React.FC = () => {
 	useEffect(() => {
 		const filtered = companies.filter(
 			(c) =>
-				(!searchId ||
-					c.compId.toLowerCase().includes(searchId.toLowerCase())) &&
-				(!searchName ||
-					c.CompName.toLowerCase().includes(searchName.toLowerCase()))
+				(!searchId || c.compId.toLowerCase().includes(searchId.toLowerCase())) &&
+				(!searchName || c.CompName.toLowerCase().includes(searchName.toLowerCase()))
 		);
 		setFilteredCompanies(filtered);
 		setPage(1);
@@ -177,7 +155,7 @@ const RegionExpenditure: React.FC = () => {
 	// Fetch income & expenditure data
 	const fetchIncomeExpenditureData = async (company?: Company) => {
 		const targetCompany = company || selectedCompany;
-		if (!targetCompany) return;
+		if (!targetCompany || selectedYear === null || selectedMonth === null) return;
 
 		setIncomeExpLoading(true);
 		setIncomeExpError(null);
@@ -186,7 +164,7 @@ const RegionExpenditure: React.FC = () => {
 
 			const response = await fetch(apiUrl, {
 				credentials: "include",
-				headers: {Accept: "application/json"},
+				headers: { Accept: "application/json" },
 			});
 
 			if (!response.ok) {
@@ -197,10 +175,7 @@ const RegionExpenditure: React.FC = () => {
 			if (!contentType || !contentType.includes("application/json")) {
 				const text = await response.text();
 				throw new Error(
-					`Expected JSON but got ${contentType}. Response: ${text.substring(
-						0,
-						100
-					)}`
+					`Expected JSON but got ${contentType}. Response: ${text.substring(0, 100)}`
 				);
 			}
 
@@ -232,6 +207,8 @@ const RegionExpenditure: React.FC = () => {
 
 	const handleCompanySelect = (company: Company) => {
 		console.log("Company selected:", company);
+		// Only proceed if both year and month are selected
+		if (selectedYear === null || selectedMonth === null) return;
 		setSelectedCompany(company);
 		// Auto fetch income & expenditure data when company is selected
 		fetchIncomeExpenditureData(company);
@@ -248,7 +225,8 @@ const RegionExpenditure: React.FC = () => {
 		setSearchName("");
 	};
 
-	const getMonthName = (monthNum: number): string => {
+	const getMonthName = (monthNum: number | null): string => {
+		if (monthNum === null) return "Select Month";
 		if (monthNum === 13) return "13th Period";
 		const monthNames = [
 			"January",
@@ -264,7 +242,7 @@ const RegionExpenditure: React.FC = () => {
 			"November",
 			"December",
 		];
-		return monthNames[monthNum - 1] || "";
+		return monthNames[monthNum - 1] || "Select Month";
 	};
 
 	// Format number function
@@ -280,9 +258,7 @@ const RegionExpenditure: React.FC = () => {
 	// Custom Dropdown Components
 	const YearDropdown = () => (
 		<div className="year-dropdown relative w-40">
-			<label className="block text-xs font-medium text-gray-700 mb-1">
-				Year
-			</label>
+			<label className="block text-xs font-medium text-gray-700 mb-1">Year</label>
 			<button
 				type="button"
 				onClick={() => {
@@ -291,7 +267,7 @@ const RegionExpenditure: React.FC = () => {
 				}}
 				className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
 			>
-				<span>{selectedYear}</span>
+				<span>{selectedYear !== null ? selectedYear : "Select Year"}</span>
 				<FaChevronDown
 					className={`w-3 h-3 text-gray-400 transition-transform ${
 						yearDropdownOpen ? "rotate-180" : ""
@@ -310,9 +286,7 @@ const RegionExpenditure: React.FC = () => {
 								setYearDropdownOpen(false);
 							}}
 							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
-								selectedYear === year
-									? "bg-[#7A0000] text-white"
-									: "text-gray-700"
+								selectedYear === year ? "bg-[#7A0000] text-white" : "text-gray-700"
 							}`}
 						>
 							{year}
@@ -325,9 +299,7 @@ const RegionExpenditure: React.FC = () => {
 
 	const MonthDropdown = () => (
 		<div className="month-dropdown relative w-40">
-			<label className="block text-xs font-medium text-gray-700 mb-1">
-				Month
-			</label>
+			<label className="block text-xs font-medium text-gray-700 mb-1">Month</label>
 			<button
 				type="button"
 				onClick={() => {
@@ -355,9 +327,7 @@ const RegionExpenditure: React.FC = () => {
 								setMonthDropdownOpen(false);
 							}}
 							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
-								selectedMonth === month
-									? "bg-[#7A0000] text-white"
-									: "text-gray-700"
+								selectedMonth === month ? "bg-[#7A0000] text-white" : "text-gray-700"
 							}`}
 						>
 							{getMonthName(month)}
@@ -389,11 +359,7 @@ const RegionExpenditure: React.FC = () => {
 	const escapeCSVField = (field: string | number): string => {
 		const stringField = String(field);
 		// If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
-		if (
-			stringField.includes(",") ||
-			stringField.includes('"') ||
-			stringField.includes("\n")
-		) {
+		if (stringField.includes(",") || stringField.includes('"') || stringField.includes("\n")) {
 			return '"' + stringField.replace(/"/g, '""') + '"';
 		}
 		return stringField;
@@ -431,10 +397,8 @@ const RegionExpenditure: React.FC = () => {
 					};
 				}
 
-				result[category][catCode].accounts[account].values[costCenter] =
-					item.Actual || 0;
-				result[category][catCode].accounts[account].total +=
-					item.Actual || 0;
+				result[category][catCode].accounts[account].values[costCenter] = item.Actual || 0;
+				result[category][catCode].accounts[account].total += item.Actual || 0;
 			});
 
 			return result;
@@ -444,9 +408,7 @@ const RegionExpenditure: React.FC = () => {
 
 		// Get unique cost centers
 		const uniqueCostCenters = Array.from(
-			new Set(
-				incomeExpData.map((item) => item.CostCtr?.trim()).filter(Boolean)
-			)
+			new Set(incomeExpData.map((item) => item.CostCtr?.trim()).filter(Boolean))
 		).sort();
 
 		// Create headers matching Excel structure
@@ -463,70 +425,50 @@ const RegionExpenditure: React.FC = () => {
 		const dataRows = [];
 
 		// Process Income section
-		dataRows.push([
-			"",
-			"",
-			"INCOME",
-			"",
-			...Array(uniqueCostCenters.length + 1).fill(""),
-		]);
+		dataRows.push(["", "", "INCOME", "", ...Array(uniqueCostCenters.length + 1).fill("")]);
 
-		Object.entries(excelData.income).forEach(
-			([catCode, categoryData]: [string, any]) => {
-				// Category header
-				dataRows.push([
-					"",
-					"",
-					catCode,
-					"",
-					...Array(uniqueCostCenters.length + 1).fill(""),
-				]);
+		Object.entries(excelData.income).forEach(([catCode, categoryData]: [string, any]) => {
+			// Category header
+			dataRows.push(["", "", catCode, "", ...Array(uniqueCostCenters.length + 1).fill("")]);
 
-				// Account rows
-				Object.entries(categoryData.accounts).forEach(
-					([accountCode, accountData]: [string, any]) => {
-						const row = [
-							"", // Empty column
-							escapeCSVField(accountCode),
-							escapeCSVField(accountData.description),
-							"", // Empty column
-						];
-
-						// Add values for each cost center
-						uniqueCostCenters.forEach((costCenter) => {
-							row.push(
-								escapeCSVField(
-									formatNumber(accountData.values[costCenter] || 0)
-								)
-							);
-						});
-
-						// Add account total
-						row.push(escapeCSVField(formatNumber(accountData.total)));
-
-						dataRows.push(row);
-					}
-				);
-
-				// Category subtotal
-				const subtotalRow = [
-					"",
-					"",
-					`SUB TOTAL OF - ${catCode}`,
-					"",
-					...Array(uniqueCostCenters.length).fill(""),
-					escapeCSVField(
-						formatNumber(
-							Object.values(categoryData.accounts).reduce(
-								(sum: number, account: any) => sum + account.total,
-								0
-							)
-						)
-					),
+			// Account rows
+			Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
+				const row = [
+					"", // Empty column
+					escapeCSVField(accountCode),
+					escapeCSVField(accountData.description),
+					"", // Empty column
 				];
-				dataRows.push(subtotalRow);
-			}
-		);
+
+				// Add values for each cost center
+				uniqueCostCenters.forEach((costCenter) => {
+					row.push(escapeCSVField(formatNumber(accountData.values[costCenter] || 0)));
+				});
+
+				// Add account total
+				row.push(escapeCSVField(formatNumber(accountData.total)));
+
+				dataRows.push(row);
+			});
+
+			// Category subtotal
+			const subtotalRow = [
+				"",
+				"",
+				`SUB TOTAL OF - ${catCode}`,
+				"",
+				...Array(uniqueCostCenters.length).fill(""),
+				escapeCSVField(
+					formatNumber(
+						Object.values(categoryData.accounts).reduce(
+							(sum: number, account: any) => sum + account.total,
+							0
+						)
+					)
+				),
+			];
+			dataRows.push(subtotalRow);
+		});
 
 		// Income total
 		const incomeTotal = Object.values(excelData.income).reduce(
@@ -553,70 +495,50 @@ const RegionExpenditure: React.FC = () => {
 		dataRows.push(incomeTotalRow);
 
 		// Process Expenditure section
-		dataRows.push([
-			"",
-			"",
-			"EXPENDITURE",
-			"",
-			...Array(uniqueCostCenters.length + 1).fill(""),
-		]);
+		dataRows.push(["", "", "EXPENDITURE", "", ...Array(uniqueCostCenters.length + 1).fill("")]);
 
-		Object.entries(excelData.expenditure).forEach(
-			([catCode, categoryData]: [string, any]) => {
-				// Category header
-				dataRows.push([
-					"",
-					"",
-					catCode,
-					"",
-					...Array(uniqueCostCenters.length + 1).fill(""),
-				]);
+		Object.entries(excelData.expenditure).forEach(([catCode, categoryData]: [string, any]) => {
+			// Category header
+			dataRows.push(["", "", catCode, "", ...Array(uniqueCostCenters.length + 1).fill("")]);
 
-				// Account rows
-				Object.entries(categoryData.accounts).forEach(
-					([accountCode, accountData]: [string, any]) => {
-						const row = [
-							"", // Empty column
-							escapeCSVField(accountCode),
-							escapeCSVField(accountData.description),
-							"", // Empty column
-						];
-
-						// Add values for each cost center
-						uniqueCostCenters.forEach((costCenter) => {
-							row.push(
-								escapeCSVField(
-									formatNumber(accountData.values[costCenter] || 0)
-								)
-							);
-						});
-
-						// Add account total
-						row.push(escapeCSVField(formatNumber(accountData.total)));
-
-						dataRows.push(row);
-					}
-				);
-
-				// Category subtotal
-				const subtotalRow = [
-					"",
-					"",
-					`SUB TOTAL OF - ${catCode}`,
-					"",
-					...Array(uniqueCostCenters.length).fill(""),
-					escapeCSVField(
-						formatNumber(
-							Object.values(categoryData.accounts).reduce(
-								(sum: number, account: any) => sum + account.total,
-								0
-							)
-						)
-					),
+			// Account rows
+			Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
+				const row = [
+					"", // Empty column
+					escapeCSVField(accountCode),
+					escapeCSVField(accountData.description),
+					"", // Empty column
 				];
-				dataRows.push(subtotalRow);
-			}
-		);
+
+				// Add values for each cost center
+				uniqueCostCenters.forEach((costCenter) => {
+					row.push(escapeCSVField(formatNumber(accountData.values[costCenter] || 0)));
+				});
+
+				// Add account total
+				row.push(escapeCSVField(formatNumber(accountData.total)));
+
+				dataRows.push(row);
+			});
+
+			// Category subtotal
+			const subtotalRow = [
+				"",
+				"",
+				`SUB TOTAL OF - ${catCode}`,
+				"",
+				...Array(uniqueCostCenters.length).fill(""),
+				escapeCSVField(
+					formatNumber(
+						Object.values(categoryData.accounts).reduce(
+							(sum: number, account: any) => sum + account.total,
+							0
+						)
+					)
+				),
+			];
+			dataRows.push(subtotalRow);
+		});
 
 		// Expenditure total
 		const expenditureTotal = Object.values(excelData.expenditure).reduce(
@@ -658,10 +580,8 @@ const RegionExpenditure: React.FC = () => {
 		const csvContent = [
 			// Topic section
 			`"Income & Expenditure Report - Region Wise"`,
-			`"Company: ${selectedCompany?.CompName || "N/A"} (${
-				selectedCompany?.compId || "N/A"
-			})"`,
-			`"Period: ${getMonthName(selectedMonth)} ${selectedYear}"`,
+			`"Company: ${selectedCompany?.CompName || "N/A"} (${selectedCompany?.compId || "N/A"})"`,
+			`"Period: ${getMonthName(selectedMonth)} ${selectedYear || "N/A"}"`,
 			`"Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}"`,
 			"", // Empty line
 			// Data section
@@ -673,13 +593,11 @@ const RegionExpenditure: React.FC = () => {
 		].join("\n");
 
 		// Create download link
-		const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
+		const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement("a");
 		link.href = url;
-		link.download = `RegionIncomeExpenditure_${
-			selectedCompany?.compId
-		}_${getMonthName(selectedMonth)}_${selectedYear}.csv`;
+		link.download = `RegionIncomeExpenditure_${selectedCompany?.compId}_${getMonthName(selectedMonth)}_${selectedYear || "N/A"}.csv`;
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);
@@ -721,10 +639,8 @@ const RegionExpenditure: React.FC = () => {
 					};
 				}
 
-				result[category][catCode].accounts[account].values[costCenter] =
-					item.Actual || 0;
-				result[category][catCode].accounts[account].total +=
-					item.Actual || 0;
+				result[category][catCode].accounts[account].values[costCenter] = item.Actual || 0;
+				result[category][catCode].accounts[account].total += item.Actual || 0;
 			});
 
 			return result;
@@ -734,9 +650,7 @@ const RegionExpenditure: React.FC = () => {
 
 		// Get unique cost centers
 		const uniqueCostCenters = Array.from(
-			new Set(
-				incomeExpData.map((item) => item.CostCtr?.trim()).filter(Boolean)
-			)
+			new Set(incomeExpData.map((item) => item.CostCtr?.trim()).filter(Boolean))
 		).sort();
 
 		// Generate table rows HTML
@@ -745,71 +659,63 @@ const RegionExpenditure: React.FC = () => {
 		// Income section
 		tableRowsHTML += `
       <tr class="category-header">
-        <td colspan="${
-				uniqueCostCenters.length + 4
-			}" style="text-align: center; font-weight: bold; background-color: #7A0000; color: white;">INCOME</td>
+        <td colspan="${uniqueCostCenters.length + 4}" style="text-align: center; font-weight: bold; background-color: #7A0000; color: white;">INCOME</td>
       </tr>
     `;
 
-		Object.entries(excelData.income).forEach(
-			([catCode, categoryData]: [string, any]) => {
-				// Category header
-				tableRowsHTML += `
+		Object.entries(excelData.income).forEach(([catCode, categoryData]: [string, any]) => {
+			// Category header
+			tableRowsHTML += `
         <tr>
-          <td colspan="${
-					uniqueCostCenters.length + 4
-				}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f5f5f5;">${catCode}</td>
+          <td colspan="${uniqueCostCenters.length + 4}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f5f5f5;">${catCode}</td>
         </tr>
       `;
 
-				// Account rows
-				Object.entries(categoryData.accounts).forEach(
-					([accountCode, accountData]: [string, any]) => {
-						tableRowsHTML += `
+			// Account rows
+			Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
+				tableRowsHTML += `
           <tr>
             <td style="padding: 6px; border: 1px solid #ddd;"></td>
             <td style="padding: 6px; border: 1px solid #ddd; font-family: monospace;">${accountCode}</td>
             <td style="padding: 6px; border: 1px solid #ddd;">${accountData.description}</td>
         `;
 
-						// Add values for each cost center
-						uniqueCostCenters.forEach((costCenter) => {
-							tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
-								accountData.values[costCenter] || 0
-							)}</td>`;
-						});
+				// Add values for each cost center
+				uniqueCostCenters.forEach((costCenter) => {
+					tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
+						accountData.values[costCenter] || 0
+					)}</td>`;
+				});
 
-						// Add account total
-						tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; background-color: #f9f9f9;">${formatNumber(
-							accountData.total
-						)}</td>`;
+				// Add account total
+				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; background-color: #f9f9f9;">${formatNumber(
+					accountData.total
+				)}</td>`;
 
-						tableRowsHTML += `</tr>`;
-					}
-				);
+				tableRowsHTML += `</tr>`;
+			});
 
-				// Category subtotal
-				const categoryTotal = Object.values(categoryData.accounts).reduce(
-					(sum: number, account: any) => sum + account.total,
-					0
-				);
+			// Category subtotal
+			const categoryTotal = Object.values(categoryData.accounts).reduce(
+				(sum: number, account: any) => sum + account.total,
+				0
+			);
 
-				tableRowsHTML += `
+			tableRowsHTML += `
         <tr>
           <td colspan="3" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #e6f3ff;">SUB TOTAL OF - ${catCode}</td>
       `;
 
-				// Add empty cells for cost centers
-				uniqueCostCenters.forEach(() => {
-					tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #e6f3ff;"></td>`;
-				});
+			// Add empty cells for cost centers
+			uniqueCostCenters.forEach(() => {
+				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #e6f3ff;"></td>`;
+			});
 
-				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #e6f3ff; font-weight: bold;">${formatNumber(
-					categoryTotal
-				)}</td>`;
-				tableRowsHTML += `</tr>`;
-			}
-		);
+			tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #e6f3ff; font-weight: bold;">${formatNumber(
+				categoryTotal
+			)}</td>`;
+			tableRowsHTML += `</tr>`;
+		});
 
 		// Income total
 		const incomeTotal = Object.values(excelData.income).reduce(
@@ -843,71 +749,63 @@ const RegionExpenditure: React.FC = () => {
 		// Expenditure section
 		tableRowsHTML += `
       <tr class="category-header">
-        <td colspan="${
-				uniqueCostCenters.length + 4
-			}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">EXPENDITURE</td>
+        <td colspan="${uniqueCostCenters.length + 4}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">EXPENDITURE</td>
       </tr>
     `;
 
-		Object.entries(excelData.expenditure).forEach(
-			([catCode, categoryData]: [string, any]) => {
-				// Category header
-				tableRowsHTML += `
+		Object.entries(excelData.expenditure).forEach(([catCode, categoryData]: [string, any]) => {
+			// Category header
+			tableRowsHTML += `
         <tr>
-          <td colspan="${
-					uniqueCostCenters.length + 4
-				}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f5f5f5;">${catCode}</td>
+          <td colspan="${uniqueCostCenters.length + 4}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f5f5f5;">${catCode}</td>
         </tr>
       `;
 
-				// Account rows
-				Object.entries(categoryData.accounts).forEach(
-					([accountCode, accountData]: [string, any]) => {
-						tableRowsHTML += `
+			// Account rows
+			Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
+				tableRowsHTML += `
           <tr>
             <td style="padding: 6px; border: 1px solid #ddd;"></td>
             <td style="padding: 6px; border: 1px solid #ddd; font-family: monospace;">${accountCode}</td>
             <td style="padding: 6px; border: 1px solid #ddd;">${accountData.description}</td>
         `;
 
-						// Add values for each cost center
-						uniqueCostCenters.forEach((costCenter) => {
-							tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
-								accountData.values[costCenter] || 0
-							)}</td>`;
-						});
+				// Add values for each cost center
+				uniqueCostCenters.forEach((costCenter) => {
+					tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
+						accountData.values[costCenter] || 0
+					)}</td>`;
+				});
 
-						// Add account total
-						tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; background-color: #f9f9f9;">${formatNumber(
-							accountData.total
-						)}</td>`;
+				// Add account total
+				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; background-color: #f9f9f9;">${formatNumber(
+					accountData.total
+				)}</td>`;
 
-						tableRowsHTML += `</tr>`;
-					}
-				);
+				tableRowsHTML += `</tr>`;
+			});
 
-				// Category subtotal
-				const categoryTotal = Object.values(categoryData.accounts).reduce(
-					(sum: number, account: any) => sum + account.total,
-					0
-				);
+			// Category subtotal
+			const categoryTotal = Object.values(categoryData.accounts).reduce(
+				(sum: number, account: any) => sum + account.total,
+				0
+			);
 
-				tableRowsHTML += `
+			tableRowsHTML += `
         <tr>
           <td colspan="3" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #e6f3ff;">SUB TOTAL OF - ${catCode}</td>
       `;
 
-				// Add empty cells for cost centers
-				uniqueCostCenters.forEach(() => {
-					tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #e6f3ff;"></td>`;
-				});
+			// Add empty cells for cost centers
+			uniqueCostCenters.forEach(() => {
+				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #e6f3ff;"></td>`;
+			});
 
-				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #e6f3ff; font-weight: bold;">${formatNumber(
-					categoryTotal
-				)}</td>`;
-				tableRowsHTML += `</tr>`;
-			}
-		);
+			tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #e6f3ff; font-weight: bold;">${formatNumber(
+				categoryTotal
+			)}</td>`;
+			tableRowsHTML += `</tr>`;
+		});
 
 		// Expenditure total
 		const expenditureTotal = Object.values(excelData.expenditure).reduce(
@@ -960,9 +858,7 @@ const RegionExpenditure: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Region Income & Expenditure - ${getMonthName(
-				selectedMonth
-			)} ${selectedYear}</title>
+        <title>Region Income & Expenditure - ${getMonthName(selectedMonth)} ${selectedYear || "N/A"}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -1045,10 +941,7 @@ const RegionExpenditure: React.FC = () => {
             table { page-break-inside: auto; }
             tr { page-break-inside: avoid; }
             @page {
-                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
-							"en-US",
-							{timeZone: "Asia/Colombo"}
-						)}"; font-size: 0.75rem; color: gray; }
+                @bottom-left { content: "Printed on: ${new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" })}"; font-size: 0.75rem; color: gray; }
                 @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
               }
           }
@@ -1056,12 +949,8 @@ const RegionExpenditure: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT - PERIOD ENDED OF ${getMonthName(
-					selectedMonth
-				).toUpperCase()} / ${selectedYear}</h1>
-          <h2>Province/Company: ${selectedCompany?.compId} / ${
-			selectedCompany?.CompName
-		}</h2>
+          <h1>CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT - PERIOD ENDED OF ${getMonthName(selectedMonth).toUpperCase()} / ${selectedYear || "N/A"}</h1>
+          <h2>Province/Company: ${selectedCompany?.compId} / ${selectedCompany?.CompName}</h2>
         </div>
         
         <table>
@@ -1071,9 +960,7 @@ const RegionExpenditure: React.FC = () => {
               <th style="width: 10%;"></th>
               <th style="width: 25%;">ACCOUNTS</th>
               <th style="width: 10%;"></th>
-              ${uniqueCostCenters
-						.map((cc) => `<th style="width: 8%;">${cc}</th>`)
-						.join("")}
+              ${uniqueCostCenters.map((cc) => `<th style="width: 8%;">${cc}</th>`).join("")}
               <th style="width: 10%;">Company Total</th>
             </tr>
           </thead>
@@ -1081,8 +968,6 @@ const RegionExpenditure: React.FC = () => {
             ${tableRowsHTML}
           </tbody>
         </table>
-        
-    
       </body>
       </html>
     `;
@@ -1134,17 +1019,15 @@ const RegionExpenditure: React.FC = () => {
 				}
 
 				// Add value for this cost center
-				result[category][catCode].accounts[account].values[costCenter] =
-					item.Actual || 0;
-				result[category][catCode].accounts[account].total +=
-					item.Actual || 0;
+				result[category][catCode].accounts[account].values[costCenter] = item.Actual || 0;
+				result[category][catCode].accounts[account].total += item.Actual || 0;
 			});
 
 			return result;
 		};
 
 		const excelData = transformDataToExcelFormat();
-		const {incomeTotal, expenditureTotal, netTotal} = calculateTotals();
+		const { incomeTotal, expenditureTotal, netTotal } = calculateTotals();
 
 		// Get all unique cost centers for column headers
 		const uniqueCostCenters = useMemo(() => {
@@ -1166,7 +1049,7 @@ const RegionExpenditure: React.FC = () => {
 								<h2 className="text-base font-bold text-gray-800">
 									CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL
 									STATEMENT - PERIOD ENDED OF{" "}
-									{getMonthName(selectedMonth)} / {selectedYear}
+									{getMonthName(selectedMonth)} / {selectedYear || "N/A"}
 								</h2>
 								<h3 className={`text-sm ${maroon}`}>
 									Province/Company: {selectedCompany.compId} /{" "}
@@ -1213,7 +1096,7 @@ const RegionExpenditure: React.FC = () => {
 									We couldn't find any consolidated income or
 									expenditure records for{" "}
 									<strong>{selectedCompany.CompName}</strong> in{" "}
-									{getMonthName(selectedMonth)} {selectedYear}.
+									{getMonthName(selectedMonth)} {selectedYear || "N/A"}.
 								</p>
 								<p className="text-xs text-gray-400 mt-2">
 									Try selecting a different month or year, or contact
@@ -1254,34 +1137,34 @@ const RegionExpenditure: React.FC = () => {
 											<tr>
 												<th
 													className="px-2 py-1 text-left w-[5%] border border-gray-300 text-gray-800"
-													style={{backgroundColor: "#D3D3D3"}}
+													style={{ backgroundColor: "#D3D3D3" }}
 												></th>
 												<th
 													className="px-2 py-1 text-left w-[10%] border border-gray-300 text-gray-800"
-													style={{backgroundColor: "#D3D3D3"}}
+													style={{ backgroundColor: "#D3D3D3" }}
 												></th>
 												<th
 													className="px-2 py-1 text-left w-[25%] border border-gray-300 text-gray-800"
-													style={{backgroundColor: "#D3D3D3"}}
+													style={{ backgroundColor: "#D3D3D3" }}
 												>
 													ACCOUNTS
 												</th>
 												<th
 													className="px-2 py-1 text-left w-[10%] border border-gray-300 text-gray-800"
-													style={{backgroundColor: "#D3D3D3"}}
+													style={{ backgroundColor: "#D3D3D3" }}
 												></th>
 												{uniqueCostCenters.map((costCenter) => (
 													<th
 														key={costCenter}
 														className="px-2 py-1 text-center w-[8%] border border-gray-300 text-gray-800 font-bold"
-														style={{backgroundColor: "#D3D3D3"}}
+														style={{ backgroundColor: "#D3D3D3" }}
 													>
 														{costCenter}
 													</th>
 												))}
 												<th
 													className="px-2 py-1 text-center w-[10%] border border-gray-300 text-gray-800 font-bold"
-													style={{backgroundColor: "#D3D3D3"}}
+													style={{ backgroundColor: "#D3D3D3" }}
 												>
 													Company Total
 												</th>
@@ -1292,9 +1175,7 @@ const RegionExpenditure: React.FC = () => {
 											{/* INCOME SECTION */}
 											<tr className="bg-[#7A0000] text-white">
 												<td
-													colSpan={
-														3 + uniqueCostCenters.length + 1
-													}
+													colSpan={3 + uniqueCostCenters.length + 1}
 													className="px-2 py-1 text-center font-bold"
 												>
 													INCOME
@@ -1302,136 +1183,94 @@ const RegionExpenditure: React.FC = () => {
 											</tr>
 
 											{/* Process Income Categories */}
-											{Object.entries(excelData.income).map(
-												([catCode, categoryData]: [
-													string,
-													any
-												]) => (
-													<Fragment key={`income-${catCode}`}>
-														{/* Category Header Row */}
-														<tr>
-															<td className="px-2 py-1 border border-gray-300"></td>
-															<td className="px-2 py-1 border border-gray-300"></td>
-															<td
-																colSpan={
-																	2 +
-																	uniqueCostCenters.length +
-																	1
-																}
-																className="px-2 py-1 border border-gray-300 font-bold bg-gray-50"
-															>
-																{catCode}
-															</td>
-														</tr>
+											{Object.entries(excelData.income).map(([catCode, categoryData]: [string, any]) => (
+												<Fragment key={`income-${catCode}`}>
+													{/* Category Header Row */}
+													<tr>
+														<td className="px-2 py-1 border border-gray-300"></td>
+														<td className="px-2 py-1 border border-gray-300"></td>
+														<td
+															colSpan={2 + uniqueCostCenters.length + 1}
+															className="px-2 py-1 border border-gray-300 font-bold bg-gray-50"
+														>
+															{catCode}
+														</td>
+													</tr>
 
-														{/* Account Rows */}
-														{Object.entries(
-															categoryData.accounts
-														).map(
-															([accountCode, accountData]: [
-																string,
-																any
-															]) => (
-																<tr
-																	key={`income-${catCode}-${accountCode}`}
-																	className="hover:bg-gray-50"
+													{/* Account Rows */}
+													{Object.entries(categoryData.accounts).map(
+														([accountCode, accountData]: [string, any]) => (
+															<tr
+																key={`income-${catCode}-${accountCode}`}
+																className="hover:bg-gray-50"
+															>
+																<td className="px-2 py-1 border border-gray-300"></td>
+																<td className="px-2 py-1 border border-gray-300 font-mono">
+																	{accountCode}
+																</td>
+																<td
+																	colSpan={2}
+																	className="px-2 py-1 border border-gray-300"
 																>
-																	<td className="px-2 py-1 border border-gray-300"></td>
-																	<td className="px-2 py-1 border border-gray-300 font-mono">
-																		{accountCode}
-																	</td>
+																	{accountData.description}
+																</td>
+
+																{/* Cost Center Values */}
+																{uniqueCostCenters.map((costCenter) => (
 																	<td
-																		colSpan={2}
-																		className="px-2 py-1 border border-gray-300"
+																		key={costCenter}
+																		className="px-2 py-1 border border-gray-300 text-right font-mono"
 																	>
-																		{accountData.description}
+																		{formatNumber(accountData.values[costCenter] || 0)}
 																	</td>
+																))}
 
-																	{/* Cost Center Values */}
-																	{uniqueCostCenters.map(
-																		(costCenter) => (
-																			<td
-																				key={costCenter}
-																				className="px-2 py-1 border border-gray-300 text-right font-mono"
-																			>
-																				{formatNumber(
-																					accountData
-																						.values[
-																						costCenter
-																					] || 0
-																				)}
-																			</td>
-																		)
-																	)}
+																{/* Account Total */}
+																<td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold bg-gray-100">
+																	{formatNumber(accountData.total)}
+																</td>
+															</tr>
+														)
+													)}
 
-																	{/* Account Total */}
-																	<td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold bg-gray-100">
-																		{formatNumber(
-																			accountData.total
-																		)}
-																	</td>
-																</tr>
-															)
-														)}
+													{/* Category Subtotal */}
+													<tr className="bg-blue-50">
+														<td
+															colSpan={3}
+															className="px-2 py-1 border border-gray-300 font-bold"
+														>
+															SUB TOTAL OF - {catCode}
+														</td>
+														<td className="px-2 py-1 border border-gray-300"></td>
 
-														{/* Category Subtotal */}
-														<tr className="bg-blue-50">
-															<td
-																colSpan={3}
-																className="px-2 py-1 border border-gray-300 font-bold"
-															>
-																SUB TOTAL OF - {catCode}
-															</td>
-															<td className="px-2 py-1 border border-gray-300"></td>
+														{/* Cost Center Subtotals */}
+														{uniqueCostCenters.map((costCenter) => {
+															const subtotal = Object.values(categoryData.accounts).reduce(
+																(sum: number, account: any) => sum + (account.values[costCenter] || 0),
+																0
+															);
+															return (
+																<td
+																	key={costCenter}
+																	className="px-2 py-1 border border-gray-300 text-right font-mono font-bold"
+																>
+																	{formatNumber(subtotal)}
+																</td>
+															);
+														})}
 
-															{/* Cost Center Subtotals */}
-															{uniqueCostCenters.map(
-																(costCenter) => {
-																	const subtotal =
-																		Object.values(
-																			categoryData.accounts
-																		).reduce(
-																			(
-																				sum: number,
-																				account: any
-																			) =>
-																				sum +
-																				(account.values[
-																					costCenter
-																				] || 0),
-																			0
-																		);
-																	return (
-																		<td
-																			key={costCenter}
-																			className="px-2 py-1 border border-gray-300 text-right font-mono font-bold"
-																		>
-																			{formatNumber(
-																				subtotal
-																			)}
-																		</td>
-																	);
-																}
+														{/* Category Total */}
+														<td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+															{formatNumber(
+																Object.values(categoryData.accounts).reduce(
+																	(sum: number, account: any) => sum + account.total,
+																	0
+																)
 															)}
-
-															{/* Category Total */}
-															<td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
-																{formatNumber(
-																	Object.values(
-																		categoryData.accounts
-																	).reduce(
-																		(
-																			sum: number,
-																			account: any
-																		) => sum + account.total,
-																		0
-																	)
-																)}
-															</td>
-														</tr>
-													</Fragment>
-												)
-											)}
+														</td>
+													</tr>
+												</Fragment>
+											))}
 
 											{/* Total Income */}
 											<tr className="bg-[#7A0000] text-white">
@@ -1445,23 +1284,13 @@ const RegionExpenditure: React.FC = () => {
 
 												{/* Cost Center Income Totals */}
 												{uniqueCostCenters.map((costCenter) => {
-													const costCenterTotal = Object.values(
-														excelData.income
-													).reduce(
+													const costCenterTotal = Object.values(excelData.income).reduce(
 														(sum: number, category: any) => {
 															return (
 																sum +
-																Object.values(
-																	category.accounts
-																).reduce(
-																	(
-																		accSum: number,
-																		account: any
-																	) =>
-																		accSum +
-																		(account.values[
-																			costCenter
-																		] || 0),
+																Object.values(category.accounts).reduce(
+																	(accSum: number, account: any) =>
+																		accSum + (account.values[costCenter] || 0),
 																	0
 																)
 															);
@@ -1487,9 +1316,7 @@ const RegionExpenditure: React.FC = () => {
 											{/* EXPENDITURE SECTION */}
 											<tr className="bg-gray-200">
 												<td
-													colSpan={
-														3 + uniqueCostCenters.length + 1
-													}
+													colSpan={3 + uniqueCostCenters.length + 1}
 													className="px-2 py-1 text-center font-bold"
 												>
 													EXPENDITURE
@@ -1497,136 +1324,94 @@ const RegionExpenditure: React.FC = () => {
 											</tr>
 
 											{/* Process Expenditure Categories */}
-											{Object.entries(excelData.expenditure).map(
-												([catCode, categoryData]: [
-													string,
-													any
-												]) => (
-													<Fragment key={`expenditure-${catCode}`}>
-														{/* Category Header Row */}
-														<tr>
-															<td className="px-2 py-1 border border-gray-300"></td>
-															<td className="px-2 py-1 border border-gray-300"></td>
-															<td
-																colSpan={
-																	2 +
-																	uniqueCostCenters.length +
-																	1
-																}
-																className="px-2 py-1 border border-gray-300 font-bold bg-gray-50"
-															>
-																{catCode}
-															</td>
-														</tr>
+											{Object.entries(excelData.expenditure).map(([catCode, categoryData]: [string, any]) => (
+												<Fragment key={`expenditure-${catCode}`}>
+													{/* Category Header Row */}
+													<tr>
+														<td className="px-2 py-1 border border-gray-300"></td>
+														<td className="px-2 py-1 border border-gray-300"></td>
+														<td
+															colSpan={2 + uniqueCostCenters.length + 1}
+															className="px-2 py-1 border border-gray-300 font-bold bg-gray-50"
+														>
+															{catCode}
+														</td>
+													</tr>
 
-														{/* Account Rows */}
-														{Object.entries(
-															categoryData.accounts
-														).map(
-															([accountCode, accountData]: [
-																string,
-																any
-															]) => (
-																<tr
-																	key={`expenditure-${catCode}-${accountCode}`}
-																	className="hover:bg-gray-50"
+													{/* Account Rows */}
+													{Object.entries(categoryData.accounts).map(
+														([accountCode, accountData]: [string, any]) => (
+															<tr
+																key={`expenditure-${catCode}-${accountCode}`}
+																className="hover:bg-gray-50"
+															>
+																<td className="px-2 py-1 border border-gray-300"></td>
+																<td className="px-2 py-1 border border-gray-300 font-mono">
+																	{accountCode}
+																</td>
+																<td
+																	colSpan={2}
+																	className="px-2 py-1 border border-gray-300"
 																>
-																	<td className="px-2 py-1 border border-gray-300"></td>
-																	<td className="px-2 py-1 border border-gray-300 font-mono">
-																		{accountCode}
-																	</td>
+																	{accountData.description}
+																</td>
+
+																{/* Cost Center Values */}
+																{uniqueCostCenters.map((costCenter) => (
 																	<td
-																		colSpan={2}
-																		className="px-2 py-1 border border-gray-300"
+																		key={costCenter}
+																		className="px-2 py-1 border border-gray-300 text-right font-mono"
 																	>
-																		{accountData.description}
+																		{formatNumber(accountData.values[costCenter] || 0)}
 																	</td>
+																))}
 
-																	{/* Cost Center Values */}
-																	{uniqueCostCenters.map(
-																		(costCenter) => (
-																			<td
-																				key={costCenter}
-																				className="px-2 py-1 border border-gray-300 text-right font-mono"
-																			>
-																				{formatNumber(
-																					accountData
-																						.values[
-																						costCenter
-																					] || 0
-																				)}
-																			</td>
-																		)
-																	)}
+																{/* Account Total */}
+																<td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold bg-gray-100">
+																	{formatNumber(accountData.total)}
+																</td>
+															</tr>
+														)
+													)}
 
-																	{/* Account Total */}
-																	<td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold bg-gray-100">
-																		{formatNumber(
-																			accountData.total
-																		)}
-																	</td>
-																</tr>
-															)
-														)}
+													{/* Category Subtotal */}
+													<tr className="bg-blue-50">
+														<td
+															colSpan={3}
+															className="px-2 py-1 border border-gray-300 font-bold"
+														>
+															SUB TOTAL OF - {catCode}
+														</td>
+														<td className="px-2 py-1 border border-gray-300"></td>
 
-														{/* Category Subtotal */}
-														<tr className="bg-blue-50">
-															<td
-																colSpan={3}
-																className="px-2 py-1 border border-gray-300 font-bold"
-															>
-																SUB TOTAL OF - {catCode}
-															</td>
-															<td className="px-2 py-1 border border-gray-300"></td>
+														{/* Cost Center Subtotals */}
+														{uniqueCostCenters.map((costCenter) => {
+															const subtotal = Object.values(categoryData.accounts).reduce(
+																(sum: number, account: any) => sum + (account.values[costCenter] || 0),
+																0
+															);
+															return (
+																<td
+																	key={costCenter}
+																	className="px-2 py-1 border border-gray-300 text-right font-mono font-bold"
+																>
+																	{formatNumber(subtotal)}
+																</td>
+															);
+														})}
 
-															{/* Cost Center Subtotals */}
-															{uniqueCostCenters.map(
-																(costCenter) => {
-																	const subtotal =
-																		Object.values(
-																			categoryData.accounts
-																		).reduce(
-																			(
-																				sum: number,
-																				account: any
-																			) =>
-																				sum +
-																				(account.values[
-																					costCenter
-																				] || 0),
-																			0
-																		);
-																	return (
-																		<td
-																			key={costCenter}
-																			className="px-2 py-1 border border-gray-300 text-right font-mono font-bold"
-																		>
-																			{formatNumber(
-																				subtotal
-																			)}
-																		</td>
-																	);
-																}
+														{/* Category Total */}
+														<td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
+															{formatNumber(
+																Object.values(categoryData.accounts).reduce(
+																	(sum: number, account: any) => sum + account.total,
+																	0
+																)
 															)}
-
-															{/* Category Total */}
-															<td className="px-2 py-1 border border-gray-300 text-right font-mono font-bold">
-																{formatNumber(
-																	Object.values(
-																		categoryData.accounts
-																	).reduce(
-																		(
-																			sum: number,
-																			account: any
-																		) => sum + account.total,
-																		0
-																	)
-																)}
-															</td>
-														</tr>
-													</Fragment>
-												)
-											)}
+														</td>
+													</tr>
+												</Fragment>
+											))}
 
 											{/* Total Expenditure */}
 											<tr className="bg-gray-200">
@@ -1640,23 +1425,13 @@ const RegionExpenditure: React.FC = () => {
 
 												{/* Cost Center Expenditure Totals */}
 												{uniqueCostCenters.map((costCenter) => {
-													const costCenterTotal = Object.values(
-														excelData.expenditure
-													).reduce(
+													const costCenterTotal = Object.values(excelData.expenditure).reduce(
 														(sum: number, category: any) => {
 															return (
 																sum +
-																Object.values(
-																	category.accounts
-																).reduce(
-																	(
-																		accSum: number,
-																		account: any
-																	) =>
-																		accSum +
-																		(account.values[
-																			costCenter
-																		] || 0),
+																Object.values(category.accounts).reduce(
+																	(accSum: number, account: any) =>
+																		accSum + (account.values[costCenter] || 0),
 																	0
 																)
 															);
@@ -1691,23 +1466,13 @@ const RegionExpenditure: React.FC = () => {
 
 												{/* Cost Center Net Totals */}
 												{uniqueCostCenters.map((costCenter) => {
-													const incomeTotal = Object.values(
-														excelData.income
-													).reduce(
+													const incomeTotal = Object.values(excelData.income).reduce(
 														(sum: number, category: any) => {
 															return (
 																sum +
-																Object.values(
-																	category.accounts
-																).reduce(
-																	(
-																		accSum: number,
-																		account: any
-																	) =>
-																		accSum +
-																		(account.values[
-																			costCenter
-																		] || 0),
+																Object.values(category.accounts).reduce(
+																	(accSum: number, account: any) =>
+																		accSum + (account.values[costCenter] || 0),
 																	0
 																)
 															);
@@ -1715,23 +1480,13 @@ const RegionExpenditure: React.FC = () => {
 														0
 													);
 
-													const expenditureTotal = Object.values(
-														excelData.expenditure
-													).reduce(
+													const expenditureTotal = Object.values(excelData.expenditure).reduce(
 														(sum: number, category: any) => {
 															return (
 																sum +
-																Object.values(
-																	category.accounts
-																).reduce(
-																	(
-																		accSum: number,
-																		account: any
-																	) =>
-																		accSum +
-																		(account.values[
-																			costCenter
-																		] || 0),
+																Object.values(category.accounts).reduce(
+																	(accSum: number, account: any) =>
+																		accSum + (account.values[costCenter] || 0),
 																	0
 																)
 															);
@@ -1744,9 +1499,7 @@ const RegionExpenditure: React.FC = () => {
 															key={costCenter}
 															className="px-2 py-1 border border-gray-300 text-right font-mono font-bold"
 														>
-															{formatNumber(
-																incomeTotal - expenditureTotal
-															)}
+															{formatNumber(incomeTotal - expenditureTotal)}
 														</td>
 													);
 												})}
@@ -1863,15 +1616,11 @@ const RegionExpenditure: React.FC = () => {
 					<div className="overflow-x-auto rounded-lg border border-gray-200">
 						<div className="max-h-[50vh] overflow-y-auto">
 							<table className="w-full table-fixed text-left text-gray-700 text-sm">
-								<thead
-									className={`${maroonGrad} text-white sticky top-0`}
-								>
+								<thead className={`${maroonGrad} text-white sticky top-0`}>
 									<tr>
 										<th className="px-4 py-2 w-1/4">Company ID</th>
 										<th className="px-4 py-2 w-1/2">Company Name</th>
-										<th className="px-4 py-2 w-1/4 text-center">
-											Action
-										</th>
+										<th className="px-4 py-2 w-1/4 text-center">Action</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -1886,29 +1635,24 @@ const RegionExpenditure: React.FC = () => {
 													: ""
 											}`}
 										>
-											<td className="px-4 py-2 truncate font-mono">
-												{company.compId}
-											</td>
-											<td className="px-4 py-2 truncate">
-												{company.CompName}
-											</td>
+											<td className="px-4 py-2 truncate font-mono">{company.compId}</td>
+											<td className="px-4 py-2 truncate">{company.CompName}</td>
 											<td className="px-4 py-2 text-center">
 												<button
-													onClick={() =>
-														handleCompanySelect(company)
-													}
+													onClick={() => handleCompanySelect(company)}
+													disabled={selectedYear === null || selectedMonth === null}
 													className={`px-3 py-1 ${
-														selectedCompany?.compId ===
-														company.compId
+														selectedCompany?.compId === company.compId
 															? "bg-green-600 text-white"
 															: maroonGrad + " text-white"
-													} rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+													} rounded-md text-xs font-medium hover:brightness-110 transition shadow ${
+														selectedYear === null || selectedMonth === null
+															? "opacity-50 cursor-not-allowed"
+															: ""
+													}`}
 												>
 													<Eye className="inline-block mr-1 w-3 h-3" />
-													{selectedCompany?.compId ===
-													company.compId
-														? "Viewing"
-														: "View"}
+													{selectedCompany?.compId === company.compId ? "Viewing" : "View"}
 												</button>
 											</td>
 										</tr>
@@ -1928,21 +1672,13 @@ const RegionExpenditure: React.FC = () => {
 							Previous
 						</button>
 						<span className="text-xs text-gray-500">
-							Page {page} of{" "}
-							{Math.ceil(filteredCompanies.length / pageSize)}
+							Page {page} of {Math.ceil(filteredCompanies.length / pageSize)}
 						</span>
 						<button
 							onClick={() =>
-								setPage((p) =>
-									Math.min(
-										Math.ceil(filteredCompanies.length / pageSize),
-										p + 1
-									)
-								)
+								setPage((p) => Math.min(Math.ceil(filteredCompanies.length / pageSize), p + 1))
 							}
-							disabled={
-								page >= Math.ceil(filteredCompanies.length / pageSize)
-							}
+							disabled={page >= Math.ceil(filteredCompanies.length / pageSize)}
 							className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
 						>
 							Next

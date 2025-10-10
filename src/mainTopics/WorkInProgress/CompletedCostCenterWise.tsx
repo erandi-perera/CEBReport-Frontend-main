@@ -446,7 +446,6 @@ const CompletedCostCenterWise = () => {
 			["Total Other", formatNum(totals.other)],
 			["Total Stand Cost", formatNum(totals.standCost)],
 			["Grand Total", formatNum(totals.total)],
-			["Total Records", transformedData.length.toString()],
 			[],
 			[`Generated: ${new Date().toLocaleString()}`],
 			[`CEB@${new Date().getFullYear()}`],
@@ -490,227 +489,252 @@ const CompletedCostCenterWise = () => {
 		if (!w) return;
 
 		w.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Completed Projects Report</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            font-size: 12px;
-            color: #333;
-          }
-          
-          .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #7A0000;
-            padding-bottom: 15px;
-          }
-          
-          .header h1 {
-            color: #7A0000;
-            font-size: 18px;
-            margin: 0;
-            font-weight: bold;
-          }
-          
-          .header h2 {
-            color: #7A0000;
-            font-size: 14px;
-            margin: 5px 0;
-          }
-          
-          .header-info {
-            margin-top: 10px;
-            font-size: 12px;
-            color: #666;
-          }
-          
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-          }
-          
-          th {
-            background-color: #7A0000;
-            color: white;
-            font-weight: bold;
-            text-align: center;
-            padding: 8px;
-            border: 1px solid #7A0000;
-          }
-          
-          td {
-            padding: 6px;
-            border: 1px solid #ddd;
-          }
-          
-          .summary-section {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-          }
-          
-          .summary-section h4 {
-            color: #7A0000;
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 14px;
-          }
-          
-          .summary-section p {
-            margin: 5px 0;
-            font-size: 12px;
-          }
-          
-          .footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 10px;
-            color: #666;
-            border-top: 1px solid #ddd;
-            padding-top: 15px;
-          }
-          
-          @media print {
-            body { margin: 0; }
-            .header { page-break-inside: avoid; }
-            table { page-break-inside: auto; }
-            tr { page-break-inside: avoid; }
-             @page {
-                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
-							"en-US",
-							{timeZone: "Asia/Colombo"}
-						)}"; font-size: 0.75rem; color: gray; }
-                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
-              }
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Completed Projects Report</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin-top: 5mm;
+          font-size: 10px;
+          color: #333;
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 15px;
+          border-bottom: 2px solid #7A0000;
+          padding-bottom: 10px;
+        }
+
+        .header h1 {
+          color: #7A0000;
+          font-size: 16px;
+          margin: 0;
+          font-weight: bold;
+        }
+
+        .header h2 {
+          color: #7A0000;
+          font-size: 12px;
+          margin: 5px 0;
+        }
+
+        .header-info {
+          margin-top: 8px;
+          font-size: 10px;
+          color: #666;
+        }
+
+        table {
+          width: calc(100% - 2mm);
+          margin-left: 0.5mm;
+          margin-right: 0.5mm;
+          border-collapse: collapse;
+          margin-bottom: 0; /* reduced */
+          table-layout: fixed;
+        }
+
+        th, td {
+          padding: 4px 2px;
+          border: 1px solid #ddd;
+          text-align: left;
+          word-wrap: break-word;
+          overflow: hidden;
+        }
+
+        th {
+          background-color: #7A0000;
+          color: white;
+          font-weight: bold;
+          text-align: center;
+        }
+
+        th:nth-child(1), td:nth-child(1) { width: 4%; }
+        th:nth-child(2), td:nth-child(2) { width: 7%; }
+        th:nth-child(3), td:nth-child(3) { width: 7%; }
+        th:nth-child(4), td:nth-child(4) { width: 4%; }
+        th:nth-child(5), td:nth-child(5) { width: 8%; text-align: right; }
+        th:nth-child(6), td:nth-child(6) { width: 23%; }
+        th:nth-child(7), td:nth-child(7) { width: 7%; }
+        th:nth-child(8), td:nth-child(8) { width: 7%; }
+        th:nth-child(9), td:nth-child(9) { width: 7%; text-align: center; }
+        th:nth-child(10), td:nth-child(10) { width: 8%; text-align: right; }
+        th:nth-child(11), td:nth-child(11) { width: 8%; text-align: right; }
+        th:nth-child(12), td:nth-child(12) { width: 8%; text-align: right; }
+        th:nth-child(13), td:nth-child(13) { width: 9%; text-align: right; font-weight: bold; }
+
+        .summary-section {
+          margin-top: 15px;
+          padding: 8px;
+          background-color: #f9f9f9;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+        }
+
+        .summary-section h4 {
+          color: #7A0000;
+          margin-top: 0;
+          margin-bottom: 8px;
+          font-size: 12px;
+        }
+
+        .summary-section p {
+          margin: 4px 0;
+          font-size: 10px;
+        }
+
+        .footer {
+          margin-top: 2px; /* reduced */
+          text-align: center;
+          font-size: 9px;
+          color: #666;
+          border-top: 1px solid #ddd;
+          padding-top: 3px; /* reduced */
+        }
+
+        @media print {
+          body { margin: 4mm; }
+          .header { page-break-inside: avoid; }
+          table { page-break-inside: auto; }
+          tr { page-break-inside: avoid; }
+          @page {
+            size: A4 landscape;
+ 
+            @bottom-left { 
+              content: "Printed on: ${new Date().toLocaleString("en-US", {
+						timeZone: "Asia/Colombo",
+					})}";
+              font-size: 8px; 
+              color: gray; 
+			  
+            }
+            @bottom-right { 
+              content: "Page " counter(page) " of " counter(pages);
+              font-size: 8px; 
+              color: gray; 
             }
           }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>COMPLETED PROJECTS REPORT</h1>
-          <h2>Cost Center: ${selectedDepartment.DeptId} - ${
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>COMPLETED PROJECTS REPORT</h1>
+        <h2>Cost Center: ${selectedDepartment.DeptId} - ${
 			selectedDepartment.DeptName
 		}</h2>
-          <div class="header-info">
-            Period: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()} | 
-            Currency: LKR | 
-            Total Records: ${transformedData.length}
-          </div>
-        </div>
+        <div class="header-info">
+          Period: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()} | 
+          Currency: LKR | 
         
-        <table>
-          <thead>
-            <tr>
-              <th>Account Code</th>
-              <th>Project No</th>
-              <th>Category Code</th>
-              <th>Fund Id</th>
-              <th>Stand Cost</th>
-              <th>Description</th>
-              <th>Dept_id</th>
-              <th>PIV_No</th>
-              <th>Close Date</th>
-              <th>Labour</th>
-              <th>Material</th>
-              <th>Other</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${transformedData
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Account Code</th>
+            <th>Project No</th>
+            <th>Category Code</th>
+            <th>Fund Id</th>
+            <th>Stand Cost</th>
+            <th>Description</th>
+            <th>Paid Date</th>
+            <th>PIV_No</th>
+            <th>Close Date</th>
+            <th>Labour</th>
+            <th>Material</th>
+            <th>Other</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${transformedData
 					.map(
 						(i) => `
-              <tr>
-                <td>${i.AccountCode || ""}</td>
-                <td style="font-family: monospace;">${i.ProjectNo || ""}</td>
-                <td>${i.CategoryCode || ""}</td>
-                <td style="font-family: monospace;">${i.FundId || ""}</td>
-                <td style="text-align:right; font-family: monospace;">${(
-							i.StandCost || 0
-						).toLocaleString("en-US", {
-							minimumFractionDigits: 2,
-							maximumFractionDigits: 2,
-						})}</td>
-                <td>${i.Description || ""}</td>
-                <td>${
-							i.PIVdate ? new Date(i.PIVdate).toLocaleDateString()
-               : "-"
-						}</td>
-                <td style="font-family: monospace;">${i.PIVNo || "-"}</td>
-                <td style="text-align:center;">${
-							i.CloseDate
-								? new Date(i.CloseDate).toLocaleDateString()
-								: "-"
-						}</td>
-                <td style="text-align:right; font-family: monospace;">${(
-							i.Labour || 0
-						).toLocaleString("en-US", {
-							minimumFractionDigits: 2,
-							maximumFractionDigits: 2,
-						})}</td>
-                <td style="text-align:right; font-family: monospace;">${(
-							i.Material || 0
-						).toLocaleString("en-US", {
-							minimumFractionDigits: 2,
-							maximumFractionDigits: 2,
-						})}</td>
-                <td style="text-align:right; font-family: monospace;">${(
-							i.Other || 0
-						).toLocaleString("en-US", {
-							minimumFractionDigits: 2,
-							maximumFractionDigits: 2,
-						})}</td>
-                <td style="text-align:right; font-family: monospace; font-weight: bold;">${(
-							i.Total || 0
-						).toLocaleString("en-US", {
-							minimumFractionDigits: 2,
-							maximumFractionDigits: 2,
-						})}</td>
-              </tr>`
+            <tr>
+              <td>${i.AccountCode || ""}</td>
+              <td style="font-family: monospace;">${i.ProjectNo || ""}</td>
+              <td>${i.CategoryCode || ""}</td>
+              <td style="font-family: monospace;">${i.FundId || ""}</td>
+              <td style="text-align:right; font-family: monospace;">${(
+						i.StandCost || 0
+					).toLocaleString("en-US", {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2,
+					})}</td>
+              <td style="white-space: normal; overflow-wrap: break-word;">${
+						i.Description || ""
+					}</td>
+              <td>${
+						i.PIVdate ? new Date(i.PIVdate).toLocaleDateString() : "-"
+					}</td>
+              <td style="font-family: monospace;">${i.PIVNo || "-"}</td>
+              <td style="text-align:center;">${
+						i.CloseDate ? new Date(i.CloseDate).toLocaleDateString() : "-"
+					}</td>
+              <td style="text-align:right; font-family: monospace;">${(
+						i.Labour || 0
+					).toLocaleString("en-US", {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2,
+					})}</td>
+              <td style="text-align:right; font-family: monospace;">${(
+						i.Material || 0
+					).toLocaleString("en-US", {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2,
+					})}</td>
+              <td style="text-align:right; font-family: monospace;">${(
+						i.Other || 0
+					).toLocaleString("en-US", {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2,
+					})}</td>
+              <td style="text-align:right; font-family: monospace; font-weight: bold;">${(
+						i.Total || 0
+					).toLocaleString("en-US", {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2,
+					})}</td>
+            </tr>`
 					)
 					.join("")}
-          </tbody>
-        </table>
-        
-        <div class="summary-section">
-          <h4>SUMMARY</h4>
-          <p><b>Total Labour:</b> ${totals.labour.toLocaleString("en-US", {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2,
-				})}</p>
-          <p><b>Total Material:</b> ${totals.material.toLocaleString("en-US", {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2,
-				})}</p>
-          <p><b>Total Other:</b> ${totals.other.toLocaleString("en-US", {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2,
-				})}</p>
-          <p><b>Total Stand Cost:</b> ${totals.standCost.toLocaleString(
-					"en-US",
-					{minimumFractionDigits: 2, maximumFractionDigits: 2}
-				)}</p>
-          <p><b>Grand Total:</b> ${totals.grandTotal.toLocaleString("en-US", {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2,
-				})}</p>
-          <p><b>Total Records:</b> ${transformedData.length}</p>
-        </div>
-        
-        <div class="footer">
-          <p>Generated on: ${new Date().toLocaleDateString()} | CEB@${new Date().getFullYear()}</p>
-        </div>
-      </body>
-      </html>
-    `);
+        </tbody>
+      </table>
+
+      <div class="summary-section">
+        <h4>SUMMARY</h4>
+        <p><b>Total Labour:</b> ${totals.labour.toLocaleString("en-US", {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			})}</p>
+        <p><b>Total Material:</b> ${totals.material.toLocaleString("en-US", {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			})}</p>
+        <p><b>Total Other:</b> ${totals.other.toLocaleString("en-US", {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			})}</p>
+        <p><b>Total Stand Cost:</b> ${totals.standCost.toLocaleString("en-US", {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			})}</p>
+        <p><b>Grand Total:</b> ${totals.grandTotal.toLocaleString("en-US", {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			})}</p>
+      </div>
+
+      <div class="footer">
+        <p>Generated on: ${new Date().toLocaleDateString()} | CEB@${new Date().getFullYear()}</p>
+      </div>
+    </body>
+    </html>
+  `);
 		w.document.close();
 		w.focus();
 		setTimeout(() => {

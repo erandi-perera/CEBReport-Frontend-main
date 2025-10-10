@@ -39,12 +39,8 @@ const ProvinceExpenditure: React.FC = () => {
 
 	// Selection state
 	const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-	const [selectedYear, setSelectedYear] = useState<number>(
-		new Date().getFullYear()
-	);
-	const [selectedMonth, setSelectedMonth] = useState<number>(
-		new Date().getMonth() + 1
-	);
+	const [selectedYear, setSelectedYear] = useState<number | null>(null);
+	const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
 	// Dropdown state
 	const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
@@ -103,10 +99,8 @@ const ProvinceExpenditure: React.FC = () => {
 			document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
-	// Fetch companies
 	useEffect(() => {
 		const fetchData = async () => {
-			// Don't fetch if no EPF number
 			if (!epfNo) {
 				setError("No EPF number available. Please login again.");
 				setLoading(false);
@@ -140,7 +134,6 @@ const ProvinceExpenditure: React.FC = () => {
 		fetchData();
 	}, [epfNo]);
 
-	// Filter companies
 	useEffect(() => {
 		const f = data.filter(
 			(c) =>
@@ -153,10 +146,10 @@ const ProvinceExpenditure: React.FC = () => {
 		setPage(1);
 	}, [searchId, searchName, data]);
 
-	// Fetch province income & expenditure data
 	const fetchProvinceIncomeExpenditureData = async (company?: Company) => {
 		const targetCompany = company || selectedCompany;
-		if (!targetCompany) return;
+		if (!targetCompany || selectedYear === null || selectedMonth === null)
+			return;
 
 		setIncomeExpLoading(true);
 		setIncomeExpError(null);
@@ -210,8 +203,8 @@ const ProvinceExpenditure: React.FC = () => {
 
 	const handleCompanySelect = (company: Company) => {
 		console.log("Company selected:", company);
+		if (selectedYear === null || selectedMonth === null) return;
 		setSelectedCompany(company);
-		// Auto fetch province income & expenditure data when company is selected
 		fetchProvinceIncomeExpenditureData(company);
 	};
 
@@ -226,7 +219,8 @@ const ProvinceExpenditure: React.FC = () => {
 		setSearchName("");
 	};
 
-	const getMonthName = (monthNum: number): string => {
+	const getMonthName = (monthNum: number | null): string => {
+		if (monthNum === null) return "Select Month";
 		const monthNames = [
 			"January",
 			"February",
@@ -241,7 +235,7 @@ const ProvinceExpenditure: React.FC = () => {
 			"November",
 			"December",
 		];
-		return monthNames[monthNum - 1] || "";
+		return monthNames[monthNum - 1] || "Select Month";
 	};
 
 	const formatNumber = (num: number | null | undefined): string => {
@@ -254,11 +248,9 @@ const ProvinceExpenditure: React.FC = () => {
 			maximumFractionDigits: 2,
 		}).format(absNum);
 
-		// Return negative values in parentheses, positive values as is
 		return num < 0 ? `(${formatted})` : formatted;
 	};
 
-	// Custom Dropdown Components
 	const YearDropdown = () => (
 		<div className="year-dropdown relative">
 			<label className="block text-xs font-medium text-gray-700 mb-1">
@@ -272,14 +264,13 @@ const ProvinceExpenditure: React.FC = () => {
 				}}
 				className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
 			>
-				<span>{selectedYear}</span>
+				<span>{selectedYear !== null ? selectedYear : "Select Year"}</span>
 				<FaChevronDown
 					className={`w-3 h-3 text-gray-400 transition-transform ${
 						yearDropdownOpen ? "rotate-180" : ""
 					}`}
 				/>
 			</button>
-
 			{yearDropdownOpen && (
 				<div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
 					{years.map((year) => (
@@ -324,7 +315,6 @@ const ProvinceExpenditure: React.FC = () => {
 					}`}
 				/>
 			</button>
-
 			{monthDropdownOpen && (
 				<div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
 					{months.map((month) => (
@@ -372,11 +362,9 @@ const ProvinceExpenditure: React.FC = () => {
 			"FINANCE COST": "FINANCE COST",
 			"TAX EXPENSES": "TAX EXPENSES",
 		};
-
 		return categoryMap[categoryCode] || categoryCode;
 	};
 
-	// Group data by area for tabular display like the trial balance
 	const groupDataByArea = () => {
 		const grouped: {[key: string]: IncomeExpenditureData[]} = {};
 		const areas = new Set<string>();
@@ -393,7 +381,6 @@ const ProvinceExpenditure: React.FC = () => {
 		return {grouped, areas: Array.from(areas).sort()};
 	};
 
-	// Calculate totals for each area and grand totals
 	const calculateTotals = () => {
 		const {grouped, areas} = groupDataByArea();
 
@@ -413,7 +400,6 @@ const ProvinceExpenditure: React.FC = () => {
 			expenditureTotalsByArea[area] = 0;
 		});
 
-		// Calculate income totals
 		incomeKeys.forEach((key) => {
 			const items = grouped[key];
 			items.forEach((item) => {
@@ -421,7 +407,6 @@ const ProvinceExpenditure: React.FC = () => {
 			});
 		});
 
-		// Calculate expenditure totals
 		expenditureKeys.forEach((key) => {
 			const items = grouped[key];
 			items.forEach((item) => {
@@ -455,21 +440,18 @@ const ProvinceExpenditure: React.FC = () => {
 		};
 	};
 
-	// UPDATED Download as CSV function to match CompletedCostCenterWise style
 	const downloadAsCSV = () => {
 		if (!incomeExpData || incomeExpData.length === 0) return;
 
 		const {grouped, areas} = groupDataByArea();
 		const totals = calculateTotals();
 
-		// Format number for CSV (no thousands separator, 2 decimals)
 		const formatNum = (num: number) => {
 			if (num === undefined || num === null || isNaN(num)) return "0.00";
 			if (num === 0) return "0.00";
 			return num.toFixed(2);
 		};
 
-		// Escape CSV field
 		const escape = (field: string | number): string => {
 			const str = String(field || "");
 			if (str.includes(",") || str.includes('"') || str.includes("\n")) {
@@ -479,7 +461,6 @@ const ProvinceExpenditure: React.FC = () => {
 		};
 
 		const csvRows = [
-			// Header section
 			[`Consolidated Income & Expenditure Provincial Statement`],
 			[
 				`Period Ended: ${getMonthName(
@@ -493,7 +474,6 @@ const ProvinceExpenditure: React.FC = () => {
 			],
 			[`Generated: ${new Date().toLocaleString()}`],
 			[],
-			// Column headers
 			[
 				"Account Code",
 				"Description",
@@ -502,7 +482,6 @@ const ProvinceExpenditure: React.FC = () => {
 			],
 		];
 
-		// Income section
 		const incomeKeys = Object.keys(grouped).filter(
 			(key) => grouped[key][0].CatFlag === "I"
 		);
@@ -528,7 +507,6 @@ const ProvinceExpenditure: React.FC = () => {
 				csvRows.push(row);
 			});
 
-			// Total Income row
 			csvRows.push([]);
 			const totalIncomeRow = [
 				"",
@@ -539,7 +517,6 @@ const ProvinceExpenditure: React.FC = () => {
 			csvRows.push(totalIncomeRow);
 		}
 
-		// Expenditure section
 		const expenditureKeys = Object.keys(grouped).filter(
 			(key) =>
 				grouped[key][0].CatFlag === "E" || grouped[key][0].CatFlag === "X"
@@ -566,7 +543,6 @@ const ProvinceExpenditure: React.FC = () => {
 				csvRows.push(row);
 			});
 
-			// Total Expenditure row
 			csvRows.push([]);
 			const totalExpenditureRow = [
 				"",
@@ -579,7 +555,6 @@ const ProvinceExpenditure: React.FC = () => {
 			csvRows.push(totalExpenditureRow);
 		}
 
-		// Net Total row
 		csvRows.push([]);
 		const netTotalRow = [
 			"",
@@ -589,7 +564,6 @@ const ProvinceExpenditure: React.FC = () => {
 		];
 		csvRows.push(netTotalRow);
 
-		// Summary section
 		csvRows.push([]);
 		csvRows.push(["SUMMARY"]);
 		csvRows.push(["Total Income", formatNum(totals.totalIncomeGrand)]);
@@ -602,9 +576,7 @@ const ProvinceExpenditure: React.FC = () => {
 		csvRows.push([]);
 		csvRows.push([`CEB@${new Date().getFullYear()}`]);
 
-		// Convert to CSV format
 		const csvContent = csvRows.map((row) => row.join(",")).join("\n");
-
 		const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement("a");
@@ -618,7 +590,6 @@ const ProvinceExpenditure: React.FC = () => {
 		URL.revokeObjectURL(url);
 	};
 
-	// Print PDF function
 	const printPDF = () => {
 		if (!incomeExpData || incomeExpData.length === 0) return;
 
@@ -629,7 +600,6 @@ const ProvinceExpenditure: React.FC = () => {
 
 		let tableRowsHTML = "";
 
-		// Group by income/expenditure
 		const incomeKeys = Object.keys(grouped).filter(
 			(key) => grouped[key][0].CatFlag === "I"
 		);
@@ -638,7 +608,6 @@ const ProvinceExpenditure: React.FC = () => {
 				grouped[key][0].CatFlag === "E" || grouped[key][0].CatFlag === "X"
 		);
 
-		// Income section
 		if (incomeKeys.length > 0) {
 			tableRowsHTML += `
         <tr class="category-header">
@@ -675,7 +644,6 @@ const ProvinceExpenditure: React.FC = () => {
         `;
 			});
 
-			// Total Income row
 			tableRowsHTML += `
         <tr style="background-color: #f0f0f0; font-weight: bold;">
           <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px;"></td>
@@ -696,7 +664,6 @@ const ProvinceExpenditure: React.FC = () => {
       `;
 		}
 
-		// Expenditure section
 		if (expenditureKeys.length > 0) {
 			tableRowsHTML += `
         <tr class="category-header">
@@ -733,7 +700,6 @@ const ProvinceExpenditure: React.FC = () => {
         `;
 			});
 
-			// Total Expenditure row
 			tableRowsHTML += `
         <tr style="background-color: #f0f0f0; font-weight: bold;">
           <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px;"></td>
@@ -754,7 +720,6 @@ const ProvinceExpenditure: React.FC = () => {
       `;
 		}
 
-		// Net Total row
 		tableRowsHTML += `
       <tr style="background-color: #e0e0e0; font-weight: bold; border-top: 2px solid #7A0000;">
         <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px;"></td>
@@ -788,14 +753,12 @@ const ProvinceExpenditure: React.FC = () => {
             font-size: 10px;
             color: #333;
           }
-          
           .header {
             text-align: center;
             margin-bottom: 20px;
             border-bottom: 2px solid #7A0000;
             padding-bottom: 10px;
           }
-          
           .header h1 {
             color: #7A0000;
             font-size: 14px;
@@ -815,7 +778,6 @@ const ProvinceExpenditure: React.FC = () => {
             margin-bottom: 20px;
             font-size: 9px;
           }
-          
           th {
             background-color: #7A0000;
             color: white;
@@ -825,20 +787,17 @@ const ProvinceExpenditure: React.FC = () => {
             border: 1px solid #7A0000;
             font-size: 9px;
           }
-          
           td {
             padding: 3px 4px;
             border: 1px solid #ddd;
             font-size: 9px;
           }
-          
           .footer {
             margin-top: 20px;
             text-align: center;
             font-size: 8px;
             color: #666;
           }
-          
           @media print {
             body { margin: 0; font-size: 8px; }
             table { font-size: 8px; }
@@ -846,10 +805,12 @@ const ProvinceExpenditure: React.FC = () => {
             @page {
                 @bottom-left { content: "Printed on: ${new Date().toLocaleString(
 							"en-US",
-							{timeZone: "Asia/Colombo"}
+							{
+								timeZone: "Asia/Colombo",
+							}
 						)}"; font-size: 0.75rem; color: gray; }
                 @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
-              }
+            }
           }
         </style>
       </head>
@@ -863,7 +824,6 @@ const ProvinceExpenditure: React.FC = () => {
 			selectedCompany?.CompName
 		}</h2>
         </div>
-        
         <table>
           <thead>
             <tr>
@@ -884,7 +844,6 @@ const ProvinceExpenditure: React.FC = () => {
             ${tableRowsHTML}
           </tbody>
         </table>
-        
         <div class="footer">
           <p>Prepared By: _________________ | Checked By: _________________ | Accountant: _________________</p>
           <p>Date: ${new Date().toLocaleDateString()}</p>
@@ -902,14 +861,12 @@ const ProvinceExpenditure: React.FC = () => {
 		};
 	};
 
-	// Income & Expenditure Modal Component with improved table layout like trial balance
 	const IncomeExpenditureModal = () => {
 		if (!incomeExpModalOpen || !selectedCompany) return null;
 
 		const {grouped, areas} = groupDataByArea();
 		const totals = calculateTotals();
 
-		// Separate income and expenditure
 		const incomeKeys = Object.keys(grouped).filter(
 			(key) => grouped[key][0].CatFlag === "I"
 		);
@@ -985,7 +942,6 @@ const ProvinceExpenditure: React.FC = () => {
 							</div>
 						) : (
 							<div>
-								{/* Buttons section above table */}
 								<div className="flex justify-between items-center mb-2">
 									<div></div>
 									<div className="flex gap-2">
@@ -1001,7 +957,6 @@ const ProvinceExpenditure: React.FC = () => {
 										>
 											<Printer className="w-3 h-3" /> PDF
 										</button>
-
 										<button
 											onClick={closeIncomeExpModal}
 											className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
@@ -1044,7 +999,6 @@ const ProvinceExpenditure: React.FC = () => {
 											</tr>
 										</thead>
 										<tbody>
-											{/* Income Section */}
 											{incomeKeys.length > 0 && (
 												<>
 													<tr className="bg-gray-100 border-t border-b border-gray-300">
@@ -1056,7 +1010,6 @@ const ProvinceExpenditure: React.FC = () => {
 														</td>
 													</tr>
 													{(() => {
-														// Group income items by category
 														const groupedIncome =
 															incomeKeys.reduce(
 																(groups, key) => {
@@ -1065,7 +1018,6 @@ const ProvinceExpenditure: React.FC = () => {
 																	const category =
 																		firstItem.CatCode?.trim() ||
 																		"UNCATEGORIZED";
-
 																	if (!groups[category]) {
 																		groups[category] = [];
 																	}
@@ -1092,7 +1044,6 @@ const ProvinceExpenditure: React.FC = () => {
 															<React.Fragment
 																key={`income-category-${category}`}
 															>
-																{/* Category sub-header */}
 																<tr className="sub-category-header">
 																	<td className="px-2 py-1"></td>
 																	<td className="px-2 py-1 font-bold bg-gray-50 sticky left-0">
@@ -1108,8 +1059,6 @@ const ProvinceExpenditure: React.FC = () => {
 																	))}
 																	<td className="px-2 py-1"></td>
 																</tr>
-
-																{/* Individual items in this category */}
 																{categoryItems.map(
 																	(
 																		{items, firstItem},
@@ -1122,7 +1071,6 @@ const ProvinceExpenditure: React.FC = () => {
 																					item.Actual,
 																				0
 																			);
-
 																		return (
 																			<tr
 																				key={`income-${category}-${index}`}
@@ -1171,8 +1119,6 @@ const ProvinceExpenditure: React.FC = () => {
 															</React.Fragment>
 														));
 													})()}
-
-													{/* Total Income Row */}
 													<tr className="bg-gray-200 border-t-2 border-gray-400">
 														<td className="px-2 py-1 font-mono sticky left-0 bg-gray-200"></td>
 														<td className="px-2 py-1 font-bold sticky left-0 bg-gray-200">
@@ -1198,8 +1144,6 @@ const ProvinceExpenditure: React.FC = () => {
 													</tr>
 												</>
 											)}
-
-											{/* Expenditure Section */}
 											{expenditureKeys.length > 0 && (
 												<>
 													<tr className="bg-gray-100 border-t border-b border-gray-300">
@@ -1217,7 +1161,6 @@ const ProvinceExpenditure: React.FC = () => {
 															(sum, item) => sum + item.Actual,
 															0
 														);
-
 														return (
 															<tr
 																key={`exp-${index}`}
@@ -1252,8 +1195,6 @@ const ProvinceExpenditure: React.FC = () => {
 															</tr>
 														);
 													})}
-
-													{/* Total Expenditure Row */}
 													<tr className="bg-gray-200 border-t-2 border-gray-400">
 														<td className="px-2 py-1 font-mono sticky left-0 bg-gray-200"></td>
 														<td className="px-2 py-1 font-bold sticky left-0 bg-gray-200">
@@ -1280,8 +1221,6 @@ const ProvinceExpenditure: React.FC = () => {
 													</tr>
 												</>
 											)}
-
-											{/* Net Total Row */}
 											<tr className="bg-yellow-100 border-t-4 border-[#7A0000]">
 												<td className="px-2 py-1 font-mono sticky left-0 bg-yellow-100"></td>
 												<td className="px-2 py-1 font-bold sticky left-0 bg-yellow-100 text-[#7A0000]">
@@ -1303,7 +1242,6 @@ const ProvinceExpenditure: React.FC = () => {
 											</tr>
 										</tbody>
 									</table>
-
 									<div className="mt-6 text-xs">
 										<div className="grid grid-cols-3 gap-4 border-t pt-4">
 											<div>
@@ -1335,7 +1273,6 @@ const ProvinceExpenditure: React.FC = () => {
 
 	return (
 		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
-			{/* Header */}
 			<div className="flex justify-between items-center mb-4">
 				<div>
 					<h2 className={`text-xl font-bold ${maroon}`}>
@@ -1344,10 +1281,8 @@ const ProvinceExpenditure: React.FC = () => {
 				</div>
 			</div>
 
-			{/* Search and Date Selection Section */}
 			<div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
 				<div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-					{/* Search by Code */}
 					<div>
 						<label className="block text-xs font-medium text-gray-700 mb-1">
 							Search by Code
@@ -1363,8 +1298,6 @@ const ProvinceExpenditure: React.FC = () => {
 							/>
 						</div>
 					</div>
-
-					{/* Search by Name */}
 					<div>
 						<label className="block text-xs font-medium text-gray-700 mb-1">
 							Search by Name
@@ -1380,14 +1313,8 @@ const ProvinceExpenditure: React.FC = () => {
 							/>
 						</div>
 					</div>
-
-					{/* Year Dropdown */}
 					<YearDropdown />
-
-					{/* Month Dropdown */}
 					<MonthDropdown />
-
-					{/* Clear Filters Button */}
 					<div>
 						{(searchId || searchName) && (
 							<button
@@ -1399,7 +1326,6 @@ const ProvinceExpenditure: React.FC = () => {
 						)}
 					</div>
 				</div>
-
 				{selectedCompany && (
 					<div className="mt-2 text-xs text-gray-600">
 						Selected:{" "}
@@ -1411,7 +1337,6 @@ const ProvinceExpenditure: React.FC = () => {
 				)}
 			</div>
 
-			{/* Loading State */}
 			{loading && (
 				<div className="text-center py-8">
 					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
@@ -1419,7 +1344,6 @@ const ProvinceExpenditure: React.FC = () => {
 				</div>
 			)}
 
-			{/* Error State */}
 			{error && (
 				<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
 					Error: {error}
@@ -1433,7 +1357,6 @@ const ProvinceExpenditure: React.FC = () => {
 				</div>
 			)}
 
-			{/* Table */}
 			{!loading && !error && filtered.length > 0 && (
 				<>
 					<div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -1473,12 +1396,21 @@ const ProvinceExpenditure: React.FC = () => {
 													onClick={() =>
 														handleCompanySelect(company)
 													}
+													disabled={
+														selectedYear === null ||
+														selectedMonth === null
+													}
 													className={`px-3 py-1 ${
 														selectedCompany?.compId ===
 														company.compId
 															? "bg-green-600 text-white"
 															: maroonGrad + " text-white"
-													} rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+													} rounded-md text-xs font-medium hover:brightness-110 transition shadow ${
+														selectedYear === null ||
+														selectedMonth === null
+															? "opacity-50 cursor-not-allowed"
+															: ""
+													}`}
 												>
 													<Eye className="inline-block mr-1 w-3 h-3" />
 													{selectedCompany?.compId ===
@@ -1493,8 +1425,6 @@ const ProvinceExpenditure: React.FC = () => {
 							</table>
 						</div>
 					</div>
-
-					{/* Pagination */}
 					<div className="flex justify-end items-center gap-3 mt-3">
 						<button
 							onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -1524,7 +1454,6 @@ const ProvinceExpenditure: React.FC = () => {
 				</>
 			)}
 
-			{/* Income & Expenditure Modal */}
 			<IncomeExpenditureModal />
 		</div>
 	);

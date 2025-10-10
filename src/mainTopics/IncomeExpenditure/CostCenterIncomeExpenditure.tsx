@@ -37,12 +37,8 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 	// Selection state
 	const [selectedDepartment, setSelectedDepartment] =
 		useState<Department | null>(null);
-	const [selectedYear, setSelectedYear] = useState<number>(
-		new Date().getFullYear()
-	);
-	const [selectedMonth, setSelectedMonth] = useState<number>(
-		new Date().getMonth() + 1
-	);
+	const [selectedYear, setSelectedYear] = useState<number | null>(null);
+	const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
 	// Income & Expenditure modal state
 	const [incomeExpModalOpen, setIncomeExpModalOpen] = useState(false);
@@ -188,7 +184,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 	// Fetch income & expenditure data
 	const fetchIncomeExpenditureData = async (department?: Department) => {
 		const targetDepartment = department || selectedDepartment;
-		if (!targetDepartment) return;
+		if (!targetDepartment || !selectedYear || !selectedMonth) return;
 
 		setIncomeExpLoading(true);
 		setIncomeExpError(null);
@@ -243,8 +239,10 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 	const handleDepartmentSelect = (department: Department) => {
 		console.log("Department selected:", department);
 		setSelectedDepartment(department);
-		// Auto fetch income & expenditure data when department is selected
-		fetchIncomeExpenditureData(department);
+		// Only fetch data if both year and month are selected
+		if (selectedYear && selectedMonth) {
+			fetchIncomeExpenditureData(department);
+		}
 	};
 
 	const closeIncomeExpModal = () => {
@@ -258,7 +256,8 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 		setSearchName("");
 	};
 
-	const getMonthName = (monthNum: number): string => {
+	const getMonthName = (monthNum: number | null): string => {
+		if (!monthNum) return "Select Month";
 		const monthNames = [
 			"January",
 			"February",
@@ -273,7 +272,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 			"November",
 			"December",
 		];
-		return monthNames[monthNum - 1] || "";
+		return monthNames[monthNum - 1] || "Select Month";
 	};
 
 	// Updated function to get category names based on your actual data
@@ -319,7 +318,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 				}}
 				className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
 			>
-				<span>{selectedYear}</span>
+				<span>{selectedYear || "Select Year"}</span>
 				<FaChevronDown
 					className={`w-3 h-3 text-gray-400 transition-transform ${
 						yearDropdownOpen ? "rotate-180" : ""
@@ -336,6 +335,10 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 							onClick={() => {
 								setSelectedYear(year);
 								setYearDropdownOpen(false);
+								// Fetch data if department and month are selected
+								if (selectedDepartment && selectedMonth) {
+									fetchIncomeExpenditureData();
+								}
 							}}
 							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
 								selectedYear === year
@@ -381,6 +384,10 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 							onClick={() => {
 								setSelectedMonth(month);
 								setMonthDropdownOpen(false);
+								// Fetch data if department and year are selected
+								if (selectedDepartment && selectedYear) {
+									fetchIncomeExpenditureData();
+								}
 							}}
 							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
 								selectedMonth === month
@@ -1611,12 +1618,15 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 													onClick={() =>
 														handleDepartmentSelect(department)
 													}
+													disabled={
+														!selectedYear || !selectedMonth
+													}
 													className={`px-3 py-1 ${
 														selectedDepartment?.DeptId ===
 														department.DeptId
 															? "bg-green-600 text-white"
 															: maroonGrad + " text-white"
-													} rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+													} rounded-md text-xs font-medium hover:brightness-110 transition shadow disabled:opacity-50 disabled:cursor-not-allowed`}
 												>
 													<Eye className="inline-block mr-1 w-3 h-3" />
 													{selectedDepartment?.DeptId ===

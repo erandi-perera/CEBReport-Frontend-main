@@ -43,12 +43,12 @@ const ProvintionalWiseTrial: React.FC = () => {
 	// Selection state
 	const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
-	// Date selection state - moved to table header
-	const [selectedYear, setSelectedYear] = useState<number>(
-		new Date().getFullYear()
+	// Date selection state - changed to undefined initially
+	const [selectedYear, setSelectedYear] = useState<number | undefined>(
+		undefined
 	);
-	const [selectedMonth, setSelectedMonth] = useState<number>(
-		new Date().getMonth() + 1
+	const [selectedMonth, setSelectedMonth] = useState<number | undefined>(
+		undefined
 	);
 
 	// Dropdown state
@@ -162,14 +162,16 @@ const ProvintionalWiseTrial: React.FC = () => {
 	const handleCompanySelect = (company: Company) => {
 		console.log("Company selected:", company);
 		setSelectedCompany(company);
-		// Auto fetch trial balance data when company is selected
-		fetchTrialBalanceData(company);
+		// Only fetch if both month and year are selected
+		if (selectedMonth && selectedYear) {
+			fetchTrialBalanceData(company);
+		}
 	};
 
 	// Fetch trial balance data
 	const fetchTrialBalanceData = async (company?: Company) => {
 		const targetCompany = company || selectedCompany;
-		if (!targetCompany) return;
+		if (!targetCompany || !selectedMonth || !selectedYear) return;
 
 		setTrialLoading(true);
 		setTrialError(null);
@@ -333,7 +335,8 @@ const ProvintionalWiseTrial: React.FC = () => {
 		setSelectedCompany(null);
 	};
 
-	const getMonthName = (monthNum: number): string => {
+	const getMonthName = (monthNum: number | undefined): string => {
+		if (!monthNum) return "Select Month";
 		const monthNames = [
 			"January",
 			"February",
@@ -348,7 +351,7 @@ const ProvintionalWiseTrial: React.FC = () => {
 			"November",
 			"December",
 		];
-		return monthNames[monthNum - 1] || "";
+		return monthNames[monthNum - 1] || "Select Month";
 	};
 
 	const formatNumber = (num: number | null): string => {
@@ -376,7 +379,7 @@ const ProvintionalWiseTrial: React.FC = () => {
 				}}
 				className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
 			>
-				<span>{selectedYear}</span>
+				<span>{selectedYear || "Select Year"}</span>
 				<FaChevronDown
 					className={`w-3 h-3 text-gray-400 transition-transform ${
 						yearDropdownOpen ? "rotate-180" : ""
@@ -393,6 +396,10 @@ const ProvintionalWiseTrial: React.FC = () => {
 							onClick={() => {
 								setSelectedYear(year);
 								setYearDropdownOpen(false);
+								// Auto-fetch data if both year and month are selected
+								if (selectedMonth && selectedCompany) {
+									fetchTrialBalanceData();
+								}
 							}}
 							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
 								selectedYear === year
@@ -438,6 +445,10 @@ const ProvintionalWiseTrial: React.FC = () => {
 							onClick={() => {
 								setSelectedMonth(month);
 								setMonthDropdownOpen(false);
+								// Auto-fetch data if both year and month are selected
+								if (selectedYear && selectedCompany) {
+									fetchTrialBalanceData();
+								}
 							}}
 							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
 								selectedMonth === month
@@ -453,14 +464,14 @@ const ProvintionalWiseTrial: React.FC = () => {
 		</div>
 	);
 
-	// UPDATED CSV export function to match completed cost center format
+	// CSV export function
 	const downloadAsCSV = () => {
 		if (!trialBalanceData || trialBalanceData.length === 0) return;
 
 		const {costCenters, grouped} = getConsolidatedData();
 		calculateCategoryTotals();
 
-		// Helper function to format numbers for CSV (matching completed cost center)
+		// Helper function to format numbers for CSV
 		const formatNumberCSV = (num: number): string => {
 			if (num === undefined || num === null || isNaN(num)) return "0.00";
 			const numValue = typeof num === "string" ? parseFloat(num) : num;
@@ -481,21 +492,18 @@ const ProvintionalWiseTrial: React.FC = () => {
 			return (categoryOrder[aCat] || 6) - (categoryOrder[bCat] || 6);
 		});
 
-		// HEADER SECTION (matching completed cost center format)
+		// HEADER SECTION
 		const csvRows = [
-			// Main header
 			[
 				`COMPANY-WISE TRIAL BALANCE - ${getMonthName(
 					selectedMonth
 				).toUpperCase()} ${selectedYear}`,
 			],
-			// Company info
 			[
 				`Company : ${
 					selectedCompany?.compId
 				} / ${selectedCompany?.CompName?.toUpperCase()}`,
 			],
-			// Empty row for spacing
 			[],
 		];
 
@@ -545,7 +553,7 @@ const ProvintionalWiseTrial: React.FC = () => {
 			// Add data row
 			const dataRow = [
 				row.AccountCode,
-				`"${row.AccountName.replace(/"/g, '""')}"`, // Escape quotes in account name
+				`"${row.AccountName.replace(/"/g, '""')}"`,
 				...costCenters.map((cc) => formatNumberCSV(row.balances[cc] || 0)),
 				formatNumberCSV(rowTotal),
 			];
@@ -571,11 +579,11 @@ const ProvintionalWiseTrial: React.FC = () => {
 					formatNumberCSV(categorySums[rowCategory].total),
 				];
 				csvRows.push(categoryTotalRow);
-				csvRows.push([]); // Empty row after category total
+				csvRows.push([]);
 			}
 		});
 
-		// GRAND TOTALS SECTION (matching completed cost center format)
+		// GRAND TOTALS SECTION
 		const grandTotalByCostCenter: Record<string, number> = {};
 		costCenters.forEach((cc) => {
 			grandTotalByCostCenter[cc] = Object.values(categorySums).reduce(
@@ -602,7 +610,7 @@ const ProvintionalWiseTrial: React.FC = () => {
 			]
 		);
 
-		// SUMMARY SECTION (matching completed cost center format)
+		// SUMMARY SECTION
 		csvRows.push(
 			[],
 			["SUMMARY"],
@@ -610,7 +618,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 				`Total ${category}`,
 				formatNumberCSV(sums.total),
 			]),
-
 			[],
 			[`Generated: ${new Date().toLocaleString()}`],
 			[`CEB@${new Date().getFullYear()}`]
@@ -622,7 +629,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 				return row
 					.map((cell) => {
 						const cellStr = String(cell || "");
-						// If cell contains comma, quote, or newline, wrap in quotes and escape internal quotes
 						if (
 							cellStr.includes(",") ||
 							cellStr.includes('"') ||
@@ -671,7 +677,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 				);
 
 				if (categoryRows.length > 0) {
-					// Enhanced Category header
 					const getCategoryInfo = (cat: string) => {
 						switch (cat) {
 							case "Assets":
@@ -713,7 +718,6 @@ const ProvintionalWiseTrial: React.FC = () => {
           </tr>
         `;
 
-					// Category rows
 					categoryRows.forEach((row) => {
 						const total = costCenters.reduce(
 							(sum, cc) => sum + (row.balances[cc] || 0),
@@ -743,7 +747,6 @@ const ProvintionalWiseTrial: React.FC = () => {
           `;
 					});
 
-					// Enhanced Category total
 					tableRowsHTML += `
           <tr class="category-total">
             <td colspan="2" style="padding: 6px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold; color: #7A0000; border-top: 2px solid #7A0000;">
@@ -767,7 +770,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 			}
 		);
 
-		// FIXED: Grand total calculation
 		const grandTotalByCostCenter: Record<string, number> = {};
 		costCenters.forEach((cc) => {
 			grandTotalByCostCenter[cc] = Object.values(categoryTotals).reduce(
@@ -798,7 +800,6 @@ const ProvintionalWiseTrial: React.FC = () => {
       </tr>
     `;
 
-		// Create the HTML content for printing
 		const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -813,39 +814,28 @@ const ProvintionalWiseTrial: React.FC = () => {
             font-size: 12px;
             color: #333;
           }
-         
           .header {
             text-align: center;
             margin-bottom: 30px;
             border-bottom: 2px solid #7A0000;
             padding-bottom: 15px;
           }
-         
           .header h1 {
             color: #7A0000;
             font-size: 18px;
             margin: 0;
             font-weight: bold;
           }
-         
           .header h2 {
             color: #7A0000;
             font-size: 14px;
             margin: 5px 0;
           }
-         
-          .header-info {
-            margin-top: 10px;
-            font-size: 12px;
-            color: #666;
-          }
-         
           table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
           }
-         
           th {
             background-color: #7A0000;
             color: white;
@@ -854,24 +844,20 @@ const ProvintionalWiseTrial: React.FC = () => {
             padding: 8px;
             border: 1px solid #7A0000;
           }
-         
           td {
             padding: 6px;
             border: 1px solid #ddd;
           }
-         
           .category-header td {
             text-align: center;
             font-weight: bold;
             background-color: #f5f5f5;
             color: #7A0000;
           }
-         
           .category-total td {
             background-color: #f9f9f9;
             font-weight: bold;
           }
-         
           .footer {
             margin-top: 30px;
             text-align: center;
@@ -880,7 +866,6 @@ const ProvintionalWiseTrial: React.FC = () => {
             border-top: 1px solid #ddd;
             padding-top: 15px;
           }
-         
           @media print {
             body { margin: 0; }
             .header { page-break-inside: avoid; }
@@ -904,9 +889,7 @@ const ProvintionalWiseTrial: React.FC = () => {
           <h2>Company: ${selectedCompany?.compId} - ${
 			selectedCompany?.CompName
 		}</h2>
-          </div>
         </div>
-       
         <table>
           <thead>
             <tr>
@@ -926,17 +909,13 @@ const ProvintionalWiseTrial: React.FC = () => {
             ${tableRowsHTML}
           </tbody>
         </table>
-       
-      
       </body>
       </html>
     `;
 
-		// Write content to the new window and print
 		printWindow.document.write(htmlContent);
 		printWindow.document.close();
 
-		// Wait for content to load then print
 		printWindow.onload = () => {
 			printWindow.print();
 			printWindow.close();
@@ -1079,12 +1058,15 @@ const ProvintionalWiseTrial: React.FC = () => {
 													onClick={() =>
 														handleCompanySelect(company)
 													}
+													disabled={
+														!selectedMonth || !selectedYear
+													}
 													className={`px-3 py-1 ${
 														selectedCompany?.compId ===
 														company.compId
 															? "bg-green-600 text-white"
 															: maroonGrad + " text-white"
-													} rounded text-xs font-medium hover:brightness-110 transition shadow`}
+													} rounded text-xs font-medium hover:brightness-110 transition shadow disabled:opacity-50 disabled:cursor-not-allowed`}
 												>
 													<FaEye className="inline-block mr-1 w-3 h-3" />
 													{selectedCompany?.compId ===
@@ -1174,7 +1156,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 							</div>
 						) : (
 							<div>
-								{/* Buttons section above table */}
 								<div className="flex justify-between items-center mb-2">
 									<div></div>
 									<div className="flex gap-2">
@@ -1190,7 +1171,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 										>
 											<FaPrint className="w-3 h-3" /> PDF
 										</button>
-
 										<button
 											onClick={closeTrialModal}
 											className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
@@ -1243,7 +1223,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 
 												if (categoryRows.length === 0) return null;
 
-												// Get category icon and description
 												const getCategoryInfo = (cat: string) => {
 													switch (cat) {
 														case "Assets":
@@ -1279,7 +1258,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 
 												return (
 													<React.Fragment key={category}>
-														{/* Enhanced Category Header */}
 														<tr className="bg-gradient-to-r from-gray-100 to-gray-200 border-t-2 border-b-2 border-[#7A0000]">
 															<td
 																colSpan={costCenters.length + 3}
@@ -1296,7 +1274,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 															</td>
 														</tr>
 
-														{/* Category Rows */}
 														{categoryRows.map((row, index) => {
 															const total = costCenters.reduce(
 																(sum, cc) =>
@@ -1333,7 +1310,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 															);
 														})}
 
-														{/* Enhanced Category Total Row */}
 														<tr className="bg-gradient-to-r from-gray-200 to-gray-300 font-bold border-t-2 border-[#7A0000]">
 															<td className="px-2 py-1 sticky left-0 bg-gray-200"></td>
 															<td className="px-2 py-1 sticky left-0 bg-gray-200 text-[#7A0000]">
@@ -1371,7 +1347,6 @@ const ProvintionalWiseTrial: React.FC = () => {
 												);
 											})}
 
-											{/* FIXED Grand Total Row */}
 											<tr className="border-t-2 border-gray-800 bg-gray-200 font-bold">
 												<td className="px-2 py-1 sticky left-0 bg-gray-200"></td>
 												<td className="px-2 py-1 sticky left-0 bg-gray-200">
