@@ -38,12 +38,8 @@ const CostCenterTrial: React.FC = () => {
 		useState<CostCenter | null>(null);
 
 	// Date selection state
-	const [selectedYear, setSelectedYear] = useState<number>(
-		new Date().getFullYear()
-	);
-	const [selectedMonth, setSelectedMonth] = useState<number>(
-		new Date().getMonth() + 1
-	);
+	const [selectedYear, setSelectedYear] = useState<number | null>(null);
+	const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
 	// Dropdown state
 	const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
@@ -219,7 +215,7 @@ const CostCenterTrial: React.FC = () => {
 	// Fetch trial balance data
 	const fetchTrialBalanceData = async (costCenter?: CostCenter) => {
 		const targetCostCenter = costCenter || selectedCostCenter;
-		if (!targetCostCenter) return;
+		if (!targetCostCenter || !selectedYear || !selectedMonth) return;
 
 		setTrialLoading(true);
 		setTrialError(null);
@@ -406,7 +402,7 @@ const CostCenterTrial: React.FC = () => {
 				}}
 				className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
 			>
-				<span>{selectedYear}</span>
+				<span>{selectedYear || "Select Year"}</span>
 				<FaChevronDown
 					className={`w-3 h-3 text-gray-400 transition-transform ${
 						yearDropdownOpen ? "rotate-180" : ""
@@ -451,7 +447,9 @@ const CostCenterTrial: React.FC = () => {
 				}}
 				className="w-full flex justify-between items-center px-3 py-1.5 border border-gray-300 rounded bg-white text-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-[#7A0000]"
 			>
-				<span>{getMonthName(selectedMonth)}</span>
+				<span>
+					{selectedMonth ? getMonthName(selectedMonth) : "Select Month"}
+				</span>
 				<FaChevronDown
 					className={`w-3 h-3 text-gray-400 transition-transform ${
 						monthDropdownOpen ? "rotate-180" : ""
@@ -511,8 +509,6 @@ const CostCenterTrial: React.FC = () => {
 				}`,
 			],
 			[`Cost Center: ${trialData.costctr} - ${trialData.deptName}`],
-			[`Generated on: ${new Date().toLocaleDateString()}`],
-			[`Total Records: ${trialBalanceData.length}`],
 			[""], // Empty row for spacing
 			[
 				"Description/Name",
@@ -796,11 +792,6 @@ const CostCenterTrial: React.FC = () => {
 			trialData.year
 		}</h1>
           <h2>Cost Center: ${trialData.costctr} - ${trialData.deptName}</h2>
-          <div class="header-info">
-            Generated on: ${new Date().toLocaleDateString()} | Total Records: ${
-			trialBalanceData.length
-		}
-          </div>
         </div>
         
         <table>
@@ -818,9 +809,6 @@ const CostCenterTrial: React.FC = () => {
           </tbody>
         </table>
         
-        <div class="footer">
-          <p>Generated on: ${new Date().toLocaleDateString()} | CEB@2025</p>
-        </div>
       </body>
       </html>
     `;
@@ -981,12 +969,19 @@ const CostCenterTrial: React.FC = () => {
 													onClick={() =>
 														handleCostCenterSelect(costCenter)
 													}
+													disabled={
+														!selectedYear || !selectedMonth
+													}
 													className={`px-3 py-1 ${
 														selectedCostCenter?.compId ===
 														costCenter.compId
 															? "bg-green-600 text-white"
 															: maroonGrad + " text-white"
-													} rounded text-xs font-medium hover:brightness-110 transition shadow`}
+													} rounded text-xs font-medium hover:brightness-110 transition shadow ${
+														!selectedYear || !selectedMonth
+															? "opacity-50 cursor-not-allowed"
+															: ""
+													}`}
 												>
 													<FaEye className="inline-block mr-1 w-3 h-3" />
 													{selectedCostCenter?.compId ===
@@ -1009,7 +1004,7 @@ const CostCenterTrial: React.FC = () => {
 						>
 							Previous
 						</button>
-						<span className="text-xs text-gray-500">
+						<span className="text-xs text-gray-600">
 							Page {page} of {Math.ceil(filtered.length / pageSize)}
 						</span>
 						<button

@@ -72,6 +72,12 @@ export default defineConfig({
 				secure: false,
 				rewrite: (path) => path.replace(/^\/jobcard/, ""),
 			},
+			"/avgConsumption": {
+				target: "http://localhost:44381",
+				changeOrigin: true,
+				secure: false,
+				rewrite: (path) => path.replace(/^\/avgConsumption/, ""),
+			},
 		},
 	},
 });

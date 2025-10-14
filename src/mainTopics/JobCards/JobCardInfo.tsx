@@ -46,13 +46,13 @@ const JobCardTable: React.FC<{
 	const maroon = "text-[#7A0000]";
 	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 	const [showOrientationModal, setShowOrientationModal] = useState(false);
-	const [selectedOrientation, setSelectedOrientation] = useState<
+	const [, setSelectedOrientation] = useState<
 		"portrait" | "landscape" | null
 	>(null);
 
 	const printPDF = (
 		jobCards: JobcardModel[],
-		departmentName: string,
+		_departmentName: string,
 		orientation: "portrait" | "landscape"
 	) => {
 		if (!jobCards || jobCards.length === 0) return;
@@ -226,98 +226,103 @@ const JobCardTable: React.FC<{
 
 		const htmlContent = `
       <html>
-        <head>
-          <style>
-            @media print {
-              @page { size: A4 ${orientation}; margin: 20mm 15mm 25mm 15mm; }
-              body { margin: 0; font-family: Arial, sans-serif; }
-              .print-container { width: 100%; margin: 0; padding: 0; }
-              .print-header { margin-bottom: 2.5rem; margin-top: 3rem; margin-left: 2rem; font-size: 1.125rem; text-align: center; }
-              .print-header h2 { font-weight: bold; color: #7A0000; }
-              .print-summary { display: flex; justify-content: space-between; margin-bottom: 2rem; margin-left: 2rem; margin-right: 2rem; font-size: 0.875rem; }
-              .print-summary div { flex: 1; }
-              .print-summary p { margin: 0.125rem 0; }
-              .print-summary .font-bold { font-weight: bold; }
-              .print-currency { text-align: right; font-size: 0.875rem; font-weight: 600; color: #4B5563; margin-bottom: 1.25rem; margin-right: 2rem; }
-              table.print-table { border-collapse: collapse; width: 100%; margin-left:0; margin-right: 3rem; }
-              table.print-table th, table.print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; }
-              table.print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
-              table.print-table td { text-align: right; }
-              table.print-table tr.bg-white { background-color: #fff; }
-              table.print-table tr.bg-gray-50 { background-color: #F9FAFB; }
-              table.print-table tr.bg-gray-200 { background-color: #E5E7EB; }
-              table.print-table tr { page-break-inside: avoid; }
-              thead { display: table-header-group; }
-              @page {
-                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
-							"en-US",
-							{timeZone: "Asia/Colombo"}
-						)}"; font-size: 0.75rem; color: gray; }
-                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="print-container">
-            <div class="print-header">
-              <h2>Job Card</h2>
-            </div>
-            <div class="print-summary">
-              <div>
-                <p><span class="font-bold">Project No.</span> ${firstJob.ProjectNo.trim()}</p>
-                <p><span class="font-bold">Estimated Cost:</span> ${formatNumber(
-							firstJob.EstimatedCost
-						)}</p>
-                <p><span class="font-bold">Committed Cost:</span> ${formatNumber(
-							firstJob.CommitedCost
-						)}</p>
-                <p><span class="font-bold">Variance in Rs.:</span> ${formatNumber(
-							variance
-						)}</p>
-                <p><span class="font-bold">Variance in %:</span> ${variancePercent}</p>
-                <p><span class="font-bold">Scope of the Project:</span> ${firstJob.Description.trim()}</p>
-              </div>
-              <div>
-                <p><span class="font-bold">Fund Source:</span> ${firstJob.FundSource.trim()}</p>
-                <p><span class="font-bold">Job Status:</span> ${firstJob.Status.trim()}</p>
-                <p><span class="font-bold">Estimate No:</span> ${firstJob.EstimateNo.trim()}</p>
-                <p><span class="font-bold">Job Assigned Date:</span> ${
-							firstJob.ProjectAssignedDate
-								? new Date(
-										firstJob.ProjectAssignedDate
-								  ).toLocaleDateString("en-GB", {
-										day: "2-digit",
-										month: "2-digit",
-										year: "numeric",
-								  })
-								: "-"
-						}</p>
-              </div>
-            </div>
-            <div class="print-currency">Currency: LKR</div>
-            <table class="print-table">
-              <thead>
-                <tr>
-                  <th class="${columnWidths.year}">Year</th>
-                  <th class="${columnWidths.month}">Month</th>
-                  <th class="${columnWidths.docProfile}">Document Profile</th>
-                  <th class="${columnWidths.docNo}">Document No.</th>
-                  <th class="${columnWidths.date}">Date</th>
-                  <th class="${columnWidths.seqNo}">Sequence No.</th>
-                  <th class="${columnWidths.lab}">LAB</th>
-                  <th class="${columnWidths.mat}">MAT</th>
-                  <th class="${columnWidths.other}">OTHER</th>
-                  <th class="${columnWidths.total}">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRowsHTML}
-              </tbody>
-            </table>
-          </div>
-        </body>
-      </html>
+  <head>
+    <style>
+      @media print {
+        @page { size: A4 ${orientation}; margin: 20mm 15mm 25mm 15mm; }
+        body { margin: 0; font-family: Arial, sans-serif; }
+        .print-container { width: 100%; margin: 0; padding: 0; }
+        .print-header { margin-bottom: 2.5rem; margin-top: 3rem; margin-left: 2rem; font-size: 1.125rem; text-align: center; }
+        .print-header h2 { font-weight: bold; color: #7A0000; }
+        .print-summary { display: flex; justify-content: space-between; margin-left: 1rem; margin-right: 1rem; font-size: 0.875rem; margin-bottom: 0; }
+        .print-summary div { flex: 1; }
+        .print-summary p { margin: 0.125rem 0; }
+        .print-summary .font-bold { font-weight: bold; }
+        .print-project-scope { width: 90%; margin: 0.5rem 1rem 1.5rem 1rem; font-size: 0.875rem; text-align: left; word-wrap: break-word; }
+        .print-project-scope .font-bold { font-weight: bold; }
+        .print-currency { text-align: right; font-size: 0.875rem; font-weight: 600; color: #4B5563; margin-bottom: 1.25rem; margin-right: 2rem; }
+        table.print-table { border-collapse: collapse; width: 100%; margin-left: 0; margin-right: 3rem; }
+        table.print-table th, table.print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; }
+        table.print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
+        table.print-table td { text-align: right; }
+        table.print-table tr.bg-white { background-color: #fff; }
+        table.print-table tr.bg-gray-50 { background-color: #F9FAFB; }
+        table.print-table tr.bg-gray-200 { background-color: #E5E7EB; }
+        table.print-table tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+        @page {
+          @bottom-left { content: "Printed on: ${new Date().toLocaleString(
+					"en-US",
+					{timeZone: "Asia/Colombo"}
+				)}"; font-size: 0.75rem; color: gray; }
+          @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="print-container">
+      <div class="print-header">
+        <h2>Job Card</h2>
+      </div>
+      <div class="print-summary">
+        <div>
+          <p><span class="font-bold">Project No.</span> ${firstJob.ProjectNo.trim()}</p>
+          <p><span class="font-bold">Estimated Cost:</span> ${formatNumber(
+					firstJob.EstimatedCost
+				)}</p>
+          <p><span class="font-bold">Committed Cost:</span> ${formatNumber(
+					firstJob.CommitedCost
+				)}</p>
+          <p><span class="font-bold">Variance in Rs.:</span> ${formatNumber(
+					variance
+				)}</p>
+          <p><span class="font-bold">Variance in %:</span> ${variancePercent}</p>
+        </div>
+        <div>
+          <p><span class="font-bold">Fund Source:</span> ${firstJob.FundSource.trim()}</p>
+          <p><span class="font-bold">Job Status:</span> ${firstJob.Status.trim()}</p>
+          <p><span class="font-bold">Estimate No:</span> ${firstJob.EstimateNo.trim()}</p>
+          <p><span class="font-bold">Job Assigned Date:</span> ${
+					firstJob.ProjectAssignedDate
+						? new Date(firstJob.ProjectAssignedDate).toLocaleDateString(
+								"en-GB",
+								{
+									day: "2-digit",
+									month: "2-digit",
+									year: "numeric",
+								}
+						  )
+						: "-"
+				}</p>
+        </div>
+      </div>
+      <div class="print-project-scope">
+        <p><span class="font-bold">Scope of the Project:</span> ${firstJob.Description.trim()}</p>
+      </div>
+      <div class="print-currency">Currency: LKR</div>
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th class="${columnWidths.year}">Year</th>
+            <th class="${columnWidths.month}">Month</th>
+            <th class="${columnWidths.docProfile}">Document Profile</th>
+            <th class="${columnWidths.docNo}">Document No.</th>
+            <th class="${columnWidths.date}">Date</th>
+            <th class="${columnWidths.seqNo}">Sequence No.</th>
+            <th class="${columnWidths.lab}">LAB</th>
+            <th class="${columnWidths.mat}">MAT</th>
+            <th class="${columnWidths.other}">OTHER</th>
+            <th class="${columnWidths.total}">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRowsHTML}
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
     `;
 
 		// Create iframe for printing
@@ -1061,9 +1066,7 @@ const JobCardInfo: React.FC = () => {
 					`No job cards found for project number ${projectNo} in department ${department.DeptId}.`
 				);
 			} else {
-				toast.success(
-					`Successfully fetched job card details.`
-				);
+				toast.success(`Successfully fetched job card details.`);
 			}
 		} catch (error: any) {
 			console.error("Job Card Fetch Error:", error);
