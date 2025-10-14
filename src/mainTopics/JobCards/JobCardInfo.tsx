@@ -46,13 +46,13 @@ const JobCardTable: React.FC<{
 	const maroon = "text-[#7A0000]";
 	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 	const [showOrientationModal, setShowOrientationModal] = useState(false);
-	const [selectedOrientation, setSelectedOrientation] = useState<
+	const [, setSelectedOrientation] = useState<
 		"portrait" | "landscape" | null
 	>(null);
 
 	const printPDF = (
 		jobCards: JobcardModel[],
-		departmentName: string,
+		_departmentName: string,
 		orientation: "portrait" | "landscape"
 	) => {
 		if (!jobCards || jobCards.length === 0) return;
