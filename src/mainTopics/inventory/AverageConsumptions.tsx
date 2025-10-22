@@ -47,8 +47,10 @@ interface ApiInventoryResponse {
 	CostCenterName: string;
 }
 
-const formatNumber = (num: number): string => {
-	return num.toLocaleString("en-US", {
+const formatNumber = (num: number | string | null | undefined): string => {
+	const n = num === null || num === undefined ? NaN : Number(num);
+	if (isNaN(n)) return "0.00";
+	return n.toLocaleString("en-US", {
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2,
 	});
@@ -62,7 +64,7 @@ const AverageConsumption: React.FC = () => {
 	const [filtered, setFiltered] = useState<Department[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [warehouseError, setWarehouseError] = useState<string | null>(null);
+	const [, setWarehouseError] = useState<string | null>(null);
 	const [page, setPage] = useState(1);
 	const [selectedDepartment, setSelectedDepartment] =
 		useState<Department | null>(null);
@@ -281,24 +283,6 @@ const AverageConsumption: React.FC = () => {
 		fetchWarehouses();
 	}, [selectedDepartment, epfNo]);
 
-	useEffect(() => {
-		if (
-			showInventoryModal &&
-			selectedWarehouse &&
-			selectedDepartment &&
-			fromDate &&
-			toDate
-		) {
-			handleViewClick();
-		}
-	}, [
-		selectedWarehouse,
-		selectedDepartment,
-		fromDate,
-		toDate,
-		showInventoryModal,
-	]);
-
 	const handleViewClick = async () => {
 		if (!selectedDepartment) {
 			toast.error("Please select a cost center.");
@@ -310,6 +294,14 @@ const AverageConsumption: React.FC = () => {
 		}
 		if (!toDate) {
 			toast.error("Please enter a to date.");
+			return;
+		}
+
+		// Prevent same-day range — require a range with at least one day difference
+		if (fromDate === toDate) {
+			toast.error(
+				"From date and To date cannot be the same. Please select a different range."
+			);
 			return;
 		}
 		if (new Date(toDate) < new Date(fromDate)) {
@@ -420,7 +412,6 @@ const AverageConsumption: React.FC = () => {
 		const columnWidths =
 			orientation === "portrait"
 				? {
-						warehouseCode: "w-[10%]",
 						materialCode: "w-[15%]",
 						materialName: "w-[20%]",
 						gradeCode: "w-[10%]",
@@ -430,7 +421,6 @@ const AverageConsumption: React.FC = () => {
 						averageConsumption: "w-[11%]",
 				  }
 				: {
-						warehouseCode: "w-[8%]",
 						materialCode: "w-[15%]",
 						materialName: "w-[22%]",
 						gradeCode: "w-[8%]",
@@ -444,9 +434,7 @@ const AverageConsumption: React.FC = () => {
 		data.forEach((item, index) => {
 			tableRowsHTML += `
         <tr class="${index % 2 ? "bg-white" : "bg-gray-50"}">
-          <td class="${
-					columnWidths.warehouseCode
-				} p-1 border border-gray-300 text-left">${item.WarehouseCode}</td>
+         
           <td class="${
 					columnWidths.materialCode
 				} p-1 border border-gray-300 text-left">${item.MaterialCode}</td>
@@ -482,51 +470,70 @@ const AverageConsumption: React.FC = () => {
       `;
 		});
 
+		const reportTitle =
+			"Inventory Average Consumption Report";
+
 		const htmlContent = `
-      <html>
-        <head>
-          <style>
-            @media print {
-              @page { size: A4 ${orientation}; margin: 20mm 15mm 25mm 15mm; }
-              body { margin: 0; font-family: Arial, sans-serif; }
-              .print-container { width: 100%; margin: 0; padding: 0; }
-              .print-header { margin-bottom: 2.5rem; margin-top: 3rem; margin-left: 2rem; font-size: 1.125rem; text-align: center; }
-              .print-header h2 { font-weight: bold; color: #7A0000; }
-              .print-summary { margin-left: 1rem; margin-right: 1rem; font-size: 0.875rem; margin-bottom: 1rem; }
-              .print-summary p { margin: 0.125rem 0; }
-              .print-summary .font-bold { font-weight: bold; }
-              table.print-table { border-collapse: collapse; width: 100%; margin-left: 0; margin-right: 3rem; }
-              table.print-table th, table.print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; }
-              table.print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
-              table.print-table td { text-align: right; }
-              table.print-table td.text-left { text-align: left; }
-              table.print-table tr.bg-white { background-color: #fff; }
-              table.print-table tr.bg-gray-50 { background-color: #F9FAFB; }
-              table.print-table tr { page-break-inside: avoid; }
-              thead { display: table-header-group; }
-              @page {
-                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
+	  <html>
+		<head>
+		  <style>
+			@media print {
+			  @page { size: A4 ${orientation}; margin: 20mm 15mm 25mm 15mm; }
+			  body { margin: 0; font-family: Arial, sans-serif; }
+			  .print-container { width: 100%; margin: 0; padding: 0; }
+			  .print-header { margin-bottom: 2.5rem; margin-top: 3rem; margin-left: 2rem; font-size: 1.125rem; text-align: center; }
+			  .print-header h2 { font-weight: bold; color: #7A0000; }
+			  .print-summary { margin-left: 0.4rem; margin-right: 1rem; font-size: 0.875rem; margin-bottom: 1rem; }
+			  .print-summary p { margin: 0.125rem 0; }
+			  .print-summary .font-bold { font-weight: bold; }
+			  .print-equation { margin-left: 0.3rem; margin-right: 0.75rem; font-size: 0.75rem; color: #D1D5DB; }
+			  .print-signoff { margin-top: 4rem; display: flex; justify-content: space-between; font-size: 0.875rem; padding: 0 2rem; }
+			  .print-currency { text-align: right; font-size: 0.875rem; font-weight: 600; color: #4B5563; margin-bottom: 0.25rem; margin-top: 1rem; margin-right: 0.45rem; }
+
+			  table.print-table { border-collapse: collapse; width: 100%; margin-left: 0; margin-right: 3rem; }
+			  table.print-table th, table.print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; }
+			  table.print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
+			  table.print-table td { text-align: right; }
+			  table.print-table td.text-left { text-align: left; }
+			  table.print-table tr.bg-white { background-color: #fff; }
+			  table.print-table tr.bg-gray-50 { background-color: #F9FAFB; }
+			  table.print-table tr { page-break-inside: avoid; }
+			  thead { display: table-header-group; }
+			  @page {
+				@bottom-left { content: "Printed on: ${new Date().toLocaleString(
 							"en-US",
 							{timeZone: "Asia/Colombo"}
 						)}"; font-size: 0.75rem; color: gray; }
-                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="print-container">
-            <div class="print-header">
-              <h2>Inventory Average Consumption Report</h2>
+				@bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
+			  }
+			}
+		  </style>
+		</head>
+		<body>
+		  <div class="print-container">
+						<div class="print-header">
+							<h2>${reportTitle}</h2>
+						</div>
+			  <div class="print-summary">
+			  <p><span class="font-bold">Cost Center:</span> 
+			  ${selectedDepartment?.DeptId || ""} - ${costCenterName}</p>
+			  <p><span class="font-bold">Warehouse:</span> ${selectedWarehouse}</p>
+			  <p><span class="font-bold">Date Range:</span> ${fromDate || ""} to ${
+			toDate || ""
+		}</p>
+
+			  <p class="font-bold">Calculation based on:</p>
+			    
+	  <div class="print-equation">
+              <p class="mt-1">
+                Average Consumption = Σ(Issue + Issue Cancellation within Date Range) ÷ Round(MonthsBetween(ToDate, FromDate))
+              </p>
             </div>
-            <div class="print-summary">
-              <p><span class="font-bold">Cost Center:</span> ${costCenterName}</p>
-              <p><span class="font-bold">Warehouse:</span> ${selectedWarehouse}</p>
+			<div class="print-currency">Currency: LKR</div>
             </div>
             <table class="print-table">
               <thead>
                 <tr>
-                  <th class="${columnWidths.warehouseCode}">Warehouse Code</th>
                   <th class="${columnWidths.materialCode}">Material Code</th>
                   <th class="${columnWidths.materialName}">Material Name</th>
                   <th class="${columnWidths.gradeCode}">Grade Code</th>
@@ -546,6 +553,10 @@ const AverageConsumption: React.FC = () => {
                 ${tableRowsHTML}
               </tbody>
             </table>
+			 <div class="print-signoff">
+              <div>Prepared By: ____________________</div>
+              <div>Checked By: ____________________</div>
+            </div>
           </div>
         </body>
       </html>
@@ -576,7 +587,6 @@ const AverageConsumption: React.FC = () => {
 		if (inventoryData.length === 0) return;
 
 		const headers = [
-			"Warehouse Code",
 			"Material Code",
 			"Material Name",
 			"Grade Code",
@@ -586,24 +596,38 @@ const AverageConsumption: React.FC = () => {
 			"Average Consumption",
 		];
 
+		const escapeCsv = (value: string | number | null | undefined) => {
+			const s = value === null || value === undefined ? "" : String(value);
+			return `"${s.replace(/"/g, '""')}"`;
+		};
+
 		const csvContent = [
 			`Inventory Average Consumption Report`,
-			`Cost Center: ${selectedDepartment?.DeptName || ""}`,
+			`Cost Center: ${selectedDepartment?.DeptId || ""} - ${
+				selectedDepartment?.DeptName || ""
+			}`,
 			`Warehouse: ${selectedWarehouse}`,
+			`Date Range: ${fromDate || ""} to ${toDate || ""}`,
+			`Printed on: ${new Date().toLocaleString("en-US")}`,
+			`Currency: LKR`,
 			"",
 			headers.join(","),
-			...inventoryData.map((item) =>
-				[
-					`"${item.WarehouseCode}"`,
-					`"${item.MaterialCode}"`,
-					`"${item.MaterialName}"`,
-					`"${item.GradeCode}"`,
-					`"${formatNumber(item.UnitPrice)}"`,
-					`"${formatNumber(item.QuantityOnHand)}"`,
-					`"${formatNumber(item.TransactionQuantity)}"`,
-					`"${formatNumber(item.AverageConsumption)}"`,
-				].join(",")
-			),
+			...inventoryData.map((item) => {
+				const unitPrice = formatNumber(item.UnitPrice ?? 0);
+				const qtyOnHand = formatNumber(item.QuantityOnHand ?? 0);
+				const txnQty = formatNumber(item.TransactionQuantity ?? 0);
+				const avgCons = formatNumber(item.AverageConsumption ?? 0);
+
+				return [
+					escapeCsv(`\t${item.MaterialCode || ""}`),
+					escapeCsv(item.MaterialName || ""),
+					escapeCsv(item.GradeCode || ""),
+					escapeCsv(unitPrice),
+					escapeCsv(qtyOnHand),
+					escapeCsv(txnQty),
+					escapeCsv(avgCons),
+				].join(",");
+			}),
 		].join("\n");
 
 		const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
@@ -635,10 +659,13 @@ const AverageConsumption: React.FC = () => {
 				Inventory Average Consumption
 			</h2>
 
-			<div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-3 mb-4">
-				<div className="w-full md:w-auto">
-					<label className={`text-xs md:text-sm font-bold ${maroon}`}>
-						From Date
+			<div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-3 mb-4 justify-end items-end">
+				{/* From Date */}
+				<div className="flex w-full md:w-auto items-center gap-2">
+					<label
+						className={`text-xs md:text-sm font-bold ${maroon} whitespace-nowrap`}
+					>
+						From Date:
 					</label>
 					<input
 						type="date"
@@ -648,9 +675,13 @@ const AverageConsumption: React.FC = () => {
 						className="pl-2 md:pl-3 pr-2 md:pr-3 py-1 md:py-1.5 w-full md:w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-xs md:text-sm"
 					/>
 				</div>
-				<div className="w-full md:w-auto">
-					<label className={`text-xs md:text-sm font-bold ${maroon}`}>
-						To Date
+
+				{/* To Date */}
+				<div className="flex w-full md:w-auto items-center gap-2">
+					<label
+						className={`text-xs md:text-sm font-bold ${maroon} whitespace-nowrap`}
+					>
+						To Date:
 					</label>
 					<input
 						type="date"
@@ -660,11 +691,15 @@ const AverageConsumption: React.FC = () => {
 						className="pl-2 md:pl-3 pr-2 md:pr-3 py-1 md:py-1.5 w-full md:w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-xs md:text-sm"
 					/>
 				</div>
-				<div className="w-full md:w-auto">
-					<label className={`text-xs md:text-sm font-bold ${maroon}`}>
-						Warehouse Code
-					</label>
-					<div className="flex items-center gap-2">
+
+				{/* Warehouse Code + View Button */}
+				<div className="flex flex-col md:flex-row w-full md:w-auto gap-2 md:gap-2 items-end">
+					<div className="flex flex-col">
+						<label
+							className={`text-xs md:text-sm font-bold ${maroon} mb-1`}
+						>
+							Warehouse Code
+						</label>
 						<select
 							value={selectedWarehouse}
 							onChange={(e) => setSelectedWarehouse(e.target.value)}
@@ -678,29 +713,21 @@ const AverageConsumption: React.FC = () => {
 								</option>
 							))}
 						</select>
-						<button
-							onClick={handleViewClick}
-							disabled={
-								!selectedDepartment || !selectedWarehouse || loading
-							}
-							className={`px-2 md:px-3 py-1 md:py-1 ${maroonGrad} text-white rounded-md text-xs md:text-sm font-medium hover:brightness-110 transition shadow ${
-								!selectedDepartment || !selectedWarehouse || loading
-									? "opacity-50 cursor-not-allowed"
-									: ""
-							}`}
-						>
-							<Eye className="inline-block mr-1 w-3 md:w-3 h-3 md:h-3" />{" "}
-							View
-						</button>
 					</div>
-					{warehouseError && (
-						<p className="text-red-600 text-xs mt-1">{warehouseError}</p>
-					)}
-					{loading && (
-						<p className="text-gray-600 text-xs mt-1">
-							Loading warehouses...
-						</p>
-					)}
+					<button
+						onClick={handleViewClick}
+						disabled={
+							!selectedDepartment || !selectedWarehouse || loading
+						}
+						className={`px-2 md:px-3 py-1 md:py-1 ${maroonGrad} text-white rounded-md text-xs md:text-sm font-medium hover:brightness-110 transition shadow ${
+							!selectedDepartment || !selectedWarehouse || loading
+								? "opacity-50 cursor-not-allowed"
+								: ""
+						}`}
+					>
+						<Eye className="inline-block mr-1 w-3 md:w-3 h-3 md:h-3" />{" "}
+						View
+					</button>
 				</div>
 			</div>
 
@@ -858,7 +885,7 @@ const AverageConsumption: React.FC = () => {
           `}</style>
 
 					<div className="absolute inset-0 bg-white/90 print:hidden"></div>
-					<div className="relative bg-white w-full max-w-[95vw] sm:max-w-4xl md:max-w-6xl lg:max-w-7xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden print:relative print:w-full print:max-w-none print:rounded-none print:shadow-none print:border-none print:overflow-visible print-container">
+					<div className="relative bg-white w-full max-w-[95vw] sm:max-w-4xl md:max-w-6xl lg:max-w-7xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden print:relative print:w-full print:max-w-none print:rounded-none print:shadow-none print:border-none print:overflow-visible print-container mt-40 ml-60">
 						<div className="p-2 md:p-2 max-h-[80vh] overflow-y-auto print:p-0 print:max-h-none print:overflow-visible print:mt-10 print:ml-12">
 							<div className="flex justify-end gap-3 mb-6 md:mb-8 print:hidden">
 								<button
@@ -883,27 +910,45 @@ const AverageConsumption: React.FC = () => {
 							<h2
 								className={`text-lg md:text-xl font-bold text-center md:mb-6 ${maroon}`}
 							>
-								Inventory Average Consumption Report
+								{`Inventory Average Consumption Report${
+									fromDate && toDate
+										? ` - ${fromDate} to ${toDate}`
+										: ""
+								}`}
 							</h2>
 							<div className="flex justify-between md:mb-2 md:text-sm leading-5">
 								<div className="ml-5">
 									<p>
-										<span className="font-bold">Cost Center:</span>{" "}
+										<span className="font-bold">Cost Center: </span>
+										{""}
+										{selectedDepartment?.DeptId || ""}
+										{" - "}
 										{selectedDepartment.DeptName}
 									</p>
 									<p>
 										<span className="font-bold">Warehouse:</span>{" "}
 										{selectedWarehouse}
 									</p>
+
+									<p>
+										<span className="font-bold">
+											Calculation based on:{" "}
+										</span>
+										<span className="text-gray-400">
+											Average Consumption = Σ(Issue + Issue
+											Cancellation within Date Range) ÷
+											Round(MonthsBetween(ToDate, FromDate))
+										</span>
+									</p>
 								</div>
+							</div>
+							<div className="flex justify-end text-sm md:text-base font-semibold text-gray-600 mr-5">
+								Currency: LKR
 							</div>
 							<div className="ml-5 mt-1 border border-gray-200 rounded-lg overflow-x-auto print:ml-12 print:mt-12 print:overflow-visible">
 								<table className="w-full border-collapse text-sm min-w-[700px] print-table">
 									<thead className="bg-gradient-to-r from-[#7A0000] to-[#A52A2A] text-white">
 										<tr>
-											<th className="px-2 py-1.5 border-r border-gray-200 w-[10%] text-xs">
-												Warehouse Code
-											</th>
 											<th className="px-2 py-1.5 border-r border-gray-200 w-[15%] text-xs">
 												Material Code
 											</th>
@@ -972,9 +1017,6 @@ const AverageConsumption: React.FC = () => {
 														index % 2 ? "bg-white" : "bg-gray-50"
 													}
 												>
-													<td className="px-2 py-1.5 border-r border-gray-200 text-xs text-left">
-														{item.WarehouseCode}
-													</td>
 													<td className="px-2 py-1.5 border-r border-gray-200 text-xs text-left">
 														{item.MaterialCode}
 													</td>
