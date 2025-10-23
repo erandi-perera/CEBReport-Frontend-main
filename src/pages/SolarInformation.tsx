@@ -6,6 +6,8 @@ import SolarProgressClarificationBulk from "../mainTopics/SolarInformation/Solar
 import SolarProgressClarificationOrdinary from "../mainTopics/SolarInformation/SolarProgressClarificationOrdinary";
 import SolarPVBilling from "../mainTopics/SolarInformation/SolarPVBilling";
 import SolarPaymentRetail from "../mainTopics/SolarInformation/SolarPaymentRetail"
+import SolarPVCapacityInformation from "../mainTopics/SolarInformation/SolarPVCapacityInformation";
+import SolarPaymentBulk from "../mainTopics/SolarInformation/SolarPaymentBulk";
 
 
 type Subtopic = {
@@ -40,6 +42,7 @@ const SolarInformation = () => {
       case "Solar PV billing information":
         return <SolarPVBilling/>;
       case "Solar PV capacity information":
+        return <SolarPVCapacityInformation/>;
       case "Solar progress clarification – Ordinary":
         return <SolarProgressClarificationOrdinary/>;
       case "Solar progress clarification – Bulk":
@@ -47,6 +50,7 @@ const SolarInformation = () => {
       case "Solar payment information – retail":
         return <SolarPaymentRetail />;
       case "Solar payment information – Bulk":
+        return <SolarPaymentBulk />;
       case "Solar connection details (incl. Reading and usage) - retail":
       case "Solar connection details (incl. Reading and usage) - bulk":
         return <SolarProgressClarificationOrdinary />;
