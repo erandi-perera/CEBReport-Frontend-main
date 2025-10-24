@@ -396,7 +396,7 @@ const SolarPaymentBulk: React.FC = () => {
         const netTypeInfo = `Net Type: ${netType}`;
         const generatedDate = `Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
 
-        // Column headers
+        // Column headers - matching table exactly
         const headers = [
             "Division",
             "Province",
@@ -418,46 +418,207 @@ const SolarPaymentBulk: React.FC = () => {
             "Branch Code",
             "Bank Account Number",
             "Agreement Date",
-            "Capacity (KW)",
         ];
 
-        // For CSV, we need to repeat Division, Province, Area values for proper column alignment
-        // Unlike the visual table where we merge cells, CSV needs all data in their columns
-        const dataRows = sortedData.map((row) => {
-            // Escape values that contain commas by wrapping in quotes
-            const escapeCSV = (value: string | number | null) => {
-                if (value === null || value === undefined) return "";
-                const stringValue = String(value);
-                // If value contains comma, quote, or newline, wrap in quotes and escape existing quotes
-                if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-                    return `"${stringValue.replace(/"/g, '""')}"`;
-                }
-                return stringValue;
-            };
+        // Escape values that contain commas by wrapping in quotes
+        const escapeCSV = (value: string | number | null) => {
+            if (value === null || value === undefined) return "";
+            const stringValue = String(value);
+            // If value contains comma, quote, or newline, wrap in quotes and escape existing quotes
+            if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+        };
 
-            return [
-                escapeCSV(row.Division),
-                escapeCSV(row.Province),
-                escapeCSV(row.Area),
-                escapeCSV(row.CustomerName),
-                escapeCSV(row.AccountNumber),
-                escapeCSV(formatNumber(row.PanelCapacity, 2)),
-                escapeCSV(formatNumber(row.EnergyExported, 0)),
-                escapeCSV(formatNumber(row.EnergyImported, 0)),
-                escapeCSV(row.Tariff),
-                escapeCSV(formatNumber(row.BFUnits, 0)),
-                escapeCSV(formatNumber(row.KwhCharge, 2)),
-                escapeCSV(formatNumber(row.FixedCharge, 2)),
-                escapeCSV(formatNumber(row.CFUnits, 0)),
-                escapeCSV(formatNumber(row.Rate, 2)),
-                escapeCSV(formatNumber(row.UnitSale, 0)),
-                escapeCSV(formatNumber(row.KwhSales, 2)),
-                escapeCSV(row.BankCode || ""),
-                escapeCSV(row.BranchCode || ""),
-                escapeCSV(row.BankAccountNumber || ""),
-                escapeCSV(row.AgreementDate),
-                escapeCSV(formatNumber(row.PanelCapacity, 2)),
-            ].join(",");
+        // Group data like in the table rendering
+        const divisionGroups: { [key: string]: BulkPaymentData[] } = {};
+        const provinceGroups: { [key: string]: BulkPaymentData[] } = {};
+        const areaGroups: { [key: string]: BulkPaymentData[] } = {};
+
+        sortedData.forEach((item) => {
+            if (!divisionGroups[item.Division]) divisionGroups[item.Division] = [];
+            divisionGroups[item.Division].push(item);
+        });
+
+        sortedData.forEach((item) => {
+            const provinceKey = `${item.Division}-${item.Province}`;
+            if (!provinceGroups[provinceKey]) provinceGroups[provinceKey] = [];
+            provinceGroups[provinceKey].push(item);
+        });
+
+        sortedData.forEach((item) => {
+            const areaKey = `${item.Division}-${item.Province}-${item.Area}`;
+            if (!areaGroups[areaKey]) areaGroups[areaKey] = [];
+            areaGroups[areaKey].push(item);
+        });
+
+        // Get unique divisions in order
+        const uniqueDivisions = Object.keys(divisionGroups).sort();
+
+        const dataRows: string[] = [];
+
+        // Track current context for merged cell simulation
+        let currentDivision = "";
+        let currentProvince = "";
+        let currentArea = "";
+
+        uniqueDivisions.forEach((division) => {
+            const provincesInDivision = Object.keys(provinceGroups)
+                .filter(pk => pk.startsWith(`${division}-`))
+                .sort();
+
+            provincesInDivision.forEach((provinceKey) => {
+                const areasInProvince = Object.keys(areaGroups)
+                    .filter(ak => ak.startsWith(`${provinceKey}-`))
+                    .sort();
+
+                areasInProvince.forEach((areaKey) => {
+                    const items = areaGroups[areaKey];
+
+                    items.forEach((row) => {
+                        const divisionValue = currentDivision !== row.Division ? row.Division : "";
+                        const provinceValue = currentProvince !== `${row.Division}-${row.Province}` ? row.Province : "";
+                        const areaValue = currentArea !== `${row.Division}-${row.Province}-${row.Area}` ? row.Area : "";
+
+                        // Update tracking
+                        if (divisionValue) {
+                            currentDivision = row.Division;
+                            currentProvince = "";
+                            currentArea = "";
+                        }
+                        if (provinceValue) {
+                            currentProvince = `${row.Division}-${row.Province}`;
+                            currentArea = "";
+                        }
+                        if (areaValue) {
+                            currentArea = `${row.Division}-${row.Province}-${row.Area}`;
+                        }
+
+                        dataRows.push([
+                            escapeCSV(divisionValue),
+                            escapeCSV(provinceValue),
+                            escapeCSV(areaValue),
+                            escapeCSV(row.CustomerName),
+                            escapeCSV(row.AccountNumber),
+                            escapeCSV(formatNumber(row.PanelCapacity, 2)),
+                            escapeCSV(formatNumber(row.EnergyExported, 0)),
+                            escapeCSV(formatNumber(row.EnergyImported, 0)),
+                            escapeCSV(row.Tariff),
+                            escapeCSV(formatNumber(row.BFUnits, 0)),
+                            escapeCSV(formatNumber(row.KwhCharge, 2)),
+                            escapeCSV(formatNumber(row.FixedCharge, 2)),
+                            escapeCSV(formatNumber(row.CFUnits, 0)),
+                            escapeCSV(formatNumber(row.Rate, 2)),
+                            escapeCSV(formatNumber(row.UnitSale, 0)),
+                            escapeCSV(formatNumber(row.KwhSales, 2)),
+                            escapeCSV(row.BankCode || ""),
+                            escapeCSV(row.BranchCode || ""),
+                            escapeCSV(row.BankAccountNumber || ""),
+                            escapeCSV(row.AgreementDate),
+                        ].join(","));
+                    });
+
+                    // Add Area Total if more than 1 record in area
+                    if (items.length > 1) {
+                        const totals = {
+                            count: items.length,
+                            panelCapacity: items.reduce((sum, item) => sum + item.PanelCapacity, 0),
+                            energyExported: items.reduce((sum, item) => sum + item.EnergyExported, 0),
+                            energyImported: items.reduce((sum, item) => sum + item.EnergyImported, 0),
+                        };
+
+                        dataRows.push([
+                            "",
+                            "",
+                            "",
+                            "Area Total",
+                            escapeCSV(totals.count.toString()),
+                            escapeCSV(formatNumber(totals.panelCapacity, 2)),
+                            escapeCSV(formatNumber(totals.energyExported, 0)),
+                            escapeCSV(formatNumber(totals.energyImported, 0)),
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                        ].join(","));
+                    }
+                });
+
+                // Add Province Total if more than 1 area
+                if (areasInProvince.length > 1) {
+                    const provinceItems = provinceGroups[provinceKey];
+                    const totals = {
+                        count: provinceItems.length,
+                        panelCapacity: provinceItems.reduce((sum, item) => sum + item.PanelCapacity, 0),
+                        energyExported: provinceItems.reduce((sum, item) => sum + item.EnergyExported, 0),
+                        energyImported: provinceItems.reduce((sum, item) => sum + item.EnergyImported, 0),
+                    };
+
+                    dataRows.push([
+                        "",
+                        "",
+                        "Province Total",
+                        "",
+                        escapeCSV(totals.count.toString()),
+                        escapeCSV(formatNumber(totals.panelCapacity, 2)),
+                        escapeCSV(formatNumber(totals.energyExported, 0)),
+                        escapeCSV(formatNumber(totals.energyImported, 0)),
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                    ].join(","));
+                }
+            });
+
+            // Add Division Total if more than 1 province
+            if (provincesInDivision.length > 1) {
+                const divisionItems = divisionGroups[division];
+                const totals = {
+                    count: divisionItems.length,
+                    panelCapacity: divisionItems.reduce((sum, item) => sum + item.PanelCapacity, 0),
+                    energyExported: divisionItems.reduce((sum, item) => sum + item.EnergyExported, 0),
+                    energyImported: divisionItems.reduce((sum, item) => sum + item.EnergyImported, 0),
+                };
+
+                dataRows.push([
+                    "",
+                    "Division Total",
+                    "",
+                    "",
+                    escapeCSV(totals.count.toString()),
+                    escapeCSV(formatNumber(totals.panelCapacity, 2)),
+                    escapeCSV(formatNumber(totals.energyExported, 0)),
+                    escapeCSV(formatNumber(totals.energyImported, 0)),
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                ].join(","));
+            }
         });
 
         // Combine all parts
