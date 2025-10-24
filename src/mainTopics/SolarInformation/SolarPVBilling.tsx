@@ -293,10 +293,10 @@ const SolarPVBilling: React.FC = () => {
         : `${selectedCategory}: ${categoryValue}`;
 
     if (reportType.includes("Detailed")) {
+      const isOrdinaryReport = reportType === "Detailed Report - Ordinary";
       let headers: string[] = [];
-      let rows: any[] = [];
 
-      if (reportType === "Detailed Report - Ordinary") {
+      if (isOrdinaryReport) {
         headers = [
           "Division",
           "Province",
@@ -333,61 +333,255 @@ const SolarPVBilling: React.FC = () => {
         ];
       }
 
-      // Create CSV rows that match the table structure exactly
+      // Escape CSV values
+      const escapeCSV = (value: string | number | null | undefined) => {
+        if (value === null || value === undefined) return "";
+        const stringValue = String(value);
+        if (
+          stringValue.includes(",") ||
+          stringValue.includes('"') ||
+          stringValue.includes("\n")
+        ) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      };
+
+      // Sort and group data
+      const sortedData = [...detailedData].sort((a, b) => {
+        if (a.Division !== b.Division) {
+          return (a.Division || "").localeCompare(b.Division || "");
+        }
+        if (a.Province !== b.Province) {
+          return (a.Province || "").localeCompare(b.Province || "");
+        }
+        if (a.Area !== b.Area) {
+          return (a.Area || "").localeCompare(b.Area || "");
+        }
+        return 0;
+      });
+
+      const divisionGroups: { [key: string]: DetailedPVConnection[] } = {};
+      const provinceGroups: { [key: string]: DetailedPVConnection[] } = {};
+      const areaGroups: { [key: string]: DetailedPVConnection[] } = {};
+
+      sortedData.forEach((item) => {
+        const divisionKey = item.Division || "";
+        const provinceKey = `${item.Division || ""}-${item.Province || ""}`;
+        const areaKey = `${item.Division || ""}-${item.Province || ""}-${
+          item.Area || ""
+        }`;
+
+        if (!divisionGroups[divisionKey]) divisionGroups[divisionKey] = [];
+        divisionGroups[divisionKey].push(item);
+
+        if (!provinceGroups[provinceKey]) provinceGroups[provinceKey] = [];
+        provinceGroups[provinceKey].push(item);
+
+        if (!areaGroups[areaKey]) areaGroups[areaKey] = [];
+        areaGroups[areaKey].push(item);
+      });
+
+      const uniqueDivisions = Object.keys(divisionGroups).sort();
+      const dataRows: string[] = [];
+
       let currentDivision = "";
       let currentProvince = "";
       let currentArea = "";
 
-      rows = detailedData.map((item) => {
-        const row: any[] = [];
+      uniqueDivisions.forEach((division) => {
+        const provincesInDivision = Object.keys(provinceGroups)
+          .filter((pk) => pk.startsWith(`${division}-`))
+          .sort();
 
-        // Division column - only show if different from previous
-        if (currentDivision !== item.Division) {
-          currentDivision = item.Division;
-          row.push(item.Division);
-        } else {
-          row.push(""); // Empty cell for grouped rows
+        provincesInDivision.forEach((provinceKey) => {
+          const areasInProvince = Object.keys(areaGroups)
+            .filter((ak) => ak.startsWith(`${provinceKey}-`))
+            .sort();
+
+          areasInProvince.forEach((areaKey) => {
+            const items = areaGroups[areaKey];
+
+            items.forEach((row) => {
+              const divisionValue =
+                currentDivision !== row.Division ? row.Division : "";
+              const provinceValue =
+                currentProvince !== `${row.Division}-${row.Province}`
+                  ? row.Province
+                  : "";
+              const areaValue =
+                currentArea !== `${row.Division}-${row.Province}-${row.Area}`
+                  ? row.Area
+                  : "";
+
+              if (divisionValue) {
+                currentDivision = row.Division || "";
+                currentProvince = "";
+                currentArea = "";
+              }
+              if (provinceValue) {
+                currentProvince = `${row.Division || ""}-${row.Province || ""}`;
+                currentArea = "";
+              }
+              if (areaValue) {
+                currentArea = `${row.Division || ""}-${row.Province || ""}-${
+                  row.Area || ""
+                }`;
+              }
+
+              const rowData = [
+                escapeCSV(divisionValue),
+                escapeCSV(provinceValue),
+                escapeCSV(areaValue),
+                escapeCSV(row.CustomerName),
+                escapeCSV(row.AccountNumber),
+                escapeCSV(row.CustomerType),
+                escapeCSV(formatCurrency(row.PanelCapacity || 0)),
+                escapeCSV(row.BFUnits),
+                escapeCSV(row.EnergyExported),
+                escapeCSV(row.EnergyImported),
+                escapeCSV(row.CFUnits),
+                escapeCSV(row.SinNumber),
+                escapeCSV(row.Tariff),
+                escapeCSV(row.AgreementDate),
+              ];
+
+              if (isOrdinaryReport) {
+                rowData.push(escapeCSV(row.UnitsForLossReduction || ""));
+              }
+
+              dataRows.push(rowData.join(","));
+            });
+
+            // Add Area Total if more than 1 record in area
+            if (items.length > 1) {
+              const totals = {
+                count: items.length,
+                panelCapacity: items.reduce(
+                  (sum, item) => sum + (item.PanelCapacity || 0),
+                  0
+                ),
+                energyExported: items.reduce(
+                  (sum, item) => sum + (item.EnergyExported || 0),
+                  0
+                ),
+                energyImported: items.reduce(
+                  (sum, item) => sum + (item.EnergyImported || 0),
+                  0
+                ),
+              };
+
+              const totalRow = [
+                "",
+                "",
+                "",
+                "Area Total",
+                escapeCSV(totals.count.toString()),
+                "",
+                escapeCSV(formatCurrency(totals.panelCapacity)),
+                "",
+                escapeCSV(totals.energyExported.toString()),
+                escapeCSV(totals.energyImported.toString()),
+                "",
+                "",
+                "",
+                "",
+              ];
+
+              if (isOrdinaryReport) {
+                totalRow.push("");
+              }
+
+              dataRows.push(totalRow.join(","));
+            }
+          });
+
+          // Add Province Total if more than 1 area
+          if (areasInProvince.length > 1) {
+            const provinceItems = provinceGroups[provinceKey];
+            const totals = {
+              count: provinceItems.length,
+              panelCapacity: provinceItems.reduce(
+                (sum, item) => sum + (item.PanelCapacity || 0),
+                0
+              ),
+              energyExported: provinceItems.reduce(
+                (sum, item) => sum + (item.EnergyExported || 0),
+                0
+              ),
+              energyImported: provinceItems.reduce(
+                (sum, item) => sum + (item.EnergyImported || 0),
+                0
+              ),
+            };
+
+            const totalRow = [
+              "",
+              "",
+              "Province Total",
+              "",
+              escapeCSV(totals.count.toString()),
+              "",
+              escapeCSV(formatCurrency(totals.panelCapacity)),
+              "",
+              escapeCSV(totals.energyExported.toString()),
+              escapeCSV(totals.energyImported.toString()),
+              "",
+              "",
+              "",
+              "",
+            ];
+
+            if (isOrdinaryReport) {
+              totalRow.push("");
+            }
+
+            dataRows.push(totalRow.join(","));
+          }
+        });
+
+        // Add Division Total if more than 1 province
+        if (provincesInDivision.length > 1) {
+          const divisionItems = divisionGroups[division];
+          const totals = {
+            count: divisionItems.length,
+            panelCapacity: divisionItems.reduce(
+              (sum, item) => sum + (item.PanelCapacity || 0),
+              0
+            ),
+            energyExported: divisionItems.reduce(
+              (sum, item) => sum + (item.EnergyExported || 0),
+              0
+            ),
+            energyImported: divisionItems.reduce(
+              (sum, item) => sum + (item.EnergyImported || 0),
+              0
+            ),
+          };
+
+          const totalRow = [
+            "",
+            "Division Total",
+            "",
+            "",
+            escapeCSV(totals.count.toString()),
+            "",
+            escapeCSV(formatCurrency(totals.panelCapacity)),
+            "",
+            escapeCSV(totals.energyExported.toString()),
+            escapeCSV(totals.energyImported.toString()),
+            "",
+            "",
+            "",
+            "",
+          ];
+
+          if (isOrdinaryReport) {
+            totalRow.push("");
+          }
+
+          dataRows.push(totalRow.join(","));
         }
-
-        // Province column - only show if different from previous
-        const provinceKey = `${item.Division}-${item.Province}`;
-        if (currentProvince !== provinceKey) {
-          currentProvince = provinceKey;
-          row.push(item.Province);
-        } else {
-          row.push(""); // Empty cell for grouped rows
-        }
-
-        // Area column - only show if different from previous
-        const areaKey = `${item.Division}-${item.Province}-${item.Area}`;
-        if (currentArea !== areaKey) {
-          currentArea = areaKey;
-          row.push(item.Area);
-        } else {
-          row.push(""); // Empty cell for grouped rows
-        }
-
-        // Add remaining columns
-        row.push(
-          item.CustomerName,
-          item.AccountNumber,
-          item.CustomerType,
-          item.PanelCapacity,
-          item.BFUnits,
-          item.EnergyExported,
-          item.EnergyImported,
-          item.CFUnits,
-          item.SinNumber,
-          item.Tariff,
-          item.AgreementDate
-        );
-
-        // Add Units for Loss Reduction if it's an ordinary report
-        if (reportType === "Detailed Report - Ordinary") {
-          row.push(item.UnitsForLossReduction || "");
-        }
-
-        return row;
       });
 
       csvContent = [
@@ -398,7 +592,7 @@ const SolarPVBilling: React.FC = () => {
         `Generated: ${new Date().toLocaleDateString()}`,
         "",
         headers.map((h) => `"${h}"`).join(","),
-        ...rows.map((row) => row.map((cell: any) => `"${cell}"`).join(",")),
+        ...dataRows,
       ].join("\n");
     } else {
       // Summary report CSV - match the exact table structure from the UI
@@ -668,40 +862,365 @@ const SolarPVBilling: React.FC = () => {
   const renderDetailedTable = () => {
     const isOrdinaryReport = reportType === "Detailed Report - Ordinary";
 
-    // Group data and calculate rowspans
-    const groupedData = detailedData.reduce(
-      (acc, item, index) => {
-        const divisionKey = item.Division;
-        const provinceKey = `${item.Division}-${item.Province}`;
-        const areaKey = `${item.Division}-${item.Province}-${item.Area}`;
+    // Handle empty data
+    if (!detailedData || detailedData.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          No data available for the selected criteria.
+        </div>
+      );
+    }
 
-        if (!acc.divisionCounts[divisionKey])
-          acc.divisionCounts[divisionKey] = 0;
-        if (!acc.provinceCounts[provinceKey])
-          acc.provinceCounts[provinceKey] = 0;
-        if (!acc.areaCounts[areaKey]) acc.areaCounts[areaKey] = 0;
-
-        acc.divisionCounts[divisionKey]++;
-        acc.provinceCounts[provinceKey]++;
-        acc.areaCounts[areaKey]++;
-
-        acc.items.push({ ...item, index });
-        return acc;
-      },
-      {
-        divisionCounts: {} as Record<string, number>,
-        provinceCounts: {} as Record<string, number>,
-        areaCounts: {} as Record<string, number>,
-        items: [] as any[],
+    // Sort data first to ensure proper grouping (by Division, then Province, then Area)
+    const sortedData = [...detailedData].sort((a, b) => {
+      if (a.Division !== b.Division) {
+        return (a.Division || "").localeCompare(b.Division || "");
       }
-    );
+      if (a.Province !== b.Province) {
+        return (a.Province || "").localeCompare(b.Province || "");
+      }
+      if (a.Area !== b.Area) {
+        return (a.Area || "").localeCompare(b.Area || "");
+      }
+      return 0;
+    });
+
+    // Group data by Division, Province, and Area
+    const divisionGroups: { [key: string]: DetailedPVConnection[] } = {};
+    const provinceGroups: { [key: string]: DetailedPVConnection[] } = {};
+    const areaGroups: { [key: string]: DetailedPVConnection[] } = {};
+
+    sortedData.forEach((item) => {
+      const divisionKey = item.Division || "";
+      const provinceKey = `${item.Division || ""}-${item.Province || ""}`;
+      const areaKey = `${item.Division || ""}-${item.Province || ""}-${item.Area || ""}`;
+
+      if (!divisionGroups[divisionKey]) divisionGroups[divisionKey] = [];
+      divisionGroups[divisionKey].push(item);
+
+      if (!provinceGroups[provinceKey]) provinceGroups[provinceKey] = [];
+      provinceGroups[provinceKey].push(item);
+
+      if (!areaGroups[areaKey]) areaGroups[areaKey] = [];
+      areaGroups[areaKey].push(item);
+    });
+
+    // Calculate row span counts (including total rows)
+    const divisionRowSpans: { [key: string]: number } = {};
+    const provinceRowSpans: { [key: string]: number } = {};
+    const areaRowSpans: { [key: string]: number } = {};
+
+    Object.keys(divisionGroups).forEach((key) => {
+      let rowCount = divisionGroups[key].length;
+      // Add area total rows
+      const areas = Object.keys(areaGroups).filter((ak) => {
+        const [div] = ak.split("-");
+        return div === key;
+      });
+      areas.forEach((ak) => {
+        if (areaGroups[ak].length > 1) rowCount++;
+      });
+      // Add province total rows
+      const provinces = Object.keys(provinceGroups).filter((pk) =>
+        pk.startsWith(`${key}-`)
+      );
+      provinces.forEach((pk) => {
+        const areaCount = Object.keys(areaGroups).filter((ak) =>
+          ak.startsWith(`${pk}-`)
+        ).length;
+        if (areaCount > 1) rowCount++;
+      });
+      // Add division total row
+      if (provinces.length > 1) rowCount++;
+      divisionRowSpans[key] = rowCount;
+    });
+
+    Object.keys(provinceGroups).forEach((key) => {
+      let rowCount = provinceGroups[key].length;
+      // Add area total rows
+      const areas = Object.keys(areaGroups).filter((ak) =>
+        ak.startsWith(`${key}-`)
+      );
+      areas.forEach((ak) => {
+        if (areaGroups[ak].length > 1) rowCount++;
+      });
+      // Add province total row
+      if (areas.length > 1) rowCount++;
+      provinceRowSpans[key] = rowCount;
+    });
+
+    Object.keys(areaGroups).forEach((key) => {
+      let rowCount = areaGroups[key].length;
+      // Add area total row
+      if (areaGroups[key].length > 1) rowCount++;
+      areaRowSpans[key] = rowCount;
+    });
 
     let currentDivision = "";
     let currentProvince = "";
     let currentArea = "";
-    let divisionRowsRemaining = 0;
-    let provinceRowsRemaining = 0;
-    let areaRowsRemaining = 0;
+
+    // Get unique divisions in order
+    const uniqueDivisions = Object.keys(divisionGroups).sort();
+
+    const tableRows: React.ReactElement[] = [];
+    let rowIndex = 0;
+
+    uniqueDivisions.forEach((division) => {
+      const provincesInDivision = Object.keys(provinceGroups)
+        .filter((pk) => pk.startsWith(`${division}-`))
+        .sort();
+
+      provincesInDivision.forEach((provinceKey) => {
+        const areasInProvince = Object.keys(areaGroups)
+          .filter((ak) => ak.startsWith(`${provinceKey}-`))
+          .sort();
+
+        areasInProvince.forEach((areaKey) => {
+          const items = areaGroups[areaKey];
+
+          items.forEach((row) => {
+            const divisionKeyCheck = row.Division || "";
+            const provinceKeyCheck = `${row.Division || ""}-${row.Province || ""}`;
+            const areaKeyCheck = `${row.Division || ""}-${row.Province || ""}-${row.Area || ""}`;
+
+            const showDivision = currentDivision !== divisionKeyCheck;
+            const showProvince = currentProvince !== provinceKeyCheck;
+            const showArea = currentArea !== areaKeyCheck;
+
+            if (showDivision) {
+              currentDivision = divisionKeyCheck;
+              currentProvince = "";
+              currentArea = "";
+            }
+
+            if (showProvince) {
+              currentProvince = provinceKeyCheck;
+              currentArea = "";
+            }
+
+            if (showArea) {
+              currentArea = areaKeyCheck;
+            }
+
+            tableRows.push(
+              <tr
+                key={`data-${rowIndex}`}
+                className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}
+              >
+                {showDivision && (
+                  <td
+                    className="border border-gray-300 px-2 py-1 align-top font-medium"
+                    rowSpan={divisionRowSpans[divisionKeyCheck]}
+                  >
+                    {row.Division || "N/A"}
+                  </td>
+                )}
+                {showProvince && (
+                  <td
+                    className="border border-gray-300 px-2 py-1 align-top"
+                    rowSpan={provinceRowSpans[provinceKeyCheck]}
+                  >
+                    {row.Province || "N/A"}
+                  </td>
+                )}
+                {showArea && (
+                  <td
+                    className="border border-gray-300 px-2 py-1 align-top"
+                    rowSpan={areaRowSpans[areaKeyCheck]}
+                  >
+                    {row.Area || "N/A"}
+                  </td>
+                )}
+                <td className="border border-gray-300 px-2 py-1">
+                  {row.CustomerName || "N/A"}
+                </td>
+                <td className="border border-gray-300 px-2 py-1">
+                  {row.AccountNumber || "N/A"}
+                </td>
+                <td className="border border-gray-300 px-2 py-1">
+                  {row.CustomerType || "N/A"}
+                </td>
+                <td className="border border-gray-300 px-2 py-1 text-right">
+                  {row.PanelCapacity != null
+                    ? formatCurrency(row.PanelCapacity)
+                    : "0.00"}
+                </td>
+                <td className="border border-gray-300 px-2 py-1 text-right">
+                  {row.BFUnits != null ? row.BFUnits : "0"}
+                </td>
+                <td className="border border-gray-300 px-2 py-1 text-right">
+                  {row.EnergyExported != null ? row.EnergyExported : "0"}
+                </td>
+                <td className="border border-gray-300 px-2 py-1 text-right">
+                  {row.EnergyImported != null ? row.EnergyImported : "0"}
+                </td>
+                <td className="border border-gray-300 px-2 py-1 text-right">
+                  {row.CFUnits != null ? row.CFUnits : "0"}
+                </td>
+                <td className="border border-gray-300 px-2 py-1">
+                  {row.SinNumber || "N/A"}
+                </td>
+                <td className="border border-gray-300 px-2 py-1">
+                  {row.Tariff || "N/A"}
+                </td>
+                <td className="border border-gray-300 px-2 py-1 whitespace-nowrap">
+                  {row.AgreementDate || "N/A"}
+                </td>
+                {isOrdinaryReport && (
+                  <td className="border border-gray-300 px-2 py-1 text-right">
+                    {row.UnitsForLossReduction != null
+                      ? row.UnitsForLossReduction
+                      : ""}
+                  </td>
+                )}
+              </tr>
+            );
+            rowIndex++;
+          });
+
+          // Add Area Total if more than 1 record in area
+          if (items.length > 1) {
+            const totals = {
+              count: items.length,
+              panelCapacity: items.reduce(
+                (sum, item) => sum + (item.PanelCapacity || 0),
+                0
+              ),
+              energyExported: items.reduce(
+                (sum, item) => sum + (item.EnergyExported || 0),
+                0
+              ),
+              energyImported: items.reduce(
+                (sum, item) => sum + (item.EnergyImported || 0),
+                0
+              ),
+            };
+
+            tableRows.push(
+              <tr key={`area-total-${rowIndex}`} className="bg-green-50 font-medium">
+                <td className="border border-gray-300 px-2 py-1" colSpan={1}>
+                  Area Total
+                </td>
+                <td className="border border-gray-300 px-2 py-1 text-right">
+                  {totals.count}
+                </td>
+                <td className="border border-gray-300 px-2 py-1" colSpan={1}></td>
+                <td className="border border-gray-300 px-2 py-1 text-right">
+                  {formatCurrency(totals.panelCapacity)}
+                </td>
+                <td className="border border-gray-300 px-2 py-1"></td>
+                <td className="border border-gray-300 px-2 py-1 text-right">
+                  {totals.energyExported}
+                </td>
+                <td className="border border-gray-300 px-2 py-1 text-right">
+                  {totals.energyImported}
+                </td>
+                <td
+                  className="border border-gray-300 px-2 py-1"
+                  colSpan={isOrdinaryReport ? 5 : 4}
+                ></td>
+              </tr>
+            );
+            rowIndex++;
+          }
+        });
+
+        // Add Province Total if more than 1 area
+        if (areasInProvince.length > 1) {
+          const provinceItems = provinceGroups[provinceKey];
+          const totals = {
+            count: provinceItems.length,
+            panelCapacity: provinceItems.reduce(
+              (sum, item) => sum + (item.PanelCapacity || 0),
+              0
+            ),
+            energyExported: provinceItems.reduce(
+              (sum, item) => sum + (item.EnergyExported || 0),
+              0
+            ),
+            energyImported: provinceItems.reduce(
+              (sum, item) => sum + (item.EnergyImported || 0),
+              0
+            ),
+          };
+
+          tableRows.push(
+            <tr key={`province-total-${rowIndex}`} className="bg-blue-50 font-semibold">
+              <td className="border border-gray-300 px-2 py-1" colSpan={2}>
+                Province Total
+              </td>
+              <td className="border border-gray-300 px-2 py-1 text-right">
+                {totals.count}
+              </td>
+              <td className="border border-gray-300 px-2 py-1" colSpan={1}></td>
+              <td className="border border-gray-300 px-2 py-1 text-right">
+                {formatCurrency(totals.panelCapacity)}
+              </td>
+              <td className="border border-gray-300 px-2 py-1"></td>
+              <td className="border border-gray-300 px-2 py-1 text-right">
+                {totals.energyExported}
+              </td>
+              <td className="border border-gray-300 px-2 py-1 text-right">
+                {totals.energyImported}
+              </td>
+              <td
+                className="border border-gray-300 px-2 py-1"
+                colSpan={isOrdinaryReport ? 5 : 4}
+              ></td>
+            </tr>
+          );
+          rowIndex++;
+        }
+      });
+
+      // Add Division Total if more than 1 province
+      if (provincesInDivision.length > 1) {
+        const divisionItems = divisionGroups[division];
+        const totals = {
+          count: divisionItems.length,
+          panelCapacity: divisionItems.reduce(
+            (sum, item) => sum + (item.PanelCapacity || 0),
+            0
+          ),
+          energyExported: divisionItems.reduce(
+            (sum, item) => sum + (item.EnergyExported || 0),
+            0
+          ),
+          energyImported: divisionItems.reduce(
+            (sum, item) => sum + (item.EnergyImported || 0),
+            0
+          ),
+        };
+
+        tableRows.push(
+          <tr key={`division-total-${rowIndex}`} className="bg-yellow-50 font-bold">
+            <td className="border border-gray-300 px-2 py-1" colSpan={3}>
+              Division Total
+            </td>
+            <td className="border border-gray-300 px-2 py-1 text-right">
+              {totals.count}
+            </td>
+            <td className="border border-gray-300 px-2 py-1" colSpan={1}></td>
+            <td className="border border-gray-300 px-2 py-1 text-right">
+              {formatCurrency(totals.panelCapacity)}
+            </td>
+            <td className="border border-gray-300 px-2 py-1"></td>
+            <td className="border border-gray-300 px-2 py-1 text-right">
+              {totals.energyExported}
+            </td>
+            <td className="border border-gray-300 px-2 py-1 text-right">
+              {totals.energyImported}
+            </td>
+            <td
+              className="border border-gray-300 px-2 py-1"
+              colSpan={isOrdinaryReport ? 5 : 4}
+            ></td>
+          </tr>
+        );
+        rowIndex++;
+      }
+    });
 
     return (
       <table className="w-full border-collapse text-xs">
@@ -750,110 +1269,13 @@ const SolarPVBilling: React.FC = () => {
               Agreement Date
             </th>
             {isOrdinaryReport && (
-              <th className="border border-gray-300 px-2 py-1 text-right">
+              <th className="border border-gray-300 px-2 py-1 text-center">
                 Units for Loss Reduction
               </th>
             )}
           </tr>
         </thead>
-        <tbody>
-          {groupedData.items.map((item, index) => {
-            const divisionKey = item.Division;
-            const provinceKey = `${item.Division}-${item.Province}`;
-            const areaKey = `${item.Division}-${item.Province}-${item.Area}`;
-
-            // Check if we need to show division cell
-            const showDivision = currentDivision !== divisionKey;
-            if (showDivision) {
-              currentDivision = divisionKey;
-              divisionRowsRemaining = groupedData.divisionCounts[divisionKey];
-            }
-
-            // Check if we need to show province cell
-            const showProvince = currentProvince !== provinceKey;
-            if (showProvince) {
-              currentProvince = provinceKey;
-              provinceRowsRemaining = groupedData.provinceCounts[provinceKey];
-            }
-
-            // Check if we need to show area cell
-            const showArea = currentArea !== areaKey;
-            if (showArea) {
-              currentArea = areaKey;
-              areaRowsRemaining = groupedData.areaCounts[areaKey];
-            }
-
-            return (
-              <tr
-                key={index}
-                className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-              >
-                {showDivision && (
-                  <td
-                    className="border border-gray-300 px-2 py-1 align-top"
-                    rowSpan={divisionRowsRemaining}
-                  >
-                    {item.Division}
-                  </td>
-                )}
-                {showProvince && (
-                  <td
-                    className="border border-gray-300 px-2 py-1 align-top"
-                    rowSpan={provinceRowsRemaining}
-                  >
-                    {item.Province}
-                  </td>
-                )}
-                {showArea && (
-                  <td
-                    className="border border-gray-300 px-2 py-1 align-top"
-                    rowSpan={areaRowsRemaining}
-                  >
-                    {item.Area}
-                  </td>
-                )}
-                <td className="border border-gray-300 px-2 py-1">
-                  {item.CustomerName}
-                </td>
-                <td className="border border-gray-300 px-2 py-1">
-                  {item.AccountNumber}
-                </td>
-                <td className="border border-gray-300 px-2 py-1">
-                  {item.CustomerType}
-                </td>
-                <td className="border border-gray-300 px-2 py-1 text-right">
-                  {formatCurrency(item.PanelCapacity)}
-                </td>
-                <td className="border border-gray-300 px-2 py-1 text-right">
-                  {item.BFUnits}
-                </td>
-                <td className="border border-gray-300 px-2 py-1 text-right">
-                  {item.EnergyExported}
-                </td>
-                <td className="border border-gray-300 px-2 py-1 text-right">
-                  {item.EnergyImported}
-                </td>
-                <td className="border border-gray-300 px-2 py-1 text-right">
-                  {item.CFUnits}
-                </td>
-                <td className="border border-gray-300 px-2 py-1">
-                  {item.SinNumber}
-                </td>
-                <td className="border border-gray-300 px-2 py-1">
-                  {item.Tariff}
-                </td>
-                <td className="border border-gray-300 px-2 py-1">
-                  {item.AgreementDate}
-                </td>
-                {isOrdinaryReport && (
-                  <td className="border border-gray-300 px-2 py-1 text-right">
-                    {item.UnitsForLossReduction || ""}
-                  </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
+        <tbody>{tableRows}</tbody>
       </table>
     );
   };
@@ -1198,10 +1620,19 @@ const SolarPVBilling: React.FC = () => {
 
         // Handle response data
         const responseData = result.data || result;
-        const detailedData = Array.isArray(responseData)
-          ? responseData
-          : [responseData];
-        setDetailedData(detailedData);
+        let detailedDataArray = [];
+        
+        if (Array.isArray(responseData)) {
+          detailedDataArray = responseData;
+        } else if (responseData && typeof responseData === 'object') {
+          detailedDataArray = [responseData];
+        }
+        
+        // Filter out any null or undefined entries
+        detailedDataArray = detailedDataArray.filter(item => item != null);
+        
+        console.log("Processed detailed data:", detailedDataArray);
+        setDetailedData(detailedDataArray);
         setReportVisible(true);
       } else if (reportType === "Detailed Report - Bulk") {
         endpoint = `/misapi/solarapi/pv-bulkconnections?${cycleParam}=${cycleValue}&cycleType=${cycleTypeParam}&reportType=${reportTypeParam}`;
@@ -1250,10 +1681,19 @@ const SolarPVBilling: React.FC = () => {
 
         // Handle response data
         const responseData = result.data || result;
-        const detailedData = Array.isArray(responseData)
-          ? responseData
-          : [responseData];
-        setDetailedData(detailedData);
+        let detailedDataArray = [];
+        
+        if (Array.isArray(responseData)) {
+          detailedDataArray = responseData;
+        } else if (responseData && typeof responseData === 'object') {
+          detailedDataArray = [responseData];
+        }
+        
+        // Filter out any null or undefined entries
+        detailedDataArray = detailedDataArray.filter(item => item != null);
+        
+        console.log("Processed detailed data:", detailedDataArray);
+        setDetailedData(detailedDataArray);
         setReportVisible(true);
       } else if (reportType === "Summary Report") {
         // For summary report, we'll fetch both ordinary and bulk data
@@ -1315,15 +1755,31 @@ const SolarPVBilling: React.FC = () => {
         const ordinaryResponseData = ordinaryData.data || ordinaryData;
         const bulkResponseData = bulkData.data || bulkData;
 
+        let ordinaryArray = [];
+        let bulkArray = [];
+        
+        if (Array.isArray(ordinaryResponseData)) {
+          ordinaryArray = ordinaryResponseData;
+        } else if (ordinaryResponseData && typeof ordinaryResponseData === 'object') {
+          ordinaryArray = [ordinaryResponseData];
+        }
+        
+        if (Array.isArray(bulkResponseData)) {
+          bulkArray = bulkResponseData;
+        } else if (bulkResponseData && typeof bulkResponseData === 'object') {
+          bulkArray = [bulkResponseData];
+        }
+        
+        // Filter out any null or undefined entries
+        ordinaryArray = ordinaryArray.filter(item => item != null);
+        bulkArray = bulkArray.filter(item => item != null);
+
         const combinedData = {
-          ordinary: Array.isArray(ordinaryResponseData)
-            ? ordinaryResponseData
-            : [ordinaryResponseData],
-          bulk: Array.isArray(bulkResponseData)
-            ? bulkResponseData
-            : [bulkResponseData],
+          ordinary: ordinaryArray,
+          bulk: bulkArray,
         };
 
+        console.log("Processed summary data:", combinedData);
         setSummaryData(combinedData);
         setReportVisible(true);
       }
@@ -1392,7 +1848,7 @@ const SolarPVBilling: React.FC = () => {
           </h2>
 
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               {/* Dropdown for category selection */}
               <div className="flex flex-col">
                 <label className={`${maroon} text-xs font-medium mb-1`}>
