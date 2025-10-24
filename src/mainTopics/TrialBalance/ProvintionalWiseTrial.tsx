@@ -553,7 +553,7 @@ const ProvintionalWiseTrial: React.FC = () => {
 			// Add data row
 			const dataRow = [
 				row.AccountCode,
-				`"${row.AccountName.replace(/"/g, '""')}"`,
+				`${row.AccountName.replace(/"/g, '""')}`,
 				...costCenters.map((cc) => formatNumberCSV(row.balances[cc] || 0)),
 				formatNumberCSV(rowTotal),
 			];

@@ -200,7 +200,7 @@ const AverageConsumption: React.FC = () => {
 
 			setLoading(true);
 			try {
-				const url = `/avgConsumption/api/inventoryaverageconsumption/warehouses/${encodeURIComponent(
+				const url = `/misapi/api/inventoryaverageconsumption/warehouses/${encodeURIComponent(
 					epfNo
 				)}?costCenterId=${encodeURIComponent(
 					selectedDepartment.DeptId
@@ -322,7 +322,7 @@ const AverageConsumption: React.FC = () => {
 			const formattedFromDate = fromDate.replace(/-/g, "");
 			const formattedToDate = toDate.replace(/-/g, "");
 			const response = await fetch(
-				`/avgConsumptionapi/inventoryaverageconsumption/report/${encodeURIComponent(
+				`/misapi/api/inventoryaverageconsumption/report/${encodeURIComponent(
 					selectedDepartment.DeptId
 				)}/${encodeURIComponent(
 					selectedWarehouse
@@ -470,8 +470,7 @@ const AverageConsumption: React.FC = () => {
       `;
 		});
 
-		const reportTitle =
-			"Inventory Average Consumption Report";
+		const reportTitle = "Inventory Average Consumption Report";
 
 		const htmlContent = `
 	  <html>
@@ -500,10 +499,9 @@ const AverageConsumption: React.FC = () => {
 			  table.print-table tr { page-break-inside: avoid; }
 			  thead { display: table-header-group; }
 			  @page {
-				@bottom-left { content: "Printed on: ${new Date().toLocaleString(
-							"en-US",
-							{timeZone: "Asia/Colombo"}
-						)}"; font-size: 0.75rem; color: gray; }
+				@bottom-left { content: "Printed on: ${new Date().toLocaleString("en-US", {
+					timeZone: "Asia/Colombo",
+				})}"; font-size: 0.75rem; color: gray; }
 				@bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
 			  }
 			}
