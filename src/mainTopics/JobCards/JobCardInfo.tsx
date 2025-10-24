@@ -46,9 +46,9 @@ const JobCardTable: React.FC<{
 	const maroon = "text-[#7A0000]";
 	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 	const [showOrientationModal, setShowOrientationModal] = useState(false);
-	const [, setSelectedOrientation] = useState<
-		"portrait" | "landscape" | null
-	>(null);
+	const [, setSelectedOrientation] = useState<"portrait" | "landscape" | null>(
+		null
+	);
 
 	const printPDF = (
 		jobCards: JobcardModel[],
@@ -1022,7 +1022,7 @@ const JobCardInfo: React.FC = () => {
 
 		try {
 			const response = await fetch(
-				`/jobcard/api/jobcard?projectNo=${encodeURIComponent(
+				`/misapi/api/jobcard?projectNo=${encodeURIComponent(
 					projectNo
 				)}&costCtr=${encodeURIComponent(department.DeptId)}`,
 				{
