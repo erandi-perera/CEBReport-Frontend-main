@@ -15,6 +15,7 @@ import BulkReporting from "../components/mainTopics/billing&payments/customerDet
 import OrdinaryReadingHistory from "../components/mainTopics/billing&payments/customerDetails/reports/OrdinaryReadingHistory";
 import TransactionHistoryReport from "../components/mainTopics/billing&payments/customerDetails/reports/TransactionHistoryReport";
 import JobCardDetails from "../pages/JobCardDetails";
+import LedgerCardDetails from "../pages/LedgerCardDetails";
 
 const ReportRoutes = () => (
 	<>
@@ -137,6 +138,15 @@ const ReportRoutes = () => (
 			element={
 				<Layout>
 					<JobCardDetails />
+				</Layout>
+			}
+		/>
+
+		<Route
+			path="/report/LedgerCards"
+			element={
+				<Layout>
+					<LedgerCardDetails />
 				</Layout>
 			}
 		/>
