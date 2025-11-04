@@ -508,220 +508,324 @@ const AgeAnalysisCostCenter = () => {
     const grandTotalAmount = ageAnalysisData.reduce((sum, item) => sum + item.Amount, 0);
     
     return (
-      <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
-        <div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
-          <div className="p-5 border-b">
-            <div className="flex justify-between items-start">
-              <div className="space-y-2 w-full">
-                <h2 className="text-lg font-bold text-gray-800 text-center">
-                  Work In Progress - Age Analysis As At {new Date().toLocaleDateString()}
-                </h2>
-                <div className="border-b border-gray-300 my-2"></div>
-                <h3 className={`text-sm ${maroon} text-center`}>
-                  Cost Center : {selectedDepartment.DeptId} / {selectedDepartment.DeptName}
-                </h3>
-                <div className="border-b border-gray-300 my-2"></div>
-              </div>
-            </div>
-            {ageAnalysisError && (
-              <div className="text-red-600 text-xs mt-2 text-center">
-                {ageAnalysisError.includes("JSON.parse") ? "Data format error" : ageAnalysisError}
-              </div>
-            )}
-          </div>
-          <div className="px-6 py-5 overflow-y-auto flex-grow">
-            {ageAnalysisLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mr-3"></div>
-                <span className={`${maroon} text-sm font-medium`}>Loading age analysis data...</span>
-              </div>
-            ) : ageAnalysisData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="text-gray-400 mb-4">
-                  <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-700 mb-2">No Age Analysis Data Available</h3>
-                <p className="text-gray-500 text-center max-w-md">
-                  We couldn't find any age analysis records for <strong>{selectedDepartment.DeptName}</strong>.
-                </p>
-              </div>
-            ) : (
-              <div>
-                {/* Buttons section above table */}
-                <div className="flex justify-between items-center mb-2">
-                  <div></div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={downloadAsCSV}
-                      className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
-                    >
-                      <Download className="w-3 h-3" /> CSV
-                    </button>
-                    <button
-                      onClick={printPDF}
-                      className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
-                    >
-                      <Printer className="w-3 h-3" /> PDF
-                    </button>
-                    <button
-                      onClick={navigateToWorkInProgress}
-                      className="flex items-center gap-2 px-4 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      View Work in Progress <ArrowRight className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={closeAgeAnalysisModal}
-                      className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
-                    >
-                      Back To Home
-                    </button>
-                  </div>
-                </div>
-                
-                <div ref={printRef} className="w-full space-y-6">
-                  {/* Table Section */}
-                  <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-                    {/* Currency indicator */}
-                    <div className="flex justify-between items-center p-3 bg-gray-50 border-b rounded-t-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold text-gray-700">Currency: LKR</span>
-                      <span className="text-xs text-gray-600">
-                        Total Records: <span className="font-semibold">{ageAnalysisData.length}</span>
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      Generated: <span className="font-mono">{new Date().toLocaleString()}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="text-gray-800" style={{backgroundColor: '#D3D3D3'}}>
-                          <th className="px-3 py-2 text-left border-r font-semibold text-xs">Period</th>
-                          <th className="px-3 py-2 text-center border-r font-semibold text-xs">No of Projects</th>
-                          <th className="px-3 py-2 text-right font-semibold text-xs">Amount (LKR)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ageAnalysisData.map((item, index) => (
-                          <tr key={`${item.Period}-${index}`} className="border-b hover:bg-gray-50 transition-colors">
-                            <td className="px-3 py-2 text-xs border-r font-medium text-gray-800">{item.Period}</td>
-                            <td className="px-3 py-2 text-center text-xs border-r font-mono text-gray-800">
-                              {item.NoOfProjects.toLocaleString()}
-                            </td>
-                            <td className="px-3 py-2 text-right font-mono text-xs text-gray-800">
-                              {item.Amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                        ))}
-                        {/* Grand Total Row */}
-                        <tr className="border-t-2 border-gray-400 bg-gray-100 font-bold">
-                          <td className="px-3 py-2 text-xs border-r text-gray-800">GRAND TOTAL</td>
-                          <td className="px-3 py-2 text-center text-xs border-r font-mono text-gray-800">
-                            {grandTotalProjects.toLocaleString()}
-                          </td>
-                          <td className="px-3 py-2 text-right font-mono text-xs text-gray-800">
-                            {grandTotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+			<div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
+				<div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
+					<div className="p-5 border-b">
+						<div className="flex justify-between items-start">
+							<div className="space-y-2 w-full">
+								<h2 className="text-lg font-bold text-gray-800 text-center">
+									Work In Progress - Age Analysis As At{" "}
+									{new Date().toLocaleDateString()}
+								</h2>
+								<div className="border-b border-gray-300 my-2"></div>
+								<h3 className={`text-sm ${maroon} text-center`}>
+									Cost Center : {selectedDepartment.DeptId} /{" "}
+									{selectedDepartment.DeptName}
+								</h3>
+								<div className="border-b border-gray-300 my-2"></div>
+							</div>
+						</div>
+						{ageAnalysisError && (
+							<div className="text-red-600 text-xs mt-2 text-center">
+								{ageAnalysisError.includes("JSON.parse")
+									? "Data format error"
+									: ageAnalysisError}
+							</div>
+						)}
+					</div>
+					<div className="px-6 py-5 overflow-y-auto flex-grow">
+						{ageAnalysisLoading ? (
+							<div className="flex items-center justify-center py-8">
+								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mr-3"></div>
+								<span className={`${maroon} text-sm font-medium`}>
+									Loading age analysis data...
+								</span>
+							</div>
+						) : ageAnalysisData.length === 0 ? (
+							<div className="flex flex-col items-center justify-center py-12">
+								<button
+									onClick={closeAgeAnalysisModal}
+									className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
+								>
+									Back To Home
+								</button>
+								<div className="text-gray-400 mb-4">
+									<svg
+										className="w-16 h-16 mx-auto"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={1}
+											d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+										/>
+									</svg>
+								</div>
+								<h3 className="text-lg font-medium text-gray-700 mb-2">
+									No Age Analysis Data Available
+								</h3>
+								<p className="text-gray-500 text-center max-w-md">
+									We couldn't find any age analysis records for{" "}
+									<strong>{selectedDepartment.DeptName}</strong>.
+								</p>
+							</div>
+						) : (
+							<div>
+								{/* Buttons section above table */}
+								<div className="flex justify-between items-center mb-2">
+									<div></div>
+									<div className="flex gap-2">
+										<button
+											onClick={downloadAsCSV}
+											className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+										>
+											<Download className="w-3 h-3" /> CSV
+										</button>
+										<button
+											onClick={printPDF}
+											className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
+										>
+											<Printer className="w-3 h-3" /> PDF
+										</button>
+										<button
+											onClick={navigateToWorkInProgress}
+											className="flex items-center gap-2 px-4 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+										>
+											View Work in Progress{" "}
+											<ArrowRight className="w-4 h-4" />
+										</button>
+										<button
+											onClick={closeAgeAnalysisModal}
+											className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
+										>
+											Back To Home
+										</button>
+									</div>
+								</div>
 
-                {/* Chart Section */}
-                <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-                  {/* Chart header */}
-                  <div className="flex justify-between items-center p-3 bg-gray-50 border-b rounded-t-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-gray-700">Age Analysis Chart</span>
-                      <span className="text-xs text-gray-600">
-                        Currency: LKR
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      Generated: <span className="font-mono">{new Date().toLocaleString()}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Bar Chart */}
-                  <div className="p-4">
-                    <div className="w-full" style={{ height: '280px' }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={chartData}
-                          margin={{ top: 15, right: 50, left: 30, bottom: 60 }}
-                          maxBarSize={80}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis 
-                            dataKey="period" 
-                            tick={{ fontSize: 11 }}
-                            interval={0}
-                            angle={-45}
-                            textAnchor="end"
-                            height={60}
-                            tickMargin={10}
-                          />
-                          <YAxis 
-                            yAxisId="left"
-                            orientation="left"
-                            tick={{ fontSize: 10 }}
-                            tickFormatter={(value) => value.toLocaleString()}
-                            width={70}
-                            label={{ value: 'No of Projects', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
-                          />
-                          <YAxis 
-                            yAxisId="right"
-                            orientation="right"
-                            tick={{ fontSize: 10 }}
-                            tickFormatter={(value) => (value / 1000000).toFixed(1) + 'M'}
-                            width={70}
-                            label={{ value: 'Amount (LKR)', angle: 90, position: 'insideRight', style: { textAnchor: 'middle' } }}
-                          />
-                          <Tooltip content={<CustomTooltip />} />
-                          <Legend />
-                          <Bar 
-                            yAxisId="left"
-                            dataKey="noOfProjects" 
-                            fill="#2D3748" 
-                            name="No of Projects (Count)"
-                            radius={[3, 3, 0, 0]}
-                          />
-                          <Bar 
-                            yAxisId="right"
-                            dataKey="amount" 
-                            fill="#7A0000" 
-                            name="Amount (LKR)"
-                            radius={[3, 3, 0, 0]}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                    
-                    {/* Chart Summary */}
-                    <div className="mt-4 flex justify-center">
-                      <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg px-6 py-4 shadow-sm">
-                        <div className="text-xs font-medium text-green-600 mb-1 text-center">Total Amount</div>
-                        <div className="text-xl font-bold text-green-800 font-mono text-center">
-                          {grandTotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
-                        <div className="text-xs text-green-600 mt-1 text-center">LKR</div>
-                      </div>
-                    </div>
-                  </div>
-                  </div>
+								<div ref={printRef} className="w-full space-y-6">
+									{/* Table Section */}
+									<div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+										{/* Currency indicator */}
+										<div className="flex justify-between items-center p-3 bg-gray-50 border-b rounded-t-lg">
+											<div className="flex items-center gap-3">
+												<span className="text-xs font-semibold text-gray-700">
+													Currency: LKR
+												</span>
+												<span className="text-xs text-gray-600">
+													Total Records:{" "}
+													<span className="font-semibold">
+														{ageAnalysisData.length}
+													</span>
+												</span>
+											</div>
+											<div className="text-xs text-gray-600">
+												Generated:{" "}
+												<span className="font-mono">
+													{new Date().toLocaleString()}
+												</span>
+											</div>
+										</div>
 
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+										<div className="overflow-x-auto">
+											<table className="w-full border-collapse">
+												<thead>
+													<tr
+														className="text-gray-800"
+														style={{backgroundColor: "#D3D3D3"}}
+													>
+														<th className="px-3 py-2 text-left border-r font-semibold text-xs">
+															Period
+														</th>
+														<th className="px-3 py-2 text-center border-r font-semibold text-xs">
+															No of Projects
+														</th>
+														<th className="px-3 py-2 text-right font-semibold text-xs">
+															Amount (LKR)
+														</th>
+													</tr>
+												</thead>
+												<tbody>
+													{ageAnalysisData.map((item, index) => (
+														<tr
+															key={`${item.Period}-${index}`}
+															className="border-b hover:bg-gray-50 transition-colors"
+														>
+															<td className="px-3 py-2 text-xs border-r font-medium text-gray-800">
+																{item.Period}
+															</td>
+															<td className="px-3 py-2 text-center text-xs border-r font-mono text-gray-800">
+																{item.NoOfProjects.toLocaleString()}
+															</td>
+															<td className="px-3 py-2 text-right font-mono text-xs text-gray-800">
+																{item.Amount.toLocaleString(
+																	"en-US",
+																	{
+																		minimumFractionDigits: 2,
+																		maximumFractionDigits: 2,
+																	}
+																)}
+															</td>
+														</tr>
+													))}
+													{/* Grand Total Row */}
+													<tr className="border-t-2 border-gray-400 bg-gray-100 font-bold">
+														<td className="px-3 py-2 text-xs border-r text-gray-800">
+															GRAND TOTAL
+														</td>
+														<td className="px-3 py-2 text-center text-xs border-r font-mono text-gray-800">
+															{grandTotalProjects.toLocaleString()}
+														</td>
+														<td className="px-3 py-2 text-right font-mono text-xs text-gray-800">
+															{grandTotalAmount.toLocaleString(
+																"en-US",
+																{
+																	minimumFractionDigits: 2,
+																	maximumFractionDigits: 2,
+																}
+															)}
+														</td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+									</div>
+
+									{/* Chart Section */}
+									<div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+										{/* Chart header */}
+										<div className="flex justify-between items-center p-3 bg-gray-50 border-b rounded-t-lg">
+											<div className="flex items-center gap-3">
+												<span className="text-sm font-semibold text-gray-700">
+													Age Analysis Chart
+												</span>
+												<span className="text-xs text-gray-600">
+													Currency: LKR
+												</span>
+											</div>
+											<div className="text-xs text-gray-600">
+												Generated:{" "}
+												<span className="font-mono">
+													{new Date().toLocaleString()}
+												</span>
+											</div>
+										</div>
+
+										{/* Bar Chart */}
+										<div className="p-4">
+											<div
+												className="w-full"
+												style={{height: "280px"}}
+											>
+												<ResponsiveContainer
+													width="100%"
+													height="100%"
+												>
+													<BarChart
+														data={chartData}
+														margin={{
+															top: 15,
+															right: 50,
+															left: 30,
+															bottom: 60,
+														}}
+														maxBarSize={80}
+													>
+														<CartesianGrid strokeDasharray="3 3" />
+														<XAxis
+															dataKey="period"
+															tick={{fontSize: 11}}
+															interval={0}
+															angle={-45}
+															textAnchor="end"
+															height={60}
+															tickMargin={10}
+														/>
+														<YAxis
+															yAxisId="left"
+															orientation="left"
+															tick={{fontSize: 10}}
+															tickFormatter={(value) =>
+																value.toLocaleString()
+															}
+															width={70}
+															label={{
+																value: "No of Projects",
+																angle: -90,
+																position: "insideLeft",
+																style: {textAnchor: "middle"},
+															}}
+														/>
+														<YAxis
+															yAxisId="right"
+															orientation="right"
+															tick={{fontSize: 10}}
+															tickFormatter={(value) =>
+																(value / 1000000).toFixed(1) +
+																"M"
+															}
+															width={70}
+															label={{
+																value: "Amount (LKR)",
+																angle: 90,
+																position: "insideRight",
+																style: {textAnchor: "middle"},
+															}}
+														/>
+														<Tooltip
+															content={<CustomTooltip />}
+														/>
+														<Legend />
+														<Bar
+															yAxisId="left"
+															dataKey="noOfProjects"
+															fill="#2D3748"
+															name="No of Projects (Count)"
+															radius={[3, 3, 0, 0]}
+														/>
+														<Bar
+															yAxisId="right"
+															dataKey="amount"
+															fill="#7A0000"
+															name="Amount (LKR)"
+															radius={[3, 3, 0, 0]}
+														/>
+													</BarChart>
+												</ResponsiveContainer>
+											</div>
+
+											{/* Chart Summary */}
+											<div className="mt-4 flex justify-center">
+												<div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg px-6 py-4 shadow-sm">
+													<div className="text-xs font-medium text-green-600 mb-1 text-center">
+														Total Amount
+													</div>
+													<div className="text-xl font-bold text-green-800 font-mono text-center">
+														{grandTotalAmount.toLocaleString(
+															"en-US",
+															{
+																minimumFractionDigits: 2,
+																maximumFractionDigits: 2,
+															}
+														)}
+													</div>
+													<div className="text-xs text-green-600 mt-1 text-center">
+														LKR
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
+					</div>
+				</div>
+			</div>
+		);
   };
 
   // If showing Work in Progress, render that component with the selected department

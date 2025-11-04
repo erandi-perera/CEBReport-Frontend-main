@@ -620,6 +620,13 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
 							</div>
 						) : workInProgressData.length === 0 ? (
 							<div className="flex flex-col items-center justify-center py-12">
+								<button
+									onClick={onBack}
+									className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+								>
+									<ChevronLeft className="w-4 h-4" /> Back to Age
+									Analysis
+								</button>
 								<div className="text-gray-400 mb-4">
 									<svg
 										className="w-16 h-16 mx-auto"
