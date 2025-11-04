@@ -188,7 +188,7 @@
 //   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
 //     const { name, value, type } = e.target;
 //     const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
-    
+
 //     // If option changes, reset areaCode to appropriate default
 //     if (name === 'option') {
 //       let defaultAreaCode = "";
@@ -199,7 +199,7 @@
 //       } else if (value === "A" && areas.length > 0) {
 //         defaultAreaCode = areas[0].AreaCode;
 //       }
-      
+
 //       setFormData(prev => ({ 
 //         ...prev, 
 //         [name]: value,
@@ -259,7 +259,7 @@
 //     try {
 //       const { option, cycle, areaCode, showOrdinary, showBulk } = formData;
 //       if (!cycle) throw new Error("Please select a Bill Cycle");
-      
+
 //       if (!showOrdinary && !showBulk) {
 //         throw new Error("Please select at least one debtor type");
 //       }
@@ -278,7 +278,7 @@
 //         if (!ordinaryResponse.ok) throw new Error(`HTTP error! status: ${ordinaryResponse.status}`);
 //         const ordinaryResult = await ordinaryResponse.json();
 //         if (ordinaryResult.ErrorMessage) throw new Error(ordinaryResult.ErrorMessage);
-        
+
 //         const rawOrdinaryData = Array.isArray(ordinaryResult) ? ordinaryResult : ordinaryResult.data || [];
 //         results.ordinary = calculatePercentages(rawOrdinaryData);
 //       }
@@ -292,7 +292,7 @@
 //         if (!bulkResponse.ok) throw new Error(`HTTP error! status: ${bulkResponse.status}`);
 //         const bulkResult = await bulkResponse.json();
 //         if (bulkResult.ErrorMessage) throw new Error(bulkResult.ErrorMessage);
-        
+
 //         const rawBulkData = Array.isArray(bulkResult) ? bulkResult : bulkResult.data || [];
 //         results.bulk = calculatePercentages(rawBulkData);
 //       }
@@ -336,7 +336,7 @@
 //   const downloadAsCSV = () => {
 //     const combinedData = [...(formData.showOrdinary ? data.ordinary : []), ...(formData.showBulk ? data.bulk : [])];
 //     if (!combinedData.length) return;
-    
+
 //     const headers = ["Type", "Customer Type", "Total Debtors (LKR)", "0_1 Month (LKR)", "% Total", "1_2 Month (LKR)", "% Total", "2_3 Month (LKR)", "% Total", ">3 Month (LKR)", "% Total"];
 //     const rows = combinedData.map(row => [
 //       row.Type,
@@ -351,7 +351,7 @@
 //       row.Month04 ?? 0,
 //       `${row.Month04Percent ?? 0}`
 //     ]);
-    
+
 //     if (formData.showOrdinary && data.ordinary.length > 0) {
 //       const ordinaryTotal = calculateTotals(data.ordinary);
 //       rows.push([
@@ -368,7 +368,7 @@
 //         `${ordinaryTotal.Month04Percent}`
 //       ]);
 //     }
-    
+
 //     if (formData.showBulk && data.bulk.length > 0) {
 //       const bulkTotal = calculateTotals(data.bulk);
 //       rows.push([
@@ -385,7 +385,7 @@
 //         `${bulkTotal.Month04Percent}`
 //       ]);
 //     }
-    
+
 //     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
 //     const blob = new Blob([csvContent], { type: "text/csv" });
 //     const url = URL.createObjectURL(blob);
@@ -429,10 +429,10 @@
 //       default:
 //         optionText = "";
 //     }
-    
+
 //     const cycleOption = billCycleOptions.find(c => c.code === formData.cycle);
 //     const cycleText = `Bill Cycle: <span class="bold">${formData.cycle} - ${cycleOption?.display || formData.cycle}</span>`;
-    
+
 //     return `${optionText}<br>${cycleText}`;
 //   };
 
@@ -443,7 +443,7 @@
 //     // Ordinary Debtors Table
 //     if (formData.showOrdinary && data.ordinary.length > 0) {
 //       const ordinaryTotal = calculateTotals(data.ordinary);
-      
+
 //       tableContent += `
 //         <div class="section-title">ORDINARY DEBTORS</div>
 //         <table>
@@ -463,7 +463,7 @@
 //           </thead>
 //           <tbody>
 //       `;
-      
+
 //       data.ordinary.forEach(row => {
 //         tableContent += `
 //           <tr>
@@ -480,7 +480,7 @@
 //           </tr>
 //         `;
 //       });
-      
+
 //       // Add total row
 //       tableContent += `
 //           <tr class="total-row">
@@ -503,9 +503,9 @@
 //     // Bulk Debtors Table
 //     if (formData.showBulk && data.bulk.length > 0) {
 //       const bulkTotal = calculateTotals(data.bulk);
-      
+
 //       if (tableContent) tableContent += `<div class="table-spacer"></div>`;
-      
+
 //       tableContent += `
 //         <div class="section-title">BULK DEBTORS</div>
 //         <table>
@@ -525,7 +525,7 @@
 //           </thead>
 //           <tbody>
 //       `;
-      
+
 //       data.bulk.forEach(row => {
 //         tableContent += `
 //           <tr>
@@ -542,7 +542,7 @@
 //           </tr>
 //         `;
 //       });
-      
+
 //       // Add total row
 //       tableContent += `
 //           <tr class="total-row">
@@ -986,14 +986,21 @@ const DebtorsAnalysis: React.FC = () => {
   const calculatePercentages = (data: DebtorSummary[]): DebtorSummary[] => {
     return data.map(row => {
       const totDebtors = row.TotDebtors || 0;
+      const absTotDebtors = Math.abs(totDebtors);
       return {
         ...row,
-        Month01Percent: totDebtors !== 0 ? parseFloat(((Math.abs(row.Month01 || 0) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
-        Month02Percent: totDebtors !== 0 ? parseFloat(((Math.abs(row.Month02 || 0) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
-        Month03Percent: totDebtors !== 0 ? parseFloat(((Math.abs(row.Month03 || 0) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
-        Month04Percent: totDebtors !== 0 ? parseFloat(((Math.abs(row.Month04 || 0) / Math.abs(totDebtors)) * 100).toFixed(2)) : 0,
+        Month01Percent: absTotDebtors !== 0 ? parseFloat((((row.Month01 || 0) / absTotDebtors) * 100).toFixed(2)) : 0,
+        Month02Percent: absTotDebtors !== 0 ? parseFloat((((row.Month02 || 0) / absTotDebtors) * 100).toFixed(2)) : 0,
+        Month03Percent: absTotDebtors !== 0 ? parseFloat((((row.Month03 || 0) / absTotDebtors) * 100).toFixed(2)) : 0,
+        Month04Percent: absTotDebtors !== 0 ? parseFloat((((row.Month04 || 0) / absTotDebtors) * 100).toFixed(2)) : 0,
       };
     });
+  };
+
+  const formatPercentage = (value: number | undefined): string => {
+    if (value === undefined || value === null || value === 0) return "-";
+    const absValue = Math.abs(value);
+    return value < 0 ? `(${absValue})` : `${absValue}`;
   };
 
   const fetchWithErrorHandling = async (url: string) => {
@@ -1074,7 +1081,7 @@ const DebtorsAnalysis: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
-    
+
     // If option changes, reset areaCode to appropriate default
     if (name === 'option') {
       let defaultAreaCode = "";
@@ -1085,16 +1092,16 @@ const DebtorsAnalysis: React.FC = () => {
       } else if (value === "A" && areas.length > 0) {
         defaultAreaCode = areas[0].AreaCode;
       }
-      
-      setFormData(prev => ({ 
-        ...prev, 
+
+      setFormData(prev => ({
+        ...prev,
         [name]: value,
         areaCode: defaultAreaCode
       }));
     } else {
-      setFormData(prev => ({ 
-        ...prev, 
-        [name]: type === 'checkbox' ? checked : value 
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
       }));
     }
   };
@@ -1145,7 +1152,7 @@ const DebtorsAnalysis: React.FC = () => {
     try {
       const { option, cycle, areaCode, showOrdinary, showBulk } = formData;
       if (!cycle) throw new Error("Please select a Bill Cycle");
-      
+
       if (!showOrdinary && !showBulk) {
         throw new Error("Please select at least one debtor type");
       }
@@ -1164,7 +1171,7 @@ const DebtorsAnalysis: React.FC = () => {
         if (!ordinaryResponse.ok) throw new Error(`HTTP error! status: ${ordinaryResponse.status}`);
         const ordinaryResult = await ordinaryResponse.json();
         if (ordinaryResult.ErrorMessage) throw new Error(ordinaryResult.ErrorMessage);
-        
+
         const rawOrdinaryData = Array.isArray(ordinaryResult) ? ordinaryResult : ordinaryResult.data || [];
         results.ordinary = calculatePercentages(rawOrdinaryData);
       }
@@ -1178,7 +1185,7 @@ const DebtorsAnalysis: React.FC = () => {
         if (!bulkResponse.ok) throw new Error(`HTTP error! status: ${bulkResponse.status}`);
         const bulkResult = await bulkResponse.json();
         if (bulkResult.ErrorMessage) throw new Error(bulkResult.ErrorMessage);
-        
+
         const rawBulkData = Array.isArray(bulkResult) ? bulkResult : bulkResult.data || [];
         results.bulk = calculatePercentages(rawBulkData);
       }
@@ -1214,7 +1221,7 @@ const DebtorsAnalysis: React.FC = () => {
       'Month 04': Math.abs(item.Month04 || 0),
       isGovernment: item.CustType.toLowerCase().includes('government')
     }));
-    return barData.sort((a, b) => 
+    return barData.sort((a, b) =>
       a.isGovernment === b.isGovernment ? 0 : a.isGovernment ? -1 : 1
     );
   };
@@ -1269,19 +1276,19 @@ const DebtorsAnalysis: React.FC = () => {
     if (formData.showOrdinary && data.ordinary.length > 0) {
       csvContent.push(""); // Empty line before section
       csvContent.push('"ORDINARY DEBTORS"');
-      
+
       const ordinaryRows = data.ordinary.map(row => [
         row.Type,
         row.CustType,
         row.TotDebtors ?? 0,
         row.Month01 ?? 0,
-        row.Month01Percent ?? 0,
+        formatPercentage(row.Month01Percent),
         row.Month02 ?? 0,
-        row.Month02Percent ?? 0,
+        formatPercentage(row.Month02Percent),
         row.Month03 ?? 0,
-        row.Month03Percent ?? 0,
+        formatPercentage(row.Month03Percent),
         row.Month04 ?? 0,
-        row.Month04Percent ?? 0
+        formatPercentage(row.Month04Percent)
       ].map(cell => `"${cell}"`).join(","));
 
       csvContent.push(...ordinaryRows);
@@ -1293,13 +1300,13 @@ const DebtorsAnalysis: React.FC = () => {
         "",
         ordinaryTotal.TotDebtors,
         ordinaryTotal.Month01,
-        ordinaryTotal.Month01Percent,
+        formatPercentage(ordinaryTotal.Month01Percent),
         ordinaryTotal.Month02,
-        ordinaryTotal.Month02Percent,
+        formatPercentage(ordinaryTotal.Month02Percent),
         ordinaryTotal.Month03,
-        ordinaryTotal.Month03Percent,
+        formatPercentage(ordinaryTotal.Month03Percent),
         ordinaryTotal.Month04,
-        ordinaryTotal.Month04Percent
+        formatPercentage(ordinaryTotal.Month04Percent)
       ].map(cell => `"${cell}"`).join(","));
     }
 
@@ -1307,19 +1314,19 @@ const DebtorsAnalysis: React.FC = () => {
     if (formData.showBulk && data.bulk.length > 0) {
       csvContent.push(""); // Empty line before section
       csvContent.push('"BULK DEBTORS"');
-      
+
       const bulkRows = data.bulk.map(row => [
         row.Type,
         row.CustType,
         row.TotDebtors ?? 0,
         row.Month01 ?? 0,
-        row.Month01Percent ?? 0,
+        formatPercentage(row.Month01Percent),
         row.Month02 ?? 0,
-        row.Month02Percent ?? 0,
+        formatPercentage(row.Month02Percent),
         row.Month03 ?? 0,
-        row.Month03Percent ?? 0,
+        formatPercentage(row.Month03Percent),
         row.Month04 ?? 0,
-        row.Month04Percent ?? 0
+        formatPercentage(row.Month04Percent)
       ].map(cell => `"${cell}"`).join(","));
 
       csvContent.push(...bulkRows);
@@ -1331,13 +1338,13 @@ const DebtorsAnalysis: React.FC = () => {
         "",
         bulkTotal.TotDebtors,
         bulkTotal.Month01,
-        bulkTotal.Month01Percent,
+        formatPercentage(bulkTotal.Month01Percent),
         bulkTotal.Month02,
-        bulkTotal.Month02Percent,
+        formatPercentage(bulkTotal.Month02Percent),
         bulkTotal.Month03,
-        bulkTotal.Month03Percent,
+        formatPercentage(bulkTotal.Month03Percent),
         bulkTotal.Month04,
-        bulkTotal.Month04Percent
+        formatPercentage(bulkTotal.Month04Percent)
       ].map(cell => `"${cell}"`).join(","));
     }
 
@@ -1346,11 +1353,11 @@ const DebtorsAnalysis: React.FC = () => {
       const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      
-      const fileDescriptor = formData.option === "E" 
-        ? "AllCEB" 
+
+      const fileDescriptor = formData.option === "E"
+        ? "AllCEB"
         : `${formData.option}_${formData.areaCode}`;
-      
+
       link.setAttribute("href", url);
       link.setAttribute("download", `DebtorsAnalysis_${fileDescriptor}_Cycle${formData.cycle}.csv`);
       link.style.visibility = "hidden";
@@ -1392,9 +1399,9 @@ const DebtorsAnalysis: React.FC = () => {
         default:
           optionText = "";
       }
-      
+
       const cycleText = `Bill Cycle: <span class="bold">${getFormattedBillCycle()}</span>`;
-      
+
       return `${optionText}<br>${cycleText}`;
     };
 
@@ -1405,7 +1412,7 @@ const DebtorsAnalysis: React.FC = () => {
       // Ordinary Debtors Table
       if (formData.showOrdinary && data.ordinary.length > 0) {
         const ordinaryTotal = calculateTotals(data.ordinary);
-        
+
         tableContent += `
           <div class="section-title">ORDINARY DEBTORS</div>
           <table>
@@ -1425,49 +1432,49 @@ const DebtorsAnalysis: React.FC = () => {
             </thead>
             <tbody>
         `;
-        
+
         data.ordinary.forEach(row => {
           tableContent += `
-            <tr>
-              <td class="text-left">${row.CustType}</td>
-              <td class="text-right">${formatCurrency(row.TotDebtors)}</td>
-              <td class="text-right">${formatCurrency(row.Month01)}</td>
-              <td class="text-right">${row.Month01Percent || 0}</td>
-              <td class="text-right">${formatCurrency(row.Month02)}</td>
-              <td class="text-right">${row.Month02Percent || 0}</td>
-              <td class="text-right">${formatCurrency(row.Month03)}</td>
-              <td class="text-right">${row.Month03Percent || 0}</td>
-              <td class="text-right">${formatCurrency(row.Month04)}</td>
-              <td class="text-right">${row.Month04Percent || 0}</td>
-            </tr>
-          `;
+    <tr>
+      <td class="text-left">${row.CustType}</td>
+      <td class="text-right">${formatCurrency(row.TotDebtors)}</td>
+      <td class="text-right">${formatCurrency(row.Month01)}</td>
+      <td class="text-right">${formatPercentage(row.Month01Percent)}</td>
+      <td class="text-right">${formatCurrency(row.Month02)}</td>
+      <td class="text-right">${formatPercentage(row.Month02Percent)}</td>
+      <td class="text-right">${formatCurrency(row.Month03)}</td>
+      <td class="text-right">${formatPercentage(row.Month03Percent)}</td>
+      <td class="text-right">${formatCurrency(row.Month04)}</td>
+      <td class="text-right">${formatPercentage(row.Month04Percent)}</td>
+    </tr>
+  `;
         });
-        
+
         // Add total row
         tableContent += `
-            <tr class="total-row">
-              <td class="text-left"><strong>TOTAL</strong></td>
-              <td class="text-right"><strong>${formatCurrency(ordinaryTotal.TotDebtors)}</strong></td>
-              <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month01)}</strong></td>
-              <td class="text-right"><strong>${ordinaryTotal.Month01Percent || 0}</strong></td>
-              <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month02)}</strong></td>
-              <td class="text-right"><strong>${ordinaryTotal.Month02Percent || 0}</strong></td>
-              <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month03)}</strong></td>
-              <td class="text-right"><strong>${ordinaryTotal.Month03Percent || 0}</strong></td>
-              <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month04)}</strong></td>
-              <td class="text-right"><strong>${ordinaryTotal.Month04Percent || 0}</strong></td>
-            </tr>
-            </tbody>
-          </table>
-        `;
+    <tr class="total-row">
+      <td class="text-left"><strong>TOTAL</strong></td>
+      <td class="text-right"><strong>${formatCurrency(ordinaryTotal.TotDebtors)}</strong></td>
+      <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month01)}</strong></td>
+      <td class="text-right"><strong>${formatPercentage(ordinaryTotal.Month01Percent)}</strong></td>
+      <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month02)}</strong></td>
+      <td class="text-right"><strong>${formatPercentage(ordinaryTotal.Month02Percent)}</strong></td>
+      <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month03)}</strong></td>
+      <td class="text-right"><strong>${formatPercentage(ordinaryTotal.Month03Percent)}</strong></td>
+      <td class="text-right"><strong>${formatCurrency(ordinaryTotal.Month04)}</strong></td>
+      <td class="text-right"><strong>${formatPercentage(ordinaryTotal.Month04Percent)}</strong></td>
+    </tr>
+    </tbody>
+  </table>
+`;
       }
 
       // Bulk Debtors Table
       if (formData.showBulk && data.bulk.length > 0) {
         const bulkTotal = calculateTotals(data.bulk);
-        
+
         if (tableContent) tableContent += `<div class="table-spacer"></div>`;
-        
+
         tableContent += `
           <div class="section-title">BULK DEBTORS</div>
           <table>
@@ -1487,41 +1494,41 @@ const DebtorsAnalysis: React.FC = () => {
             </thead>
             <tbody>
         `;
-        
+
         data.bulk.forEach(row => {
           tableContent += `
-            <tr>
-              <td class="text-left">${row.CustType}</td>
-              <td class="text-right">${formatCurrency(row.TotDebtors)}</td>
-              <td class="text-right">${formatCurrency(row.Month01)}</td>
-              <td class="text-right">${row.Month01Percent || 0}</td>
-              <td class="text-right">${formatCurrency(row.Month02)}</td>
-              <td class="text-right">${row.Month02Percent || 0}</td>
-              <td class="text-right">${formatCurrency(row.Month03)}</td>
-              <td class="text-right">${row.Month03Percent || 0}</td>
-              <td class="text-right">${formatCurrency(row.Month04)}</td>
-              <td class="text-right">${row.Month04Percent || 0}</td>
-            </tr>
-          `;
+    <tr>
+      <td class="text-left">${row.CustType}</td>
+      <td class="text-right">${formatCurrency(row.TotDebtors)}</td>
+      <td class="text-right">${formatCurrency(row.Month01)}</td>
+      <td class="text-right">${formatPercentage(row.Month01Percent)}</td>
+      <td class="text-right">${formatCurrency(row.Month02)}</td>
+      <td class="text-right">${formatPercentage(row.Month02Percent)}</td>
+      <td class="text-right">${formatCurrency(row.Month03)}</td>
+      <td class="text-right">${formatPercentage(row.Month03Percent)}</td>
+      <td class="text-right">${formatCurrency(row.Month04)}</td>
+      <td class="text-right">${formatPercentage(row.Month04Percent)}</td>
+    </tr>
+  `;
         });
-        
+
         // Add total row
         tableContent += `
-            <tr class="total-row">
-              <td class="text-left"><strong>TOTAL</strong></td>
-              <td class="text-right"><strong>${formatCurrency(bulkTotal.TotDebtors)}</strong></td>
-              <td class="text-right"><strong>${formatCurrency(bulkTotal.Month01)}</strong></td>
-              <td class="text-right"><strong>${bulkTotal.Month01Percent || 0}</strong></td>
-              <td class="text-right"><strong>${formatCurrency(bulkTotal.Month02)}</strong></td>
-              <td class="text-right"><strong>${bulkTotal.Month02Percent || 0}</strong></td>
-              <td class="text-right"><strong>${formatCurrency(bulkTotal.Month03)}</strong></td>
-              <td class="text-right"><strong>${bulkTotal.Month03Percent || 0}</strong></td>
-              <td class="text-right"><strong>${formatCurrency(bulkTotal.Month04)}</strong></td>
-              <td class="text-right"><strong>${bulkTotal.Month04Percent || 0}</strong></td>
-            </tr>
-            </tbody>
-          </table>
-        `;
+    <tr class="total-row">
+      <td class="text-left"><strong>TOTAL</strong></td>
+      <td class="text-right"><strong>${formatCurrency(bulkTotal.TotDebtors)}</strong></td>
+      <td class="text-right"><strong>${formatCurrency(bulkTotal.Month01)}</strong></td>
+      <td class="text-right"><strong>${formatPercentage(bulkTotal.Month01Percent)}</strong></td>
+      <td class="text-right"><strong>${formatCurrency(bulkTotal.Month02)}</strong></td>
+      <td class="text-right"><strong>${formatPercentage(bulkTotal.Month02Percent)}</strong></td>
+      <td class="text-right"><strong>${formatCurrency(bulkTotal.Month03)}</strong></td>
+      <td class="text-right"><strong>${formatPercentage(bulkTotal.Month03Percent)}</strong></td>
+      <td class="text-right"><strong>${formatCurrency(bulkTotal.Month04)}</strong></td>
+      <td class="text-right"><strong>${formatPercentage(bulkTotal.Month04Percent)}</strong></td>
+    </tr>
+    </tbody>
+  </table>
+`;
       }
 
       return tableContent;
@@ -1690,7 +1697,7 @@ const DebtorsAnalysis: React.FC = () => {
     return (
       <div className="text-red-600 bg-red-100 border border-red-300 p-4 rounded text-sm">
         <strong>Error:</strong> {error}
-        <button 
+        <button
           onClick={() => setError(null)}
           className="float-right text-red-800 font-bold"
         >
@@ -1811,16 +1818,17 @@ const DebtorsAnalysis: React.FC = () => {
             { label: "Customer Type", accessor: "CustType", className: "text-left w-[10%]" },
             { label: "Total Debtors (LKR)", accessor: "TotDebtors", className: "text-right w-[10%]", format: formatCurrency },
             { label: "0_1 Month (LKR)", accessor: "Month01", className: "text-right w-[10%]", format: formatCurrency },
-            { label: "% Total", accessor: "Month01Percent", className: "text-right w-[8%]", format: (value: number) => `${value}` },
+            { label: "% Total", accessor: "Month01Percent", className: "text-right w-[8%]", format: formatPercentage },
             { label: "1_2 Months (LKR)", accessor: "Month02", className: "text-right w-[10%]", format: formatCurrency },
-            { label: "% Total", accessor: "Month02Percent", className: "text-right w-[8%]", format: (value: number) => `${value}` },
+            { label: "% Total", accessor: "Month02Percent", className: "text-right w-[8%]", format: formatPercentage },
             { label: "2_3 Months (LKR)", accessor: "Month03", className: "text-right w-[10%]", format: formatCurrency },
-            { label: "% Total", accessor: "Month03Percent", className: "text-right w-[8%]", format: (value: number) => `${value}` },
+            { label: "% Total", accessor: "Month03Percent", className: "text-right w-[8%]", format: formatPercentage },
             { label: ">3 Months (LKR)", accessor: "Month04", className: "text-right w-[10%]", format: formatCurrency },
-            { label: "% Total", accessor: "Month04Percent", className: "text-right w-[8%]", format: (value: number) => `${value}` },
+            { label: "% Total", accessor: "Month04Percent", className: "text-right w-[8%]", format: formatPercentage },
           ]}
 
           formatCurrency={formatCurrency}
+          formatPercentage={formatPercentage}
           calculateTotals={calculateTotals}
           preparePieChartData={preparePieChartData}
           prepareBarChartData={prepareBarChartData}

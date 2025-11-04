@@ -15,12 +15,9 @@ export const data = [
     subtopics: [
       { id: 18, name: "Tariff Block Wise Consumption Report" },
       { id: 1, name: "Bill calculation" },
-      { id: 2, name: "Amex customers" },
       { id: 3, name: "Listing of customers" },
       { id: 4, name: "List of government accounts" },
       { id: 5, name: "Largest 100 customer details" },
-      { id: 6, name: "Customer's historical data" },
-      { id: 7, name: "Revision of bills" },
       { id: 8, name: "Sequence change accounts" },
       { id: 9, name: "Retails Journal" },
       { id: 10, name: "Arrears position – meter reader wise" },
