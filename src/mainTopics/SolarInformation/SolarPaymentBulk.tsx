@@ -701,6 +701,27 @@ const SolarPaymentBulk: React.FC = () => {
             .whitespace-nowrap {
               white-space: nowrap;
             }
+            .bg-green-50 {
+              font-weight: bold !important;
+            }
+            .bg-green-50 td {
+              font-weight: bold !important;
+            }
+            .bg-blue-50 {
+              font-weight: bold !important;
+            }
+            .bg-blue-50 td {
+              font-weight: bold !important;
+            }
+            .bg-yellow-50 {
+              font-weight: bold !important;
+            }
+            .bg-yellow-50 td {
+              font-weight: bold !important;
+            }
+            .font-medium, .font-semibold, .font-bold {
+              font-weight: bold !important;
+            }
           </style>
         </head>
         <body>
@@ -804,6 +825,7 @@ const SolarPaymentBulk: React.FC = () => {
 
         const tableRows: JSX.Element[] = [];
         let rowIndex = 0;
+        let dataRowIndex = 0;
 
         uniqueDivisions.forEach((division) => {
             const provincesInDivision = Object.keys(provinceGroups)
@@ -845,7 +867,7 @@ const SolarPaymentBulk: React.FC = () => {
                         tableRows.push(
                             <tr
                                 key={`data-${rowIndex}`}
-                                className={rowIndex % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                                className={dataRowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}
                             >
                                 {showDivision ? (
                                     <td
@@ -923,6 +945,7 @@ const SolarPaymentBulk: React.FC = () => {
                             </tr>
                         );
                         rowIndex++;
+                        dataRowIndex++;
                     });
 
                     // Add Area Total if more than 1 record in area
@@ -1069,7 +1092,7 @@ const SolarPaymentBulk: React.FC = () => {
                 <>
                     {/* Header */}
                     <div className="mb-6">
-                        <h2 className={`text-2xl font-bold ${maroon}`}>
+                        <h2 className={`text-xl font-bold ${maroon}`}>
                             Solar Payment Information For Current Month - Bulk
                         </h2>
                     </div>
@@ -1190,7 +1213,16 @@ const SolarPaymentBulk: React.FC = () => {
                                             ) : (
                                                 <select
                                                     value={categoryValue}
-                                                    onChange={(e) => setCategoryValue(e.target.value)}
+                                                    onChange={(e) => {
+                                                const selectedProvinceCode = e.target.value;
+                                                setCategoryValue(selectedProvinceCode);
+                                                const selectedProvince = provinces.find(
+                                                    (province) => province.ProvinceCode === selectedProvinceCode
+                                                );
+                                                setSelectedCategoryName(
+                                                    selectedProvince ? selectedProvince.ProvinceName : ""
+                                                );
+                                            }}
                                                     className={`w-full px-2 py-1.5 text-xs border rounded-md focus:ring-2 focus:ring-[#7A0000] focus:border-transparent ${
                                                         isCategoryValueDisabled()
                                                             ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
@@ -1225,7 +1257,11 @@ const SolarPaymentBulk: React.FC = () => {
                                             ) : (
                                                 <select
                                                     value={categoryValue}
-                                                    onChange={(e) => setCategoryValue(e.target.value)}
+                                                    onChange={(e) => {
+                                                const selectedDivisionCode = e.target.value;
+                                                setCategoryValue(selectedDivisionCode);
+                                                setSelectedCategoryName(selectedDivisionCode); // Division uses code as name
+                                            }}
                                                     className={`w-full px-2 py-1.5 text-xs border rounded-md focus:ring-2 focus:ring-[#7A0000] focus:border-transparent ${
                                                         isCategoryValueDisabled()
                                                             ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"

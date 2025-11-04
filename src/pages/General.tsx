@@ -34,13 +34,9 @@ const General = () => {
       case "Tariff Block Wise Consumption Report":
         return <TariffBlockWiseConsumption />;
       case "Bill calculation":
-     
-      case "Amex customers":
       case "Listing of customers":
       case "List of government accounts":
       case "Largest 100 customer details":
-      case "Customer's historical data":
-      case "Revision of bills":
       case "Sequence change accounts":
       case "Retails Journal":
       case "Arrears position – meter reader wise":

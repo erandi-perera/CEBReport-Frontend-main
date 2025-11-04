@@ -14,6 +14,7 @@ interface DebtorsModalProps {
   loading: boolean;
   columns: any[];
   formatCurrency: (value: number | undefined) => string;
+  formatPercentage: (value: number | undefined) => string;
   calculateTotals: (data: any[]) => any;
   preparePieChartData: (data: any[]) => any[];
   prepareBarChartData: (data: any[]) => any[];
