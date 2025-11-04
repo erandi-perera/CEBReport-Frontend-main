@@ -183,10 +183,17 @@ export const data = [
 		id: 12,
 		name: "Jobs",
 		icon: FiBriefcase,
-		subtopics: [
-			{id: 111, name: "Job Card Details"},
-		],
+		subtopics: [{id: 111, name: "Job Card Details"}],
 
 		path: "/report/jobs",
+	},
+
+	{
+		id: 13,
+		name: "Ledger Cards",
+		icon: FiBriefcase,
+		subtopics: [{id: 112, name: "Ledger Card Details"}],
+
+		path: "/report/LedgerCards",
 	},
 ];

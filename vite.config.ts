@@ -78,6 +78,13 @@ export default defineConfig({
 				secure: false,
 				rewrite: (path) => path.replace(/^\/avgConsumption/, ""),
 			},
+
+			"/LedgerCard": {
+				target: "http://localhost:44381",
+				changeOrigin: true,
+				secure: false,
+				rewrite: (path) => path.replace(/^\/LedgerCard/, ""),
+			},
 		},
 	},
 });
