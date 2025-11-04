@@ -11,10 +11,6 @@ import {MdBuild} from "react-icons/md";
 import {FaArrowDownShortWide} from "react-icons/fa6";
 import {MdInventory2} from "react-icons/md";
 
-
-
-
-
 export const data = [
   {
     id: 1,
@@ -142,7 +138,7 @@ export const data = [
   {
     id: 8,
     name: "Inventory",
-    icon: FaBoxes,
+    icon: MdInventory2,
     subtopics: [{ id: 59, name: "Material Details" },
                   { id: 101, name: "Cost Center wise Quantity on Hand" },
 
