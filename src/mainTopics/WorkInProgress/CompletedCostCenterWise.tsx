@@ -10,6 +10,8 @@ import {
 	X,
 } from "lucide-react";
 import {useUser} from "../../contexts/UserContext";
+import {toast, ToastContainer} from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface Department {
 	DeptId: string;
@@ -92,6 +94,8 @@ const CompletedCostCenterWise = () => {
 
 	const maroon = "text-[#7A0000]";
 	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
+	const shadedMaroon = "bg-[#A52A2A]/40"
+;
 
 	const formatDate = (d?: Date | null) =>
 		d
@@ -261,10 +265,17 @@ const CompletedCostCenterWise = () => {
 
 	const handleDepartmentSelect = (department: Department) => {
 		setSelectedDepartment(department);
+
 		if (startDate && endDate && !startError && !endError) {
 			handleViewCompletedProjects(department);
 		} else {
-			setShowDateRangePicker(true);
+			toast.error(
+				"Please select a valid date range before viewing projects.",
+				{
+					position: "top-right",
+					autoClose: 4000,
+				}
+			);
 		}
 	};
 
@@ -865,7 +876,7 @@ const CompletedCostCenterWise = () => {
 		<div className="w-full p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans relative">
 			<div className="flex justify-between items-center mb-4">
 				<h2 className={`text-xl font-bold ${maroon}`}>
-					Completed Cost Center Wise
+					Cost Center Wise Completed Projects
 				</h2>
 			</div>
 
@@ -896,7 +907,7 @@ const CompletedCostCenterWise = () => {
 					</div>
 					<div className="relative">
 						<label className="block text-xs font-medium text-gray-700 mb-1">
-							START DATE
+							Start Date
 						</label>
 						<div className="relative">
 							<input
@@ -924,7 +935,7 @@ const CompletedCostCenterWise = () => {
 					</div>
 					<div className="relative">
 						<label className="block text-xs font-medium text-gray-700 mb-1">
-							END DATE
+							End Date
 						</label>
 						<div className="relative">
 							<input
@@ -1019,14 +1030,30 @@ const CompletedCostCenterWise = () => {
 											<td className="px-4 py-2 text-center">
 												<button
 													onClick={() => handleDepartmentSelect(d)}
-													className={`px-3 py-1 ${
+													className={`px-3 py-1 rounded-md text-xs font-medium shadow transition-opacity flex items-center gap-1 ${
 														selectedDepartment?.DeptId ===
 														d.DeptId
 															? "bg-green-600 text-white"
-															: maroonGrad + " text-white"
-													} rounded-md text-xs font-medium hover:brightness-110 shadow`}
+															: startDate &&
+															  endDate &&
+															  !startError &&
+															  !endError
+															? maroonGrad +
+															  " text-white hover:brightness-110"
+															: shadedMaroon+" text-white cursor-not-allowed"
+													}`}
+													disabled={
+														selectedDepartment?.DeptId ===
+															d.DeptId ||
+														!(
+															startDate &&
+															endDate &&
+															!startError &&
+															!endError
+														)
+													}
 												>
-													<Eye className="inline-block mr-1 w-3 h-3" />
+													<Eye className="w-3 h-3" />
 													{selectedDepartment?.DeptId === d.DeptId
 														? "Viewing"
 														: "View"}
@@ -1221,11 +1248,11 @@ const CompletedCostCenterWise = () => {
 							<div className="flex flex-wrap justify-between items-start gap-3">
 								<div className="space-y-1">
 									<h2 className="text-base font-bold text-gray-800">
-										COMPLETED PROJECTS -{" "}
-										{selectedDepartment?.DeptName}
+										Cost Center Wise Completed Projects
 									</h2>
 									<h3 className="text-sm text-[#7A0000]">
-										Cost Center: {selectedDepartment?.DeptId}
+										Cost Center: {selectedDepartment?.DeptId} /
+										{selectedDepartment?.DeptName}
 									</h3>
 									<div className="text-xs text-gray-600">
 										Period: {startDate?.toLocaleDateString()} to{" "}
@@ -1249,7 +1276,7 @@ const CompletedCostCenterWise = () => {
 									<button
 										onClick={() => {
 											setCompletedModalOpen(false);
-											setSelectedDepartment(null); // Reset selected department
+											setSelectedDepartment(null);
 										}}
 										className="px-3 py-1.5 text-xs bg-[#7A0000] text-white rounded hover:brightness-110"
 									>
@@ -1529,6 +1556,20 @@ const CompletedCostCenterWise = () => {
 					</div>
 				</div>
 			)}
+
+			{/* Toast Container */}
+			<ToastContainer
+				position="top-right"
+				autoClose={4000}
+				hideProgressBar={false}
+				newestOnTop={false}
+				closeOnClick
+				rtl={false}
+				pauseOnFocusLoss
+				draggable
+				pauseOnHover
+				theme="light"
+			/>
 		</div>
 	);
 };

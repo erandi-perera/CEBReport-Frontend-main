@@ -1,4 +1,4 @@
-import React, {useState, useRef} from "react";
+import React, {useState, useRef, JSX} from "react";
 import {Eye, X, Download, Printer, RotateCcw} from "lucide-react";
 import {toast} from "react-toastify";
 
@@ -17,6 +17,8 @@ interface LedgerCardItem {
 	LogMth: number | null;
 	OpeningBalance: number | null;
 	ClosingBalance: number | null;
+	GLOpeningBalance: number | null;
+	GLClosingBalance: number | null;
 	AcName: string | null;
 	AcName1: string | null;
 	CctName: string | null;
@@ -186,22 +188,26 @@ const LedgerCardReport: React.FC = () => {
 		const columnWidths =
 			orientation === "portrait"
 				? {
-						doc: "w-[10%]",
-						remarks: "w-[10%]",
-						date: "w-[10%]",
-						ref: "w-[12%]",
+						docPf: "w-[6%]",
+						docNo: "w-[7%]",
+						remarks: "w-[15%]",
+						date: "w-[8%]",
+						ref: "w-[10%]",
+						chq: "w-[8%]",
 						dr: "w-[10%]",
 						cr: "w-[10%]",
-						running: "w-[13%]",
+						running: "w-[11%]",
 				  }
 				: {
-						doc: "w-[10%]",
-						remarks: "w-[10%]",
-						date: "w-[10%]",
-						ref: "w-[14%]",
-						dr: "w-[10%]",
-						cr: "w-[10%]",
-						running: "w-[12%]",
+						docPf: "w-[6%]",
+						docNo: "w-[7%]",
+						remarks: "w-[20%]",
+						date: "w-[8%]",
+						ref: "w-[10%]",
+						chq: "w-[8%]",
+						dr: "w-[9%]",
+						cr: "w-[9%]",
+						running: "w-[10%]",
 				  };
 
 		let tableRows = "";
@@ -213,10 +219,10 @@ const LedgerCardReport: React.FC = () => {
 			const isNewSubAc = item.SubAc !== currentSubAc;
 			if (isNewSubAc && currentSubAc) {
 				const subTotal = subAccountTotals[currentSubAc];
-				const netMovement = subTotal.dr - subTotal.cr;
+				const subNetMovement = subTotal.dr - subTotal.cr;
 				tableRows += `
           <tr class="bg-yellow-50 font-bold">
-            <td colspan="4" class="p-1 border border-gray-300 text-right">Sub Account Total - ${currentSubAc}:</td>
+            <td colspan="6" class="p-1 border border-gray-300 text-right">Sub Account Total - ${currentSubAc}:</td>
             <td class="p-1 border border-gray-300 text-right font-mono">${formatNumber(
 					subTotal.dr
 				)}</td>
@@ -228,17 +234,18 @@ const LedgerCardReport: React.FC = () => {
 				)}</td>
           </tr>
           <tr class="bg-yellow-100 font-bold">
-            <td colspan="4" class="p-1 border border-gray-300 text-right">Net Movement :</td>
+            <td colspan="6" class="p-1 border border-gray-300 text-right">Net Movement - ${currentSubAc}:</td>
             <td colspan="3" class="p-1 border border-gray-300 text-right font-mono">${formatNumber(
-					netMovement
+					subNetMovement
 				)}</td>
           </tr>
-          <tr class="bg-green-50 font-bold">
-            <td colspan="4" class="p-1 border border-gray-300 text-right">Closing Balance:</td>
+          <tr class="bg-yellow-100 font-bold">
+            <td colspan="6" class="p-1 border border-gray-300 text-right">Closing Balance - ${currentSubAc}:</td>
             <td colspan="3" class="p-1 border border-gray-300 text-right font-mono">${formatNumber(
-					subAcOpening + netMovement
+					subTotal.runningTotal
 				)}</td>
-          </tr>`;
+          </tr>
+          <tr><td colspan="9" class="p-2 border-0">&nbsp;</td></tr>`;
 			}
 
 			if (isNewSubAc) {
@@ -247,10 +254,10 @@ const LedgerCardReport: React.FC = () => {
 				subAcRunning = subAcOpening;
 				tableRows += `
           <tr class="bg-gray-100 font-bold">
-            <td colspan="7" class="p-1 border border-gray-300 text-left">
-              Sub Account: ${currentSubAc} - ${
-					item.AcName1 || "N/A"
-				} | Opening Balance: ${formatNumber(subAcOpening)}
+            <td colspan="9" class="p-1 border border-gray-300 text-left">
+              Sub Account: ${currentSubAc} | Opening Balance: ${formatNumber(
+					subAcOpening
+				)}
             </td>
           </tr>`;
 			}
@@ -262,9 +269,14 @@ const LedgerCardReport: React.FC = () => {
 			tableRows += `
         <tr class="${i % 2 ? "bg-white" : "bg-gray-50"}">
           <td class="${
-					columnWidths.doc
+					columnWidths.docPf
 				} p-1 border border-gray-300 text-left text-xs">
-            ${item.DocPf || ""}${item.DocNo || ""}
+            ${item.DocPf || ""}
+          </td>
+          <td class="${
+					columnWidths.docNo
+				} p-1 border border-gray-300 text-left text-xs">
+            ${item.DocNo || ""}
           </td>
           <td class="${
 					columnWidths.remarks
@@ -279,7 +291,12 @@ const LedgerCardReport: React.FC = () => {
           <td class="${
 					columnWidths.ref
 				} p-1 border border-gray-300 text-left text-xs">
-            ${item.Ref1 || ""} ${item.ChqNo ? `/ Chq: ${item.ChqNo}` : ""}
+            ${item.Ref1 || ""}
+          </td>
+          <td class="${
+					columnWidths.chq
+				} p-1 border border-gray-300 text-left text-xs">
+            ${item.ChqNo || ""}
           </td>
           <td class="${
 					columnWidths.dr
@@ -301,10 +318,10 @@ const LedgerCardReport: React.FC = () => {
 
 		if (currentSubAc) {
 			const subTotal = subAccountTotals[currentSubAc];
-			const netMovement = subTotal.dr - subTotal.cr;
+			const subNetMovement = subTotal.dr - subTotal.cr;
 			tableRows += `
         <tr class="bg-yellow-50 font-bold">
-          <td colspan="4" class="p-1 border border-gray-300 text-right">Sub Account Total - ${currentSubAc}:</td>
+          <td colspan="6" class="p-1 border border-gray-300 text-right">Sub Account Total - ${currentSubAc}:</td>
           <td class="p-1 border border-gray-300 text-right font-mono">${formatNumber(
 					subTotal.dr
 				)}</td>
@@ -316,28 +333,18 @@ const LedgerCardReport: React.FC = () => {
 				)}</td>
         </tr>
         <tr class="bg-yellow-100 font-bold">
-          <td colspan="4" class="p-1 border border-gray-300 text-right">Net Movement :</td>
+          <td colspan="6" class="p-1 border border-gray-300 text-right">Net Movement - ${currentSubAc}:</td>
           <td colspan="3" class="p-1 border border-gray-300 text-right font-mono">${formatNumber(
-					netMovement
+					subNetMovement
 				)}</td>
         </tr>
-        <tr class="bg-green-50 font-bold">
-          <td colspan="4" class="p-1 border border-gray-300 text-right">Closing Balance:</td>
-          <td colspan="3" class="p-1 border border-gray-300 text-right font-mono">${formatNumber(
-					subAcOpening + netMovement
+        <tr class="bg-yellow-100 font-bold">
+          <td colspan="6" class="p-1 border border-gray-300 text-right">Closing Balance - ${currentSubAc}:</td>
+          <td colspan="3"class="p-1 border border-gray-300 text-right font-mono">${formatNumber(
+					subTotal.runningTotal
 				)}</td>
         </tr>`;
 		}
-
-		const totalDr = Object.values(subAccountTotals).reduce(
-			(s, t) => s + t.dr,
-			0
-		);
-		const totalCr = Object.values(subAccountTotals).reduce(
-			(s, t) => s + t.cr,
-			0
-		);
-		const netMovement = totalDr - totalCr;
 
 		const htmlContent = `
       <html>
@@ -369,7 +376,6 @@ th, td {
               td.text-left { text-align: left; }
               .bg-yellow-50 { background-color: #FFFBEB !important; }
               .bg-yellow-100 { background-color: #FEF3C7 !important; }
-              .bg-green-50 { background-color: #ECFDF5 !important; }
               .bg-gray-100 { background-color: #F3F4F6 !important; }
               .font-bold { font-weight: bold; }
               .font-mono { font-family: monospace; }
@@ -385,7 +391,7 @@ th, td {
         </head>
         <body>
           <div class="print-header">
-            <h2>Cost Center Ledger Card - from ${startMonth.padStart(
+            <h2> Ledger Card - Details ${startMonth.padStart(
 					2,
 					"0"
 				)}/${year} to ${endMonth.padStart(2, "0")}/${year}</h2>
@@ -398,17 +404,19 @@ th, td {
 					firstItem.GlCd
 				} - ${ledgerName}</p>
             <p><span class="font-bold">Opening Balance for 01/01/${year} :</span> ${formatNumber(
-			firstItem.OpeningBalance
+			firstItem.GLOpeningBalance
 		)}</p>
           </div>
           <div class="print-currency">Currency : LKR</div>
           <table>
             <thead>
               <tr>
-                <th class="${columnWidths.doc}">Document No</th>
+                <th class="${columnWidths.docPf}">Doc Pf</th>
+                <th class="${columnWidths.docNo}">Doc No</th>
                 <th class="${columnWidths.remarks}">Remarks</th>
                 <th class="${columnWidths.date}">Acct. Date</th>
-                <th class="${columnWidths.ref}">Reference 1 / Cheque No</th>
+                <th class="${columnWidths.ref}">Reference 1</th>
+                <th class="${columnWidths.chq}">Cheque No</th>
                 <th class="${columnWidths.dr}">Dr Amount</th>
                 <th class="${columnWidths.cr}">Cr Amount</th>
                 <th class="${columnWidths.running}">Running Total</th>
@@ -416,10 +424,9 @@ th, td {
             </thead>
             <tbody>${tableRows}</tbody>
           </table>
-          <div style="margin: 15px; font-weight: bold; font-size: 11px;">
-            <p>Net Movement: ${formatNumber(netMovement)}</p>
-          </div>
-          <div style="margin-top: 40px; display: flex; justify-content: space-between; padding: 0 30px; font-size: 11px;">
+          <p class="font-bold">
+		  Closing Balance: ${formatNumber(firstItem.GLClosingBalance)}</p> 
+		           <div style="margin-top: 40px; display: flex; justify-content: space-between; padding: 0 30px; font-size: 11px;">
             <div>Prepared By: ____________________</div>
             <div>Checked By: ____________________</div>
           </div>
@@ -439,6 +446,7 @@ th, td {
 		if (data.length === 0) return;
 
 		const headers = [
+			"Document Profile",
 			"Document No",
 			"Remarks",
 			"Acct. Date",
@@ -453,72 +461,27 @@ th, td {
 		const escapeCsv = (value: any) =>
 			`"${String(value ?? "").replace(/"/g, '""')}"`;
 
-		let rows: string[] = [];
-		let currentSubAc = "";
-		data.forEach((item) => {
-			const isNewSubAc = item.SubAc !== currentSubAc;
-			if (isNewSubAc && currentSubAc) {
-				const subTotal = subAccountTotals[currentSubAc];
-				const netMovement = subTotal.dr - subTotal.cr;
-				const closing =
-					subAccountTotals[currentSubAc].openingBalance + netMovement;
-				rows.push(
-					`"Sub Account Total - ${currentSubAc}:","","","",${formatNumber(
-						subTotal.dr
-					)},${formatNumber(subTotal.cr)},${formatNumber(
-						subTotal.runningTotal
-					)}`
-				);
-				rows.push(
-					`"Net Movement:","","","",,,${formatNumber(netMovement)}`
-				);
-				rows.push(`"Closing Balance:","","","",,,${formatNumber(closing)}`);
-			}
-			if (isNewSubAc) {
-				currentSubAc = item.SubAc || "";
-				rows.push(
-					`"Sub Account: ${currentSubAc} - ${
-						item.AcName1 || "N/A"
-					} | Opening Balance: ${formatNumber(
-						subAccountTotals[currentSubAc]?.openingBalance || 0
-					)}","","","","","",""`
-				);
-			}
-			const dr = item.DrAmt || 0;
-			const cr = item.CrAmt || 0;
+		const rows = data.map((item) => {
+			const subAc = item.SubAc || "";
 			const runningTotal =
-				(subAccountTotals[item.SubAc || ""]?.openingBalance || 0) + dr - cr;
-			rows.push(
-				[
-					`${item.DocPf || ""}${item.DocNo || ""}`,
-					item.Remarks || "",
-					item.AcctDt ? new Date(item.AcctDt).toLocaleDateString() : "",
-					item.Ref1 || "",
-					item.ChqNo || "",
-					formatNumber(dr),
-					formatNumber(cr),
-					formatNumber(runningTotal),
-					item.SubAc || "",
-				]
-					.map(escapeCsv)
-					.join(",")
-			);
+				(subAccountTotals[subAc]?.openingBalance || 0) +
+				(item.DrAmt || 0) -
+				(item.CrAmt || 0);
+			return [
+				item.DocPf || "",
+				item.DocNo || "",
+				item.Remarks || "",
+				item.AcctDt ? new Date(item.AcctDt).toLocaleDateString() : "",
+				item.Ref1 || "",
+				item.ChqNo || "",
+				formatNumber(item.DrAmt),
+				formatNumber(item.CrAmt),
+				formatNumber(runningTotal),
+				subAc,
+			]
+				.map(escapeCsv)
+				.join(",");
 		});
-		if (currentSubAc) {
-			const subTotal = subAccountTotals[currentSubAc];
-			const netMovement = subTotal.dr - subTotal.cr;
-			const closing =
-				subAccountTotals[currentSubAc].openingBalance + netMovement;
-			rows.push(
-				`"Sub Account Total - ${currentSubAc}:","","","",${formatNumber(
-					subTotal.dr
-				)},${formatNumber(subTotal.cr)},${formatNumber(
-					subTotal.runningTotal
-				)}`
-			);
-			rows.push(`"Net Movement:","","","",,,${formatNumber(netMovement)}`);
-			rows.push(`"Closing Balance:","","","",,,${formatNumber(closing)}`);
-		}
 
 		const totalDr = Object.values(subAccountTotals).reduce(
 			(s, t) => s + t.dr,
@@ -541,6 +504,7 @@ th, td {
 			...rows,
 			"",
 			`Net Movement: ${formatNumber(netMovement)}`,
+			`Closing Balance: ${formatNumber(data[0].ClosingBalance)}`,
 		].join("\n");
 
 		const blob = new Blob([csvContent], {type: "text/csv"});
@@ -694,8 +658,8 @@ th, td {
 							<h2
 								className={`text-xl font-bold text-center mb-4 ${maroon}`}
 							>
-								Cost Center Ledger Card - from {startMonth}/{year} to{" "}
-								{endMonth}/{year}
+								Ledger Card - Details {startMonth}/{year} to {endMonth}/
+								{year}
 							</h2>
 
 							<div className="grid grid-cols-1 md:grid-cols-2 text-sm mb-2">
@@ -708,7 +672,7 @@ th, td {
 										<span className="font-bold">
 											Opening Balance for 01/01/{year} :
 										</span>{" "}
-										{formatNumber(data[0].OpeningBalance)}
+										{formatNumber(data[0].GLOpeningBalance)}
 									</p>
 								</div>
 								<div className="text-right font-semibold text-gray-600">
@@ -717,18 +681,30 @@ th, td {
 							</div>
 
 							<div className="overflow-x-auto border rounded-lg">
-								<table className="w-full text-xs border-collapse min-w-[800px]">
+								<table className="w-full text-xs border-collapse table-fixed min-w-[800px]">
 									<thead className={`${maroonGrad} text-white`}>
 										<tr>
-											<th className="px-2 py-1.5">Document No</th>
-											<th className="px-2 py-1.5">Remarks</th>
-											<th className="px-2 py-1.5">Acct. Date</th>
-											<th className="px-2 py-1.5">
+											<th className="px-2 py-1.5 w-[10%]">
+												Document No
+											</th>
+											<th className="px-2 py-1.5 w-[20%]">
+												Remarks
+											</th>
+											<th className="px-2 py-1.5 w-[10%]">
+												Acct. Date
+											</th>
+											<th className="px-2 py-1.5 w-[15%]">
 												Reference 1 / Cheque No
 											</th>
-											<th className="px-2 py-1.5">Dr Amount</th>
-											<th className="px-2 py-1.5">Cr Amount</th>
-											<th className="px-2 py-1.5">Running Total</th>
+											<th className="px-2 py-1.5 w-[12%]">
+												Dr Amount
+											</th>
+											<th className="px-2 py-1.5 w-[12%]">
+												Cr Amount
+											</th>
+											<th className="px-2 py-1.5 w-[13%]">
+												Running Total
+											</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -736,13 +712,24 @@ th, td {
 											let currentSubAc = "";
 											let running = 0;
 											let opening = 0;
-											return data.map((item, i) => {
+											const rows: JSX.Element[] = [];
+											data.forEach((item, i) => {
 												const isNewSubAc =
 													item.SubAc !== currentSubAc;
 												const dr = item.DrAmt || 0;
 												const cr = item.CrAmt || 0;
 
 												if (isNewSubAc) {
+													if (currentSubAc) {
+														rows.push(
+															<tr key={`spacer-${currentSubAc}`}>
+																<td
+																	colSpan={7}
+																	className="h-6"
+																/>
+															</tr>
+														);
+													}
 													currentSubAc = item.SubAc || "";
 													opening =
 														subAccountTotals[currentSubAc]
@@ -751,7 +738,11 @@ th, td {
 												}
 												running += dr - cr;
 
-												return (
+												const isLastInSubAc =
+													i === data.length - 1 ||
+													data[i + 1].SubAc !== currentSubAc;
+
+												rows.push(
 													<React.Fragment key={i}>
 														{isNewSubAc && (
 															<tr className="bg-gray-100 font-bold text-xs">
@@ -772,7 +763,7 @@ th, td {
 																	: "bg-gray-50"
 															}
 														>
-															<td className="px-2 py-1 text-left">
+															<td className="px-2 py-1 text-left truncate">
 																{item.DocPf}
 																{item.DocNo}
 															</td>
@@ -786,7 +777,7 @@ th, td {
 																	  ).toLocaleDateString()
 																	: ""}
 															</td>
-															<td className="px-2 py-1 text-left">
+															<td className="px-2 py-1 text-left truncate">
 																{item.Ref1}{" "}
 																{item.ChqNo &&
 																	`/ Chq: ${item.ChqNo}`}
@@ -801,173 +792,51 @@ th, td {
 																{formatNumber(running)}
 															</td>
 														</tr>
-														{isNewSubAc &&
-															i < data.length - 1 &&
-															data[i + 1].SubAc !==
-																currentSubAc && (
-																<>
-																	<tr className="bg-yellow-50 font-bold text-xs">
-																		<td
-																			colSpan={4}
-																			className="px-2 py-1 text-right"
-																		>
-																			Sub Account Total -{" "}
-																			{currentSubAc}:
-																		</td>
-																		<td className="px-2 py-1 text-right font-mono">
-																			{formatNumber(
-																				subAccountTotals[
-																					currentSubAc
-																				]?.dr || 0
-																			)}
-																		</td>
-																		<td className="px-2 py-1 text-right font-mono">
-																			{formatNumber(
-																				subAccountTotals[
-																					currentSubAc
-																				]?.cr || 0
-																			)}
-																		</td>
-																		<td className="px-2 py-1 text-right font-mono">
-																			{formatNumber(running)}
-																		</td>
-																	</tr>
-																	<tr className="bg-yellow-100 font-bold text-xs">
-																		<td
-																			colSpan={4}
-																			className="px-2 py-1 text-right"
-																		>
-																			Net Movement:
-																		</td>
-																		<td
-																			colSpan={3}
-																			className="px-2 py-1 text-right font-mono"
-																		>
-																			{formatNumber(
-																				(subAccountTotals[
-																					currentSubAc
-																				]?.dr || 0) -
-																					(subAccountTotals[
-																						currentSubAc
-																					]?.cr || 0)
-																			)}
-																		</td>
-																	</tr>
-																	<tr className="bg-green-50 font-bold text-xs">
-																		<td
-																			colSpan={4}
-																			className="px-2 py-1 text-right"
-																		>
-																			Closing Balance:
-																		</td>
-																		<td
-																			colSpan={3}
-																			className="px-2 py-1 text-right font-mono"
-																		>
-																			{formatNumber(
-																				opening +
-																					((subAccountTotals[
-																						currentSubAc
-																					]?.dr || 0) -
-																						(subAccountTotals[
-																							currentSubAc
-																						]?.cr || 0))
-																			)}
-																		</td>
-																	</tr>
-																</>
-															)}
+														{isLastInSubAc && (
+															<>
+																<tr className="bg-yellow-50 font-bold text-xs">
+																	<td
+																		colSpan={4}
+																		className="px-2 py-1 text-right"
+																	>
+																		Sub Account Total -{" "}
+																		{currentSubAc}:
+																	</td>
+																	<td className="px-2 py-1 text-right font-mono">
+																		{formatNumber(
+																			subAccountTotals[
+																				currentSubAc
+																			]?.dr || 0
+																		)}
+																	</td>
+																	<td className="px-2 py-1 text-right font-mono">
+																		{formatNumber(
+																			subAccountTotals[
+																				currentSubAc
+																			]?.cr || 0
+																		)}
+																	</td>
+																	<td className="px-2 py-1 text-right font-mono">
+																		{formatNumber(running)}
+																	</td>
+																</tr>
+																<tr className="bg-yellow-100 font-bold text-xs">
+																	<td
+																		colSpan={7}
+																		className="px-2 py-1 text-left"
+																	>
+																		Closing Balance -{" "}
+																		{currentSubAc}:
+																		{formatNumber(running)}
+																	</td>
+																</tr>
+															</>
+														)}
 													</React.Fragment>
 												);
 											});
+											return rows;
 										})()}
-										{data.length > 0 && (
-											<>
-												<tr className="bg-yellow-50 font-bold text-xs">
-													<td
-														colSpan={4}
-														className="px-2 py-1 text-right"
-													>
-														Sub Account Total -{" "}
-														{data[data.length - 1].SubAc || ""}:
-													</td>
-													<td className="px-2 py-1 text-right font-mono">
-														{formatNumber(
-															subAccountTotals[
-																data[data.length - 1].SubAc ||
-																	""
-															]?.dr || 0
-														)}
-													</td>
-													<td className="px-2 py-1 text-right font-mono">
-														{formatNumber(
-															subAccountTotals[
-																data[data.length - 1].SubAc ||
-																	""
-															]?.cr || 0
-														)}
-													</td>
-													<td className="px-2 py-1 text-right font-mono">
-														{formatNumber(
-															subAccountTotals[
-																data[data.length - 1].SubAc ||
-																	""
-															]?.runningTotal || 0
-														)}
-													</td>
-												</tr>
-												<tr className="bg-yellow-100 font-bold text-xs">
-													<td
-														colSpan={4}
-														className="px-2 py-1 text-right"
-													>
-														Net Movement:
-													</td>
-													<td
-														colSpan={3}
-														className="px-2 py-1 text-right font-mono"
-													>
-														{formatNumber(
-															(subAccountTotals[
-																data[data.length - 1].SubAc ||
-																	""
-															]?.dr || 0) -
-																(subAccountTotals[
-																	data[data.length - 1]
-																		.SubAc || ""
-																]?.cr || 0)
-														)}
-													</td>
-												</tr>
-												<tr className="bg-green-50 font-bold text-xs">
-													<td
-														colSpan={4}
-														className="px-2 py-1 text-right"
-													>
-														Closing Balance:
-													</td>
-													<td
-														colSpan={3}
-														className="px-2 py-1 text-right font-mono"
-													>
-														{formatNumber(
-															(subAccountTotals[
-																data[data.length - 1].SubAc ||
-																	""
-															]?.openingBalance || 0) +
-																((subAccountTotals[
-																	data[data.length - 1]
-																		.SubAc || ""
-																]?.dr || 0) -
-																	(subAccountTotals[
-																		data[data.length - 1]
-																			.SubAc || ""
-																	]?.cr || 0))
-														)}
-													</td>
-												</tr>
-											</>
-										)}
 									</tbody>
 								</table>
 							</div>
@@ -986,6 +855,12 @@ th, td {
 													0
 												)
 										)}
+									</p>
+								</div>
+								<div className="text-right">
+									<p>
+										Closing Balance for Sub Account:{" "}
+										{formatNumber(data[0].ClosingBalance)}
 									</p>
 								</div>
 							</div>

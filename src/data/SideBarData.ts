@@ -6,6 +6,14 @@ import { MdAssignmentTurnedIn } from "react-icons/md";
 import { GiSolarPower } from "react-icons/gi";
 import { FaBalanceScale } from "react-icons/fa";
 import { FiBriefcase } from "react-icons/fi";
+import {FaBookOpen} from "react-icons/fa";
+import {MdBuild} from "react-icons/md";
+import {FaArrowDownShortWide} from "react-icons/fa6";
+import {MdInventory2} from "react-icons/md";
+
+
+
+
 
 export const data = [
 	{
@@ -137,7 +145,7 @@ export const data = [
 	{
 		id: 8,
 		name: "Inventory",
-		icon: FaBoxes,
+		icon: MdInventory2,
 		subtopics: [
 			{id: 59, name: "Material Details"},
 			{id: 101, name: "Cost Center wise Quantity on Hand"},
@@ -161,7 +169,7 @@ export const data = [
 	{
 		id: 10,
 		name: "Income Expenditure",
-		icon: FaBalanceScale,
+		icon: FaArrowDownShortWide,
 		subtopics: [
 			{id: 90, name: "Cost Center Wise Income Expenditure"},
 			{id: 91, name: "Province Wise Income Expenditure"},
@@ -173,10 +181,13 @@ export const data = [
 	{
 		id: 11,
 		name: "Work In Progress",
-		icon: FaBalanceScale,
+		icon: MdBuild,
 		subtopics: [
 			{id: 109, name: "Cost Center Wise Work In Progress With Age Analysis"},
-			{id: 110, name: "Work In  Progress Completed Cost Center wise"},
+			{
+				id: 110,
+				name: "Cost Center Wise Work In Progress ( Completed Projects )",
+			},
 		],
 
 		path: "/report/WorkInProgress",
@@ -195,7 +206,7 @@ export const data = [
 	{
 		id: 13,
 		name: "Ledger Cards",
-		icon: FiBriefcase,
+		icon: FaBookOpen,
 		subtopics: [{id: 112, name: "Ledger Card Details"}],
 
 		path: "/report/LedgerCards",

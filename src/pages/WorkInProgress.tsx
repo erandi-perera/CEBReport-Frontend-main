@@ -35,20 +35,18 @@ const WorkInProgress = () => {
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-        case "Cost Center Wise Work In Progress With Age Analysis":
-        return <AgeAnalysisCostCenter/>;
-        case "Work In  Progress Completed Cost Center wise":
-          return <CompletedCostCenterWise/>;
-    
-        
-        
-      default:
-        return (
-          <div className="text-red-500 text-xs">
-            No content available for {subtopicName}
-          </div>
-        );
-    }
+			case "Cost Center Wise Work In Progress With Age Analysis":
+				return <AgeAnalysisCostCenter />;
+			case "Cost Center Wise Work In Progress ( Completed Projects )":
+				return <CompletedCostCenterWise />;
+
+			default:
+				return (
+					<div className="text-red-500 text-xs">
+						No content available for {subtopicName}
+					</div>
+				);
+		}
   };
 
   return (

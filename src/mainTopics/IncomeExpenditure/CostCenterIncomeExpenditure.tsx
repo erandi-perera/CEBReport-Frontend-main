@@ -905,9 +905,9 @@ const CostCenterIncomeExpenditure: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>COST CENTER INCOME & EXPENDITURE - ${getMonthName(
+          <h1>Cost Center Income & Expenditure - ${getMonthName(
 					selectedMonth
-				).toUpperCase()} ${selectedYear}</h1>
+				)} ${selectedYear}</h1>
           <h2>Cost Center: ${selectedDepartment?.DeptId} - ${
 			selectedDepartment?.DeptName
 		}</h2>
@@ -974,9 +974,8 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 						<div className="flex justify-between items-start">
 							<div className="space-y-1">
 								<h2 className="text-base font-bold text-gray-800">
-									COST CENTER INCOME & EXPENDITURE -{" "}
-									{getMonthName(selectedMonth).toUpperCase()}{" "}
-									{selectedYear}
+									Cost Center Income & Expenditure -{" "}
+									{getMonthName(selectedMonth)} {selectedYear}
 								</h2>
 								<h3 className={`text-sm ${maroon}`}>
 									Cost Center: {selectedDepartment.DeptId} -{" "}
@@ -1002,6 +1001,12 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 							</div>
 						) : incomeExpData.length === 0 ? (
 							<div className="flex flex-col items-center justify-center py-12">
+								<button
+									onClick={closeIncomeExpModal}
+									className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
+								>
+									Back To Home
+								</button>
 								<div className="text-gray-400 mb-4">
 									<svg
 										className="w-16 h-16 mx-auto"
