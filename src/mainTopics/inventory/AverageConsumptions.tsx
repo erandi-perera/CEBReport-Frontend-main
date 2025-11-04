@@ -322,7 +322,7 @@ const AverageConsumption: React.FC = () => {
 			const formattedFromDate = fromDate.replace(/-/g, "");
 			const formattedToDate = toDate.replace(/-/g, "");
 			const response = await fetch(
-				`/misapi/api/inventoryaverageconsumption/report/${encodeURIComponent(
+				`/avgConsumption/api/inventoryaverageconsumption/report/${encodeURIComponent(
 					selectedDepartment.DeptId
 				)}/${encodeURIComponent(
 					selectedWarehouse

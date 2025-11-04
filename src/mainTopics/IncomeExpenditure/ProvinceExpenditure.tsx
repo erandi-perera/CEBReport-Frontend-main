@@ -462,15 +462,9 @@ const ProvinceExpenditure: React.FC = () => {
 
 		const csvRows = [
 			[`Consolidated Income & Expenditure Provincial Statement`],
+			[`Period Ended: ${getMonthName(selectedMonth)} ${selectedYear}`],
 			[
-				`Period Ended: ${getMonthName(
-					selectedMonth
-				).toUpperCase()} ${selectedYear}`,
-			],
-			[
-				`Province Company: ${
-					selectedCompany?.compId
-				} / ${selectedCompany?.CompName.toUpperCase()}`,
+				`Province Company: ${selectedCompany?.compId} / ${selectedCompany?.CompName}`,
 			],
 			[`Generated: ${new Date().toLocaleString()}`],
 			[],
@@ -816,11 +810,9 @@ const ProvinceExpenditure: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL STATEMENT</h1>
-          <h1>PERIOD ENDED ${getMonthName(
-					selectedMonth
-				).toUpperCase()} ${selectedYear}</h1>
-          <h2>ProvinceCompany: ${selectedCompany?.compId} - ${
+          <h1>Consolidated Income & Expenditure Provincial Statement</h1>
+          <h1>Period Ended ${getMonthName(selectedMonth)} ${selectedYear}</h1>
+          <h2>Province/Company: ${selectedCompany?.compId} - ${
 			selectedCompany?.CompName
 		}</h2>
         </div>
@@ -882,16 +874,15 @@ const ProvinceExpenditure: React.FC = () => {
 						<div className="flex justify-between items-start">
 							<div className="space-y-1">
 								<h2 className="text-base font-bold text-gray-800">
-									CONSOLIDATED INCOME & EXPENDITURE PROVINCIAL
-									STATEMENT
+									Consolidated Income & Expenditure Provincial
+									Statement
 								</h2>
 								<h3 className="text-base font-bold text-gray-800">
-									PERIOD ENDED{" "}
-									{getMonthName(selectedMonth).toUpperCase()}{" "}
+									Period Ended {getMonthName(selectedMonth)}{" "}
 									{selectedYear}
 								</h3>
 								<h3 className={`text-sm ${maroon}`}>
-									ProvinceCompany: {selectedCompany.compId} -{" "}
+									Province/Company: {selectedCompany.compId} -{" "}
 									{selectedCompany.CompName}
 								</h3>
 							</div>
@@ -915,6 +906,12 @@ const ProvinceExpenditure: React.FC = () => {
 							</div>
 						) : incomeExpData.length === 0 ? (
 							<div className="flex flex-col items-center justify-center py-12">
+								<button
+									onClick={closeIncomeExpModal}
+									className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
+								>
+									Back To Home
+								</button>
 								<div className="text-gray-400 mb-4">
 									<svg
 										className="w-16 h-16 mx-auto"
@@ -930,6 +927,7 @@ const ProvinceExpenditure: React.FC = () => {
 										/>
 									</svg>
 								</div>
+
 								<h3 className="text-lg font-medium text-gray-700 mb-2">
 									No Financial Data Available
 								</h3>
