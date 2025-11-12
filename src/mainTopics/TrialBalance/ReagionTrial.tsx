@@ -102,7 +102,6 @@ const RegionTrial: React.FC = () => {
 	// Fetch regions
 	useEffect(() => {
 		const fetchData = async () => {
-			// Don't fetch if no EPF number
 			if (!epfNo) {
 				setError("No EPF number available. Please login again.");
 				setLoading(false);
@@ -153,7 +152,6 @@ const RegionTrial: React.FC = () => {
 	const handleRegionSelect = (region: Region) => {
 		console.log("Region selected:", region);
 		setSelectedRegion(region);
-		// Only fetch if both month and year are selected
 		if (selectedMonth && selectedYear) {
 			fetchTrialBalanceData(region);
 		}
@@ -203,7 +201,6 @@ const RegionTrial: React.FC = () => {
 
 			setTrialBalanceData(trialBalanceArray);
 
-			// Set trial data for modal
 			setTrialData({
 				companyId: targetRegion.compId,
 				year: selectedYear,
@@ -256,23 +253,14 @@ const RegionTrial: React.FC = () => {
 	};
 
 	const formatNumber = (num: number): string => {
-		// Handle undefined, null, or NaN values
 		if (num === undefined || num === null || isNaN(num)) return "-";
-
-		// Convert to number if it's a string
 		const numValue = typeof num === "string" ? parseFloat(num) : num;
-
-		// Handle zero values
 		if (numValue === 0) return "-";
-
-		// Get absolute value for formatting
 		const absValue = Math.abs(numValue);
 		const formatted = new Intl.NumberFormat("en-US", {
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
 		}).format(absValue);
-
-		// Return negative values in parentheses, positive as normal
 		return numValue < 0 ? `(${formatted})` : formatted;
 	};
 
@@ -379,7 +367,6 @@ const RegionTrial: React.FC = () => {
 							onClick={() => {
 								setSelectedYear(year);
 								setYearDropdownOpen(false);
-								// Auto-fetch data if both year and month are selected
 								if (selectedMonth && selectedRegion) {
 									fetchTrialBalanceData();
 								}
@@ -428,7 +415,6 @@ const RegionTrial: React.FC = () => {
 							onClick={() => {
 								setSelectedMonth(month);
 								setMonthDropdownOpen(false);
-								// Auto-fetch data if both year and month are selected
 								if (selectedYear && selectedRegion) {
 									fetchTrialBalanceData();
 								}
@@ -453,14 +439,12 @@ const RegionTrial: React.FC = () => {
 
 		const {categoryTotals, grandTotals} = calculateTotals();
 
-		// Format number for CSV (no thousands separator, 2 decimals)
 		const formatNum = (num: number) => {
 			if (num === undefined || num === null || isNaN(num)) return "0.00";
 			if (num === 0) return "0.00";
 			return num.toFixed(2);
 		};
 
-		// Escape CSV field
 		const escape = (field: string | number): string => {
 			const str = String(field || "");
 			if (str.includes(",") || str.includes('"') || str.includes("\n")) {
@@ -469,7 +453,6 @@ const RegionTrial: React.FC = () => {
 			return str;
 		};
 
-		// Sort data by category (A, E, L, R)
 		const sortedData = [...trialBalanceData].sort((a, b) => {
 			const categoryOrder: {[key: string]: number} = {
 				A: 1,
@@ -483,20 +466,10 @@ const RegionTrial: React.FC = () => {
 		});
 
 		const csvRows = [
-			// Header section
-			[
-				`Region Wise Trial Balance - ${trialData.month.toUpperCase()}/${
-					trialData.year
-				}`,
-			],
-			[
-				`Region: ${
-					trialData.companyId
-				} / ${trialData.regionName.toUpperCase()}`,
-			],
+			[`Region Wise Trial Balance - ${trialData.month}/${trialData.year}`],
+			[`Region: ${trialData.companyId} / ${trialData.regionName}`],
 			[`Generated: ${new Date().toLocaleString()}`],
 			[],
-			// Column headers
 			[
 				"Account Code",
 				"Account Name",
@@ -511,21 +484,17 @@ const RegionTrial: React.FC = () => {
 			],
 		];
 
-		// Process data with category grouping
 		let currentCategory = "";
-
 		sortedData.forEach((row, index) => {
 			const rowCategory = getCategory(row.AccountCode);
 			const categoryKey = row.AccountCode.charAt(0).toUpperCase();
 
-			// Add category header if category changes
 			if (rowCategory !== currentCategory) {
 				currentCategory = rowCategory;
 				csvRows.push([]);
 				csvRows.push([rowCategory.toUpperCase()]);
 			}
 
-			// Add data row
 			csvRows.push([
 				row.AccountCode.trim(),
 				escape(row.AccountName.trim()),
@@ -539,13 +508,11 @@ const RegionTrial: React.FC = () => {
 				formatNum(row.ClosingBalance),
 			]);
 
-			// Check if this is the last row of current category
 			const nextIndex = index + 1;
 			const isLastInCategory =
 				nextIndex >= sortedData.length ||
 				getCategory(sortedData[nextIndex].AccountCode) !== currentCategory;
 
-			// Add category total if this is the last row of the category
 			if (isLastInCategory && categoryTotals[categoryKey]) {
 				csvRows.push([]);
 				csvRows.push([
@@ -563,7 +530,6 @@ const RegionTrial: React.FC = () => {
 			}
 		});
 
-		// Add grand total section
 		csvRows.push([]);
 		csvRows.push([]);
 		csvRows.push([
@@ -579,7 +545,6 @@ const RegionTrial: React.FC = () => {
 			formatNum(grandTotals.closing),
 		]);
 
-		// Add summary section
 		csvRows.push([]);
 		csvRows.push(["SUMMARY"]);
 		csvRows.push(["Total Opening Balance", formatNum(grandTotals.opening)]);
@@ -590,17 +555,13 @@ const RegionTrial: React.FC = () => {
 		csvRows.push([]);
 		csvRows.push([`CEB@${new Date().getFullYear()}`]);
 
-		// Convert to CSV format
 		const csvContent = csvRows.map((row) => row.join(",")).join("\n");
-
-		// Create and download the file
 		const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement("a");
 		link.href = url;
 		link.download = `RegionTrialBalance_${trialData.regionName}_${trialData.month}_${trialData.year}.csv`;
 		link.style.display = "none";
-
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);
@@ -612,11 +573,9 @@ const RegionTrial: React.FC = () => {
 
 		const {categoryTotals, grandTotals} = calculateTotals();
 
-		// Create a new window for printing
 		const printWindow = window.open("", "_blank");
 		if (!printWindow) return;
 
-		// Generate table rows HTML
 		let tableRowsHTML = "";
 		trialBalanceData.forEach((row, index) => {
 			const currentCategory = getCategory(row.AccountCode);
@@ -631,7 +590,6 @@ const RegionTrial: React.FC = () => {
 					: null;
 			const showCategoryTotal = currentCategory !== nextCategory;
 
-			// Category header
 			if (showCategoryHeader) {
 				tableRowsHTML += `
           <tr class="category-header">
@@ -640,7 +598,6 @@ const RegionTrial: React.FC = () => {
         `;
 			}
 
-			// Data row
 			tableRowsHTML += `
         <tr>
           <td style="padding: 6px; border: 1px solid #ddd;">${row.AccountCode.trim()}</td>
@@ -670,7 +627,6 @@ const RegionTrial: React.FC = () => {
         </tr>
       `;
 
-			// Category total
 			if (showCategoryTotal) {
 				const categoryKey = row.AccountCode.charAt(0).toUpperCase();
 				tableRowsHTML += `
@@ -693,7 +649,6 @@ const RegionTrial: React.FC = () => {
 			}
 		});
 
-		// Add Grand Total row at the end of tbody
 		tableRowsHTML += `
       <tr style="background-color: #7A0000; color: white; font-weight: bold;">
         <td colspan="6" style="padding: 8px; border: 1px solid #7A0000;">Grand Total</td>
@@ -712,7 +667,6 @@ const RegionTrial: React.FC = () => {
       </tr>
     `;
 
-		// Create the HTML content for printing
 		const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -721,81 +675,31 @@ const RegionTrial: React.FC = () => {
 			trialData.year
 		}</title>
         <style>
-          body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            font-size: 10px;
-            color: #333;
-          }
-          
-          .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #7A0000;
-            padding-bottom: 15px;
-          }
-          
-          .header h1 {
-            color: #7A0000;
-            font-size: 18px;
-            margin: 0;
-            font-weight: bold;
-          }
-          
-          .header h2 {
-            color: #7A0000;
-            font-size: 14px;
-            margin: 5px 0;
-          }
-          
-          .header-info {
-            margin-top: 10px;
-            font-size: 12px;
-            color: #666;
-          }
-          
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-          }
-          
-          th {
-            background-color: #7A0000;
-            color: white;
-            font-weight: bold;
-            text-align: center;
-            padding: 8px;
-            border: 1px solid #7A0000;
-          }
-          
-          .footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 10px;
-            color: #666;
-            border-top: 1px solid #ddd;
-            padding-top: 15px;
-          }
-          
+          * { text-transform: none !important; }
+          body {font-family: Arial, sans-serif;margin:20px;font-size:10px;color:#333;}
+          .header {text-align:center;margin-bottom:30px;border-bottom:2px solid #7A0000;padding-bottom:15px;}
+          .header h1 {color:#7A0000;font-size:18px;margin:0;font-weight:bold;text-transform:none;}
+          .header h2 {color:#7A0000;font-size:14px;margin:5px 0;text-transform:none;}
+          table {width:100%;border-collapse:collapse;margin-bottom:20px;}
+          th {background:#7A0000;color:white;font-weight:bold;text-align:center;padding:8px;border:1px solid #7A0000;}
           @media print {
-            body { margin: 0; }
-            .header { page-break-inside: avoid; }
-            table { page-break-inside: auto; }
-            tr { page-break-inside: avoid; }
+            body {margin:0;}
+            .header {page-break-inside:avoid;}
+            table {page-break-inside:auto;}
+            tr {page-break-inside:avoid;}
             @page {
-                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
-							"en-US",
-							{timeZone: "Asia/Colombo"}
-						)}"; font-size: 0.75rem; color: gray; }
-                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
-              }
+              @bottom-left {content:"Printed on: ${new Date().toLocaleString(
+						"en-US",
+						{timeZone: "Asia/Colombo"}
+					)}";font-size:0.75rem;color:gray;}
+              @bottom-right {content:"Page " counter(page) " of " counter(pages);font-size:0.75rem;color:gray;}
+            }
           }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>REGION WISE TRIAL BALANCE - ${trialData.month.toUpperCase()}/${
+          <h1>Region Wise Trial Balance - ${trialData.month}/${
 			trialData.year
 		}</h1>
           <h2>Region: ${trialData.regionName}</h2>
@@ -815,19 +719,14 @@ const RegionTrial: React.FC = () => {
               <th>Closing Balance</th>
             </tr>
           </thead>
-          <tbody>
-            ${tableRowsHTML}
-          </tbody>
+          <tbody>${tableRowsHTML}</tbody>
         </table>
       </body>
       </html>
     `;
 
-		// Write content to the new window and print
 		printWindow.document.write(htmlContent);
 		printWindow.document.close();
-
-		// Wait for content to load then print
 		printWindow.onload = () => {
 			printWindow.print();
 			printWindow.close();
@@ -839,8 +738,8 @@ const RegionTrial: React.FC = () => {
 		<>
 			<div className="flex justify-between items-center mb-4">
 				<div>
-					<h2 className={`text-xl font-bold ${maroon}`}>
-						Region-Wise Trial Balance
+					<h2 className={`text-xl font-bold ${maroon} normal-case`}>
+						Region Wise Trial Balance
 					</h2>
 				</div>
 			</div>
@@ -1025,10 +924,8 @@ const RegionTrial: React.FC = () => {
 
 	return (
 		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
-			{/* Custom Region Table with integrated date selection */}
 			<CustomRegionTable />
 
-			{/* Trial Balance Modal */}
 			<TrialBalanceModal
 				trialModalOpen={trialModalOpen}
 				closeTrialModal={closeTrialModal}
@@ -1043,9 +940,7 @@ const RegionTrial: React.FC = () => {
 				calculateTotals={calculateTotals}
 				downloadAsCSV={downloadAsCSV}
 				printPDF={printPDF}
-				goBack={() => {
-					setTrialModalOpen(false);
-				}}
+				goBack={() => setTrialModalOpen(false)}
 			/>
 		</div>
 	);

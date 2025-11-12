@@ -322,7 +322,7 @@ const AverageConsumption: React.FC = () => {
 			const formattedFromDate = fromDate.replace(/-/g, "");
 			const formattedToDate = toDate.replace(/-/g, "");
 			const response = await fetch(
-				`/avgConsumption/api/inventoryaverageconsumption/report/${encodeURIComponent(
+				`/misapi/api/inventoryaverageconsumption/report/${encodeURIComponent(
 					selectedDepartment.DeptId
 				)}/${encodeURIComponent(
 					selectedWarehouse
@@ -489,8 +489,8 @@ const AverageConsumption: React.FC = () => {
 			  .print-signoff { margin-top: 4rem; display: flex; justify-content: space-between; font-size: 0.875rem; padding: 0 2rem; }
 			  .print-currency { text-align: right; font-size: 0.875rem; font-weight: 600; color: #4B5563; margin-bottom: 0.25rem; margin-top: 1rem; margin-right: 0.45rem; }
 
-			  table.print-table { border-collapse: collapse; width: 100%; margin-left: 0; margin-right: 3rem; }
-			  table.print-table th, table.print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; }
+			  table.print-table { border-collapse: collapse; width: 100%; margin-left: 0; margin-right: 3rem; table-layout: auto; }
+			  table.print-table th, table.print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; white-space: normal; word-break: break-word; }
 			  table.print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
 			  table.print-table td { text-align: right; }
 			  table.print-table td.text-left { text-align: left; }
@@ -865,12 +865,12 @@ const AverageConsumption: React.FC = () => {
               @page { size: A4; margin: 20mm 15mm 25mm 15mm; }
               body { margin: 0; font-family: Arial, sans-serif; }
               .print-container { width: 100%; margin: 0; padding: 0; }
-              .print-table { border-collapse: collapse; width: 100%; }
-              .print-table th, .print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; }
-              .print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
-              .print-table td { text-align: right; }
-              .print-table td.text-left { text-align: left; }
-              .print-table tr { page-break-inside: avoid; }
+			  .print-table { border-collapse: collapse; width: 100%; table-layout: auto; }
+			  .print-table th, .print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; white-space: normal; word-break: break-word; }
+			  .print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
+			  .print-table td { text-align: right; }
+			  .print-table td.text-left { text-align: left; }
+			  .print-table tr { page-break-inside: avoid; }
               thead { display: table-header-group; }
               @page {
                 @bottom-left { content: "Printed on: ${new Date().toLocaleString(
