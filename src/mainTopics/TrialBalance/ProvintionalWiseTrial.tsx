@@ -883,9 +883,9 @@ const ProvintionalWiseTrial: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>MONTHLY TRIAL BALANCE - ${getMonthName(
+          <h1>Monthly Trial Balance - ${getMonthName(
 					selectedMonth
-				).toUpperCase()} ${selectedYear}</h1>
+				)} ${selectedYear}</h1>
           <h2>Company: ${selectedCompany?.compId} - ${
 			selectedCompany?.CompName
 		}</h2>
@@ -1125,8 +1125,7 @@ const ProvintionalWiseTrial: React.FC = () => {
 					<div className="p-5 border-b">
 						<div className="space-y-1">
 							<h2 className="text-base font-bold text-gray-800">
-								MONTHLY TRIAL BALANCE -{" "}
-								{getMonthName(selectedMonth).toUpperCase()}{" "}
+								Monthly Trial Balance - {getMonthName(selectedMonth)}{" "}
 								{selectedYear}
 							</h2>
 							<h3 className={`text-sm ${maroon}`}>

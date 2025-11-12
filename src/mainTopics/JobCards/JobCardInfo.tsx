@@ -471,7 +471,7 @@ const JobCardTable: React.FC<{
 			<div className="text-center py-6 sm:py-8 md:py-12 lg:py-16 xl:py-20">
 				<div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 md:p-10">
 					<div className="text-gray-400 mb-4 md:mb-6">
-						No job card available.
+						No Data Available.
 					</div>
 				</div>
 			</div>

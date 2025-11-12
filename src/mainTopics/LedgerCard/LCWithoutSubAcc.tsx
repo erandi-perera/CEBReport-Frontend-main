@@ -24,9 +24,7 @@ interface LedgerCardItem {
 	CctName: string | null;
 }
 
-// ──────────────────────────────────────────────────────────────
-//  Updated formatNumber: Negative values → (123.45), no "-"
-// ──────────────────────────────────────────────────────────────
+
 const formatNumber = (num: number | string | null | undefined): string => {
 	const n = num === null || num === undefined ? NaN : Number(num);
 	if (isNaN(n)) return "0.00";
@@ -39,9 +37,8 @@ const formatNumber = (num: number | string | null | undefined): string => {
 
 	return n < 0 ? `(${formatted})` : formatted;
 };
-// ──────────────────────────────────────────────────────────────
 
-const LedgerCardReport: React.FC = () => {
+const LCWithoutSubAcc: React.FC = () => {
 	const [ledgerCode, setLedgerCode] = useState("");
 	const [year, setYear] = useState(new Date().getFullYear().toString());
 	const [startMonth, setStartMonth] = useState("1");
@@ -915,4 +912,4 @@ const LedgerCardReport: React.FC = () => {
 	);
 };
 
-export default LedgerCardReport;
+export default LCWithoutSubAcc;

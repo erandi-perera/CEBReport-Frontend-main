@@ -503,11 +503,7 @@ const CostCenterTrial: React.FC = () => {
 
 		// Start with header information
 		const csvRows = [
-			[
-				`MONTHLY TRIAL BALANCE - ${trialData.month.toUpperCase()}/${
-					trialData.year
-				}`,
-			],
+			[`Monthly Trial Balance - ${trialData.month}/${trialData.year}`],
 			[`Cost Center: ${trialData.costctr} - ${trialData.deptName}`],
 			[""], // Empty row for spacing
 			[
@@ -788,9 +784,7 @@ const CostCenterTrial: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>MONTHLY TRIAL BALANCE - ${trialData.month.toUpperCase()}/${
-			trialData.year
-		}</h1>
+          <h1>Monthly Trial Balance - ${trialData.month}/${trialData.year}</h1>
           <h2>Cost Center: ${trialData.costctr} - ${trialData.deptName}</h2>
         </div>
         
