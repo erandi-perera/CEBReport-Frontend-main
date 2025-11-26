@@ -16,6 +16,8 @@ import OrdinaryReadingHistory from "../components/mainTopics/billing&payments/cu
 import TransactionHistoryReport from "../components/mainTopics/billing&payments/customerDetails/reports/TransactionHistoryReport";
 import JobCardDetails from "../pages/JobCardDetails";
 import LedgerCardDetails from "../pages/LedgerCardDetails";
+import CashBookDetails from "../pages/CashBookDetails";
+import PIVDetails from "../pages/PIVDetails";
 
 const ReportRoutes = () => (
 	<>
@@ -147,6 +149,24 @@ const ReportRoutes = () => (
 			element={
 				<Layout>
 					<LedgerCardDetails />
+				</Layout>
+			}
+		/>
+
+		<Route
+			path="/report/CashBook"
+			element={
+				<Layout>
+					<CashBookDetails />
+				</Layout>
+			}
+		/>
+
+		<Route
+			path="/report/PIV"
+			element={
+				<Layout>
+					<PIVDetails />
 				</Layout>
 			}
 		/>
