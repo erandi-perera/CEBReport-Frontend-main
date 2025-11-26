@@ -1,5 +1,5 @@
-import React, {useState, useRef, JSX} from "react";
-import {Eye, X, Download, Printer, RotateCcw} from "lucide-react";
+import React, {useState, useRef, useEffect, JSX} from "react";
+import {Eye, X, Download, Printer, RotateCcw, ChevronDown} from "lucide-react";
 import {toast} from "react-toastify";
 
 interface LedgerCardItem {
@@ -24,7 +24,6 @@ interface LedgerCardItem {
 	CctName: string | null;
 }
 
-
 const formatNumber = (num: number | string | null | undefined): string => {
 	const n = num === null || num === undefined ? NaN : Number(num);
 	if (isNaN(n)) return "0.00";
@@ -38,11 +37,107 @@ const formatNumber = (num: number | string | null | undefined): string => {
 	return n < 0 ? `(${formatted})` : formatted;
 };
 
+/* ────── Reusable Dropdown with Portal-like positioning ────── */
+const CustomDropdown = <T,>({
+	label,
+	value,
+	options,
+	onSelect,
+	open,
+	setOpen,
+	displayFn,
+	className = "",
+}: {
+	label: string;
+	value: T | undefined;
+	options: T[];
+	onSelect: (val: T) => void;
+	open: boolean;
+	setOpen: (v: boolean) => void;
+	displayFn: (v: T) => string;
+	className?: string;
+}) => {
+	const btnRef = useRef<HTMLButtonElement>(null);
+	const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+
+	useEffect(() => {
+		if (open && btnRef.current) {
+			const rect = btnRef.current.getBoundingClientRect();
+			const viewportHeight = window.innerHeight;
+			const spaceBelow = viewportHeight - rect.bottom;
+			const dropdownHeight = Math.min(240, options.length * 40);
+
+			setDropdownStyle({
+				position: "fixed",
+				top:
+					spaceBelow >= dropdownHeight
+						? rect.bottom + 4
+						: rect.top - dropdownHeight - 4,
+				left: rect.left,
+				width: rect.width,
+				zIndex: 9999,
+			});
+		}
+	}, [open, options.length]);
+
+	return (
+		<>
+			<div className={className}>
+				<label
+					className={`block text-xs md:text-sm font-bold text-[#7A0000] mb-1`}
+				>
+					{label}
+				</label>
+				<button
+					ref={btnRef}
+					type="button"
+					onClick={() => setOpen(!open)}
+					className="w-full flex justify-between items-center pl-3 pr-2 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-xs md:text-sm text-gray-900 bg-white"
+				>
+					<span className={value === undefined ? "text-gray-400" : ""}>
+						{value !== undefined ? displayFn(value) : `Select ${label}`}
+					</span>
+					<ChevronDown
+						className={`w-4 h-4 text-gray-400 transition-transform ${
+							open ? "rotate-180" : ""
+						}`}
+					/>
+				</button>
+			</div>
+
+			{open && (
+				<div
+					className="bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+					style={dropdownStyle}
+				>
+					{options.map((opt) => (
+						<button
+							key={String(opt)}
+							type="button"
+							onClick={() => {
+								onSelect(opt);
+								setOpen(false);
+							}}
+							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+								value === opt
+									? "bg-[#7A0000] text-white"
+									: "text-gray-700"
+							}`}
+						>
+							{displayFn(opt)}
+						</button>
+					))}
+				</div>
+			)}
+		</>
+	);
+};
+
 const LCWithoutSubAcc: React.FC = () => {
 	const [ledgerCode, setLedgerCode] = useState("");
-	const [year, setYear] = useState(new Date().getFullYear().toString());
-	const [startMonth, setStartMonth] = useState("1");
-	const [endMonth, setEndMonth] = useState("12");
+	const [year, setYear] = useState<number | undefined>(undefined);
+	const [startMonth, setStartMonth] = useState<number | undefined>(undefined);
+	const [endMonth, setEndMonth] = useState<number | undefined>(undefined);
 	const [data, setData] = useState<LedgerCardItem[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -54,33 +149,94 @@ const LCWithoutSubAcc: React.FC = () => {
 		>
 	>({});
 	const iframeRef = useRef<HTMLIFrameElement>(null);
-	const [showOrientationModal, setShowOrientationModal] = useState(false);
+
+	// Dropdown states
+	const [yearOpen, setYearOpen] = useState(false);
+	const [startMonthOpen, setStartMonthOpen] = useState(false);
+	const [endMonthOpen, setEndMonthOpen] = useState(false);
+
+	// Close other dropdowns when one opens
+	const handleYearOpen = (val: boolean) => {
+		if (val) {
+			setStartMonthOpen(false);
+			setEndMonthOpen(false);
+		}
+		setYearOpen(val);
+	};
+
+	const handleStartMonthOpen = (val: boolean) => {
+		if (val) {
+			setYearOpen(false);
+			setEndMonthOpen(false);
+		}
+		setStartMonthOpen(val);
+	};
+
+	const handleEndMonthOpen = (val: boolean) => {
+		if (val) {
+			setYearOpen(false);
+			setStartMonthOpen(false);
+		}
+		setEndMonthOpen(val);
+	};
 
 	const maroon = "text-[#7A0000]";
 	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
 	const currentYear = new Date().getFullYear();
-	const minYear = currentYear - 20;
+	const years = Array.from({length: 21}, (_, i) => currentYear - i);
+	const months = Array.from({length: 12}, (_, i) => i + 1);
+
+	const getMonthName = (m: number) => {
+		const names = [
+			"January",
+			"February",
+			"March",
+			"April",
+			"May",
+			"June",
+			"July",
+			"August",
+			"September",
+			"October",
+			"November",
+			"December",
+		];
+		return `${m} - ${names[m - 1]}`;
+	};
+
+	// Close all dropdowns when clicking outside
+	useEffect(() => {
+		const handleOutsideClick = (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			if (
+				!target.closest("button") &&
+				!target.closest("[style*='position: fixed']")
+			) {
+				setYearOpen(false);
+				setStartMonthOpen(false);
+				setEndMonthOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handleOutsideClick);
+		return () =>
+			document.removeEventListener("mousedown", handleOutsideClick);
+	}, []);
 
 	const handleViewClick = async () => {
 		if (!ledgerCode.trim()) {
 			toast.error("Please enter Ledger Code.");
 			return;
 		}
-		if (!year || isNaN(+year)) {
-			toast.error("Please enter a valid year.");
+		if (!year) {
+			toast.error("Please select a Year.");
 			return;
 		}
-		if (
-			+startMonth < 1 ||
-			+startMonth > 12 ||
-			+endMonth < 1 ||
-			+endMonth > 12
-		) {
-			toast.error("Months must be between 1 and 12.");
+		if (!startMonth || !endMonth) {
+			toast.error("Please select both Start and End Month.");
 			return;
 		}
-		if (+endMonth < +startMonth) {
+		if (endMonth < startMonth) {
 			toast.error("End Month cannot be before Start Month.");
 			return;
 		}
@@ -94,7 +250,9 @@ const LCWithoutSubAcc: React.FC = () => {
 			const response = await fetch(
 				`/misapi/api/ledgercard/report/${encodeURIComponent(
 					ledgerCode.trim()
-				)}/${year}/${startMonth}/${endMonth}`,
+				)}/${year}/${startMonth.toString().padStart(2, "0")}/${endMonth
+					.toString()
+					.padStart(2, "0")}`,
 				{
 					method: "GET",
 					headers: {
@@ -120,7 +278,6 @@ const LCWithoutSubAcc: React.FC = () => {
 				return;
 			}
 
-			// Group by Sub Account and compute running totals
 			const grouped = items.reduce((acc, item) => {
 				const subAc = item.SubAc || "UNKNOWN";
 				if (!acc[subAc]) {
@@ -138,10 +295,7 @@ const LCWithoutSubAcc: React.FC = () => {
 				acc[subAc].dr += dr;
 				acc[subAc].cr += cr;
 				acc[subAc].runningTotal += dr - cr;
-				acc[subAc].entries.push({
-					...item,
-					runningTotal: acc[subAc].runningTotal,
-				});
+				acc[subAc].entries.push({...item});
 
 				return acc;
 			}, {} as Record<string, any>);
@@ -179,41 +333,18 @@ const LCWithoutSubAcc: React.FC = () => {
 
 	const clearFilters = () => {
 		setLedgerCode("");
-		setYear(new Date().getFullYear().toString());
-		setStartMonth("1");
-		setEndMonth("12");
+		setYear(undefined);
+		setStartMonth(undefined);
+		setEndMonth(undefined);
+		setData([]);
+		setShowReport(false);
 	};
 
-	const printPDF = (orientation: "portrait" | "landscape") => {
+	const printPDF = () => {
 		if (data.length === 0 || !iframeRef.current) return;
 
 		const firstItem = data[0];
 		const ledgerName = firstItem.AcName || "N/A";
-
-		const columnWidths =
-			orientation === "portrait"
-				? {
-						docPf: "10%",
-						docNo: "12%",
-						remarks: "24%",
-						date: "6%",
-						ref: "14%",
-						chq: "4%",
-						dr: "9%",
-						cr: "9%",
-						running: "10%",
-				  }
-				: {
-						docPf: "8%",
-						docNo: "9%",
-						remarks: "23%",
-						date: "8%",
-						ref: "12%",
-						chq: "7%",
-						dr: "12%",
-						cr: "12%",
-						running: "13%",
-				  };
 
 		let tableRows = "";
 		let currentSubAc = "";
@@ -273,33 +404,33 @@ const LCWithoutSubAcc: React.FC = () => {
 
 			tableRows += `
         <tr class="${i % 2 ? "bg-white" : "bg-gray-50"}">
-          <td class="p-1 border border-gray-300 text-left text-xs">
-            ${item.DocPf || ""}
-          </td>
-          <td class="p-1 border border-gray-300 text-left text-xs">
-            ${item.DocNo || ""}
-          </td>
-          <td class="p-1 border border-gray-300 text-left text-xs" style="word-wrap: break-word; word-break: break-word;">
-            ${item.Remarks || ""}
-          </td>
-          <td class="p-1 border border-gray-300 text-center text-xs">
-            ${item.AcctDt ? new Date(item.AcctDt).toLocaleDateString() : ""}
-          </td>
-          <td class="p-1 border border-gray-300 text-left text-xs">
-            ${item.Ref1 || ""}
-          </td>
-          <td class="p-1 border border-gray-300 text-left text-xs">
-            ${item.ChqNo || ""}
-          </td>
-          <td class="p-1 border border-gray-300 text-right font-mono text-xs">
-            ${formatNumber(item.DrAmt)}
-          </td>
-          <td class="p-1 border border-gray-300 text-right font-mono text-xs">
-            ${formatNumber(item.CrAmt)}
-          </td>
-          <td class="p-1 border border-gray-300 text-right font-mono text-xs">
-            ${formatNumber(subAcRunning)}
-          </td>
+          <td class="p-1 border border-gray-300 text-left text-xs">${
+					item.DocPf || ""
+				}</td>
+          <td class="p-1 border border-gray-300 text-left text-xs">${
+					item.DocNo || ""
+				}</td>
+          <td class="p-1 border border-gray-300 text-left text-xs" style="word-wrap: break-word; word-break: break-word;">${
+					item.Remarks || ""
+				}</td>
+          <td class="p-1 border border-gray-300 text-center text-xs">${
+					item.AcctDt ? new Date(item.AcctDt).toLocaleDateString() : ""
+				}</td>
+          <td class="p-1 border border-gray-300 text-left text-xs">${
+					item.Ref1 || ""
+				}</td>
+          <td class="p-1 border border-gray-300 text-left text-xs">${
+					item.ChqNo || ""
+				}</td>
+          <td class="p-1 border border-gray-300 text-right font-mono text-xs">${formatNumber(
+					dr
+				)}</td>
+          <td class="p-1 border border-gray-300 text-right font-mono text-xs">${formatNumber(
+					cr
+				)}</td>
+          <td class="p-1 border border-gray-300 text-right font-mono text-xs">${formatNumber(
+					subAcRunning
+				)}</td>
         </tr>`;
 		});
 
@@ -327,7 +458,7 @@ const LCWithoutSubAcc: React.FC = () => {
         </tr>
         <tr class="bg-yellow-100 font-bold">
           <td colspan="6" class="p-1 border border-gray-300 text-right">Closing Balance - ${currentSubAc}:</td>
-          <td colspan="3"class="p-1 border border-gray-300 text-right font-mono">${formatNumber(
+          <td colspan="3" class="p-1 border border-gray-300 text-right font-mono">${formatNumber(
 					subTotal.runningTotal
 				)}</td>
         </tr>`;
@@ -338,25 +469,15 @@ const LCWithoutSubAcc: React.FC = () => {
         <head>
           <style>
             @media print {
-              @page { size: A4 ${orientation}; margin: 10mm 5mm 15mm 5mm; }
+              @page { margin: 10mm 5mm 15mm 5mm; }
               body { margin: 0; font-family: Arial, sans-serif; font-size: 10px; }
               .print-header { margin: 15px 10px 8px; text-align: center; }
               .print-header h2 { font-weight: bold; color: #7A0000; margin: 0; font-size: 14px; }
               .print-summary { margin: 8px 10px; font-size: 10px; }
               .print-summary p { margin: 2px 3px; }
               .print-currency { text-align: right; margin-right: 3px; font-weight: 600; color: #4B5563; font-size: 10px; }
-              table {
-                border-collapse: collapse;
-                width: 100%;
-                margin: 0;
-                table-layout: fixed;
-              }
-              th, td {
-                border: 1px solid #D1D5DB;
-                padding: 3px;
-                font-size: 9px;
-                overflow: hidden;
-              }
+              table { border-collapse: collapse; width: 100%; margin: 0; table-layout: fixed; }
+              th, td { border: 1px solid #D1D5DB; padding: 3px; font-size: 9px; overflow: hidden; }
               th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; font-size: 9px; }
               td { text-align: right; }
               td.text-left { text-align: left; }
@@ -365,17 +486,15 @@ const LCWithoutSubAcc: React.FC = () => {
               .bg-gray-100 { background-color: #F3F4F6 !important; }
               .font-bold { font-weight: bold; }
               .font-mono { font-family: monospace; }
-              .col-docpf { width: ${columnWidths.docPf}; }
-              .col-docno { width: ${columnWidths.docNo}; }
-              .col-remarks { width: ${
-						columnWidths.remarks
-					}; word-wrap: break-word; word-break: break-word; }
-              .col-date { width: ${columnWidths.date}; }
-              .col-ref { width: ${columnWidths.ref}; }
-              .col-chq { width: ${columnWidths.chq}; }
-              .col-dr { width: ${columnWidths.dr}; }
-              .col-cr { width: ${columnWidths.cr}; }
-              .col-running { width: ${columnWidths.running}; }
+              .col-docpf { width: 8%; }
+              .col-docno { width: 9%; }
+              .col-remarks { width: 23%; word-wrap: break-word; word-break: break-word; }
+              .col-date { width: 8%; }
+              .col-ref { width: 12%; }
+              .col-chq { width: 7%; }
+              .col-dr { width: 12%; }
+              .col-cr { width: 12%; }
+              .col-running { width: 13%; }
               @page {
                 @bottom-left { content: "Printed on: ${new Date().toLocaleString(
 							"en-US",
@@ -388,10 +507,11 @@ const LCWithoutSubAcc: React.FC = () => {
         </head>
         <body>
           <div class="print-header">
-            <h2>Ledger Card - Details ${startMonth.padStart(
-					2,
-					"0"
-				)}/${year} to ${endMonth.padStart(2, "0")}/${year}</h2>
+            <h2>Ledger Card - Details ${startMonth
+					?.toString()
+					.padStart(2, "0")}/${year} to ${endMonth
+			?.toString()
+			.padStart(2, "0")}/${year}</h2>
           </div>
           <div class="print-summary">
             <p><span class="font-bold">Cost Centre :</span> ${
@@ -422,7 +542,8 @@ const LCWithoutSubAcc: React.FC = () => {
             <tbody>${tableRows}</tbody>
           </table>
           <p class="font-bold" style="margin: 10px 0;">
-          Closing Balance: ${formatNumber(firstItem.GLClosingBalance)}</p> 
+            Closing Balance: ${formatNumber(firstItem.GLClosingBalance)}
+          </p>
           <div style="margin-top: 30px; display: flex; justify-content: space-between; padding: 0 20px; font-size: 10px;">
             <div>Prepared By: ____________________</div>
             <div>Checked By: ____________________</div>
@@ -491,24 +612,24 @@ const LCWithoutSubAcc: React.FC = () => {
 		const netMovement = totalDr - totalCr;
 
 		const csvContent = [
-			`Ledger Card without Subaccounts- ${startMonth}/${year} to ${endMonth}/${year}`,
-			`GL Code: ${data[0].GlCd} - ${data[0].AcName}`,
-			`Cost Centre: ${data[0].CctName}`,
-			`Opening Balance: ${formatNumber(data[0].OpeningBalance)}`,
+			`Ledger Card - ${startMonth}/${year} to ${endMonth}/${year}`,
+			`GL Code: ${data[0].GlCd} - ${data[0].AcName || "N/A"}`,
+			`Cost Centre: ${data[0].CctName || "N/A"}`,
+			`"Opening Balance: ${formatNumber(data[0].GLOpeningBalance)}"`,
 			`Currency: LKR`,
 			"",
 			headers.join(","),
 			...rows,
 			"",
-			`Net Movement: ${formatNumber(netMovement)}`,
-			`Closing Balance: ${formatNumber(data[0].ClosingBalance)}`,
+			`"Net Movement: ${formatNumber(netMovement)}"`,
+			`"Closing Balance: ${formatNumber(data[0].GLClosingBalance)}"`,
 		].join("\n");
 
 		const blob = new Blob([csvContent], {type: "text/csv"});
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement("a");
 		a.href = url;
-		a.download = `ledger_card_${ledgerCode}_${year}.csv`;
+		a.download = `ledger_card_${ledgerCode}_${year}_${startMonth}-${endMonth}.csv`;
 		a.click();
 		URL.revokeObjectURL(url);
 	};
@@ -519,7 +640,6 @@ const LCWithoutSubAcc: React.FC = () => {
 				Ledger Card without Subaccounts
 			</h2>
 
-			{/* Input Fields */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
 				<div>
 					<label
@@ -530,74 +650,43 @@ const LCWithoutSubAcc: React.FC = () => {
 					<input
 						type="text"
 						value={ledgerCode}
-						onChange={(e) => setLedgerCode(e.target.value)}
+						onChange={(e) => setLedgerCode(e.target.value.toUpperCase())}
 						placeholder="Enter Ledger Code"
-						className="w-full pl-3 pr-2 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-xs md:text-sm"
+						className="w-full pl-3 pr-2 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-xs md:text-sm text-uppercase placeholder:normal-case"
 					/>
 				</div>
 
-				<div>
-					<label
-						className={`block text-xs md:text-sm font-bold ${maroon} mb-1`}
-					>
-						Year
-					</label>
-					<input
-						type="number"
-						value={year}
-						min={minYear}
-						max={currentYear}
-						onChange={(e) => setYear(e.target.value)}
-						className="w-full pl-3 pr-2 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-xs md:text-sm"
-					/>
-				</div>
+				<CustomDropdown
+					label="Year"
+					value={year}
+					options={years}
+					open={yearOpen}
+					setOpen={handleYearOpen}
+					onSelect={setYear}
+					displayFn={(y) => String(y)}
+				/>
 
-				<div>
-					<label
-						className={`block text-xs md:text-sm font-bold ${maroon} mb-1`}
-					>
-						Start Month
-					</label>
-					<select
-						value={startMonth}
-						onChange={(e) => setStartMonth(e.target.value)}
-						className="w-full pl-3 pr-2 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-xs md:text-sm"
-					>
-						{Array.from({length: 12}, (_, i) => (
-							<option key={i + 1} value={i + 1}>
-								{i + 1} -{" "}
-								{new Date(0, i).toLocaleString("en", {
-									month: "long",
-								})}
-							</option>
-						))}
-					</select>
-				</div>
+				<CustomDropdown
+					label="Start Month"
+					value={startMonth}
+					options={months}
+					open={startMonthOpen}
+					setOpen={handleStartMonthOpen}
+					onSelect={setStartMonth}
+					displayFn={getMonthName}
+				/>
 
-				<div>
-					<label
-						className={`block text-xs md:text-sm font-bold ${maroon} mb-1`}
-					>
-						End Month
-					</label>
-					<select
-						value={endMonth}
-						onChange={(e) => setEndMonth(e.target.value)}
-						className="w-full pl-3 pr-2 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-xs md:text-sm"
-					>
-						{Array.from({length: 12}, (_, i) => (
-							<option key={i + 1} value={i + 1}>
-								{i + 1} -{" "}
-								{new Date(0, i).toLocaleString("en", {
-									month: "long",
-								})}
-							</option>
-						))}
-					</select>
-				</div>
+				<CustomDropdown
+					label="End Month"
+					value={endMonth}
+					options={months}
+					open={endMonthOpen}
+					setOpen={handleEndMonthOpen}
+					onSelect={setEndMonth}
+					displayFn={getMonthName}
+				/>
 			</div>
 
-			{/* Action Buttons */}
 			<div className="flex flex-wrap gap-2 mb-4 justify-end">
 				<button
 					onClick={handleViewClick}
@@ -629,13 +718,22 @@ const LCWithoutSubAcc: React.FC = () => {
 				</div>
 			)}
 
-			{/* Report Modal */}
 			{showReport && data.length > 0 && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/90 print:static print:inset-auto print:p-0 print:bg-white">
-					<div className="relative bg-white w-full max-w-[95vw] sm:max-w-4xl md:max-w-6xl lg:max-w-7xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden print:relative print:w-full print:max-w-none print:rounded-none print:shadow-none print:border-none print:overflow-visible print-container mt-60 ml-65">
+					<div
+						className="
+              relative bg-white
+              w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw]
+              max-w-7xl
+              rounded-2xl shadow-2xl border border-gray-200 overflow-hidden
+              mt-20 md:mt-32 lg:mt-40 lg:ml-64
+              mx-auto
+              print:relative print:w-full print:max-w-none print:rounded-none
+              print:shadow-none print:border-none print:overflow-visible print-container
+            "
+					>
 						<div className="p-2 md:p-2 max-h-[80vh] overflow-y-auto print:p-0 print:max-h-none print:overflow-visible print:mt-10 print:ml-12">
-							<div className="flex justify-end gap-3 mb-6 md:mb-8  print:hidden">
-								{" "}
+							<div className="flex justify-end gap-3 mb-6 md:mb-8 print:hidden">
 								<button
 									onClick={handleDownloadCSV}
 									className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium hover:bg-blue-50"
@@ -643,7 +741,7 @@ const LCWithoutSubAcc: React.FC = () => {
 									<Download className="w-4 h-4" /> CSV
 								</button>
 								<button
-									onClick={() => setShowOrientationModal(true)}
+									onClick={printPDF}
 									className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium hover:bg-green-50"
 								>
 									<Printer className="w-4 h-4" /> Print
@@ -663,11 +761,11 @@ const LCWithoutSubAcc: React.FC = () => {
 								{year}
 							</h2>
 
-							<div className="grid grid-cols-1 md:grid-cols-2 text-sm mb-2">
+							<div className="grid grid-cols-1 md:grid-cols-2 text-sm mb-4">
 								<div>
 									<p>
 										<span className="font-bold">Cost Center :</span>{" "}
-										{data[0].CctName}
+										{data[0].CctName || "N/A"}
 									</p>
 									<p>
 										<span className="font-bold">
@@ -682,30 +780,18 @@ const LCWithoutSubAcc: React.FC = () => {
 							</div>
 
 							<div className="overflow-x-auto border rounded-lg">
-								<table className="w-full text-xs border-collapse table-fixed min-w-[800px]">
+								<table className="w-full text-xs border-collapse table-fixed min-w-[1000px]">
 									<thead className={`${maroonGrad} text-white`}>
 										<tr>
-											<th className="px-2 py-1.5 w-[10%]">
-												Document No
-											</th>
-											<th className="px-2 py-1.5 w-[20%]">
-												Remarks
-											</th>
-											<th className="px-2 py-1.5 w-[10%]">
-												Acct. Date
-											</th>
-											<th className="px-2 py-1.5 w-[15%]">
+											<th className="px-2 py-1.5">Document No</th>
+											<th className="px-2 py-1.5">Remarks</th>
+											<th className="px-2 py-1.5">Acct. Date</th>
+											<th className="px-2 py-1.5">
 												Reference 1 / Cheque No
 											</th>
-											<th className="px-2 py-1.5 w-[12%]">
-												Dr Amount
-											</th>
-											<th className="px-2 py-1.5 w-[12%]">
-												Cr Amount
-											</th>
-											<th className="px-2 py-1.5 w-[13%]">
-												Running Total
-											</th>
+											<th className="px-2 py-1.5">Dr Amount</th>
+											<th className="px-2 py-1.5">Cr Amount</th>
+											<th className="px-2 py-1.5">Running Total</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -714,6 +800,7 @@ const LCWithoutSubAcc: React.FC = () => {
 											let running = 0;
 											let opening = 0;
 											const rows: JSX.Element[] = [];
+
 											data.forEach((item, i) => {
 												const isNewSubAc =
 													item.SubAc !== currentSubAc;
@@ -721,16 +808,15 @@ const LCWithoutSubAcc: React.FC = () => {
 												const cr = item.CrAmt || 0;
 
 												if (isNewSubAc) {
-													if (currentSubAc) {
+													if (currentSubAc)
 														rows.push(
 															<tr key={`spacer-${currentSubAc}`}>
 																<td
 																	colSpan={7}
-																	className="h-6"
+																	className="h-4"
 																/>
 															</tr>
 														);
-													}
 													currentSubAc = item.SubAc || "";
 													opening =
 														subAccountTotals[currentSubAc]
@@ -751,8 +837,10 @@ const LCWithoutSubAcc: React.FC = () => {
 																	colSpan={7}
 																	className="px-2 py-1"
 																>
-																	Sub Account: {item.AcName1} |
-																	Opening Balance:{" "}
+																	Sub Account:{" "}
+																	{item.AcName1 ||
+																		currentSubAc}{" "}
+																	| Opening Balance:{" "}
 																	{formatNumber(opening)}
 																</td>
 															</tr>
@@ -827,7 +915,7 @@ const LCWithoutSubAcc: React.FC = () => {
 																		className="px-2 py-1 text-left"
 																	>
 																		Closing Balance -{" "}
-																		{currentSubAc}:
+																		{currentSubAc}:{" "}
 																		{formatNumber(running)}
 																	</td>
 																</tr>
@@ -860,8 +948,8 @@ const LCWithoutSubAcc: React.FC = () => {
 								</div>
 								<div className="text-right">
 									<p>
-										Closing Balance for Sub Account:{" "}
-										{formatNumber(data[0].ClosingBalance)}
+										Closing Balance:{" "}
+										{formatNumber(data[0].GLClosingBalance)}
 									</p>
 								</div>
 							</div>
@@ -869,43 +957,6 @@ const LCWithoutSubAcc: React.FC = () => {
 					</div>
 
 					<iframe ref={iframeRef} className="hidden" title="print-frame" />
-				</div>
-			)}
-
-			{/* Print Orientation Modal */}
-			{showOrientationModal && (
-				<div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50">
-					<div className="bg-white rounded-lg p-6 w-full max-w-sm">
-						<h3 className="text-lg font-semibold mb-4">
-							Select Print Orientation
-						</h3>
-						<div className="flex gap-3 mb-4">
-							<button
-								onClick={() => {
-									printPDF("portrait");
-									setShowOrientationModal(false);
-								}}
-								className="flex-1 px-4 py-2 bg-[#7A0000] text-white rounded hover:bg-[#A52A2A]"
-							>
-								Portrait
-							</button>
-							<button
-								onClick={() => {
-									printPDF("landscape");
-									setShowOrientationModal(false);
-								}}
-								className="flex-1 px-4 py-2 bg-[#7A0000] text-white rounded hover:bg-[#A52A2A]"
-							>
-								Landscape
-							</button>
-						</div>
-						<button
-							onClick={() => setShowOrientationModal(false)}
-							className="w-full px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
-						>
-							Cancel
-						</button>
-					</div>
 				</div>
 			)}
 		</div>

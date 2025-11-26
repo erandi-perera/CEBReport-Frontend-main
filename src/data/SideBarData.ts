@@ -10,6 +10,10 @@ import {FaBookOpen} from "react-icons/fa";
 import {MdBuild} from "react-icons/md";
 import {FaArrowDownShortWide} from "react-icons/fa6";
 import {MdInventory2} from "react-icons/md";
+import {FaMoneyCheckAlt} from "react-icons/fa";
+import {TbReportAnalytics} from "react-icons/tb";
+
+
 
 export const data = [
 	{
@@ -190,7 +194,10 @@ export const data = [
 		id: 12,
 		name: "Jobs",
 		icon: FiBriefcase,
-		subtopics: [{id: 111, name: "Job Card Details"}],
+		subtopics: [
+			{id: 111, name: "Job Card Details"},
+			{id: 119, name: "Job Card -  Material Details"},
+		],
 
 		path: "/report/jobs",
 	},
@@ -203,8 +210,43 @@ export const data = [
 			{id: 112, name: "Ledger Card with Subaccounts"},
 			{id: 113, name: "Ledger Card without Subaccounts"},
 			{id: 114, name: "Ledger Card  Subaccounts Total"},
+			{
+				id: 115,
+				name: "Sub Accounts Transactions for Account Code within Selected Company",
+			},
 		],
 
 		path: "/report/LedgerCards",
+	},
+
+	{
+		id: 14,
+		name: "Cash Book",
+		icon: FaMoneyCheckAlt,
+		subtopics: [
+			{id: 116, name: "Cheque Details"},
+			{id: 117, name: "Cost Center Wise Cheque Details"},
+			{
+				id: 118,
+				name: "Cost Center Wise Document Inquiry Cash Book With Cheque Details",
+			},
+		],
+
+		path: "/report/CashBook",
+	},
+
+	{
+		id: 15,
+		name: "PIV",
+		icon: TbReportAnalytics,
+		subtopics: [
+			{id: 119, name: "Branch/Province wise PIV Collections Paid to Bank"},
+			{
+				id: 120,
+				name: "Branch/Province wise PIV Collections by Provincial POS relevant to the Province",
+			},
+		],
+
+		path: "/report/PIV",
 	},
 ];

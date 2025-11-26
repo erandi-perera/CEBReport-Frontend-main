@@ -4,6 +4,7 @@ import SubtopicCard from "../components/shared/SubtopicCard";
 import LedgerCardReport from "../mainTopics/LedgerCard/LedgerCardReport";
 import LCWithoutSubAcc from "../mainTopics/LedgerCard/LCWithoutSubAcc";
 import LedgerCardSubAccountTotal from "../mainTopics/LedgerCard/LedgerCardSubAccountTotal";
+import DivisionalLedgerCard from "../mainTopics/LedgerCard/DivisionalLedgerCard";
 
 type Subtopic = {
 	id: number;
@@ -39,6 +40,8 @@ const LedgerCardDetails = () => {
 				return <LCWithoutSubAcc />;
 			case "Ledger Card  Subaccounts Total":
 				return <LedgerCardSubAccountTotal />;
+			case "Sub Accounts Transactions for Account Code within Selected Company":
+				return <DivisionalLedgerCard />;
 
 			default:
 				return (

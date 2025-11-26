@@ -1,20 +1,20 @@
 import {useState, useEffect} from "react";
 import {data as sidebarData} from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
-import JobCardInfo from "../mainTopics/JobCards/JobCardInfo";
-import JobCardMaterials from "../mainTopics/JobCards/JobCardMaterials";
+import ProvincePIV from "../mainTopics/PIV/ProvincePIV";
+import ProvincePIVProvincial from "../mainTopics/PIV/ProvincePIVProvincial";
 
 type Subtopic = {
 	id: number;
 	name: string;
 };
 
-const JobCardDetails = () => {
+const PIVDetails = () => {
 	const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
 	const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
 	useEffect(() => {
-		const analysisTopic = sidebarData.find((topic) => topic.name === "Jobs");
+		const analysisTopic = sidebarData.find((topic) => topic.name === "PIV");
 		if (analysisTopic) {
 			setSubtopics(analysisTopic.subtopics);
 		}
@@ -30,11 +30,10 @@ const JobCardDetails = () => {
 
 	const renderSubtopicContent = (subtopicName: string) => {
 		switch (subtopicName) {
-			case "Job Card Details":
-				return <JobCardInfo />;
-			case "Job Card -  Material Details":
-				return <JobCardMaterials />;
-
+			case "Branch/Province wise PIV Collections Paid to Bank":
+				return <ProvincePIV />;
+			case "Branch/Province wise PIV Collections by Provincial POS relevant to the Province":
+				return <ProvincePIVProvincial />;
 			default:
 				return (
 					<div className="text-red-500 text-xs">
@@ -61,4 +60,4 @@ const JobCardDetails = () => {
 	);
 };
 
-export default JobCardDetails;
+export default PIVDetails;

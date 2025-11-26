@@ -1,40 +1,40 @@
 import {useState, useEffect} from "react";
 import {data as sidebarData} from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
-import JobCardInfo from "../mainTopics/JobCards/JobCardInfo";
-import JobCardMaterials from "../mainTopics/JobCards/JobCardMaterials";
+import CashBookDetailsReport from "../mainTopics/CashBook/CashBookDetailsReport";
+import CashBookCCReport from "../mainTopics/CashBook/CashBookCCReport";
+import DocumentInquiry from "../mainTopics/CashBook/DocumentInquiry";
 
 type Subtopic = {
 	id: number;
 	name: string;
 };
 
-const JobCardDetails = () => {
+const CashBookDetails = () => {
 	const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
 	const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
 	useEffect(() => {
-		const analysisTopic = sidebarData.find((topic) => topic.name === "Jobs");
-		if (analysisTopic) {
-			setSubtopics(analysisTopic.subtopics);
+		const cashBookTopic = sidebarData.find(
+			(topic) => topic.name === "Cash Book"
+		);
+		if (cashBookTopic) {
+			setSubtopics(cashBookTopic.subtopics);
 		}
 	}, []);
 
 	const toggleCard = (id: number) => {
-		if (expandedCard === id) {
-			setExpandedCard(null);
-		} else {
-			setExpandedCard(id);
-		}
+		setExpandedCard((prev) => (prev === id ? null : id));
 	};
 
 	const renderSubtopicContent = (subtopicName: string) => {
 		switch (subtopicName) {
-			case "Job Card Details":
-				return <JobCardInfo />;
-			case "Job Card -  Material Details":
-				return <JobCardMaterials />;
-
+			case "Cheque Details":
+				return <CashBookDetailsReport />;
+			case "Cost Center Wise Cheque Details":
+				return <CashBookCCReport />;
+			case "Cost Center Wise Document Inquiry Cash Book With Cheque Details":
+				return <DocumentInquiry />;
 			default:
 				return (
 					<div className="text-red-500 text-xs">
@@ -61,4 +61,4 @@ const JobCardDetails = () => {
 	);
 };
 
-export default JobCardDetails;
+export default CashBookDetails;
