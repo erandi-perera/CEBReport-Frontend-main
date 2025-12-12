@@ -18,7 +18,7 @@ interface CashBookItem {
 const MIN_PAYEE_LENGTH = 3;
 const MAX_PAYEE_LENGTH = 50;
 const MAX_RECORDS = 5000;
-const FETCH_TIMEOUT_MS = 15000;
+const FETCH_TIMEOUT_MS = 120000;
 
 /* ────── Formatting helpers ────── */
 const formatNumber = (num: number | string | null | undefined): string => {
@@ -47,6 +47,15 @@ const csvEscape = (val: string | number | null | undefined): string => {
 	if (/[,\n"]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
 	return str;
 };
+
+const today = new Date();
+const currentYear = today.getFullYear();
+const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
+const currentDay = String(today.getDate()).padStart(2, "0");
+const maxDate = `${currentYear}-${currentMonth}-${currentDay}`; // Today's date: YYYY-MM-DD
+
+const minYear = currentYear - 20;
+const minDate = `${minYear}-${currentMonth}-${currentDay}`; // 20 years ago, same month/day
 
 /* ────── MAIN COMPONENT ────── */
 const CashBookDetailsReport: React.FC = () => {
@@ -393,7 +402,7 @@ const CashBookDetailsReport: React.FC = () => {
 		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
 			<div className="flex justify-between items-center mb-4">
 				<h2 className={`text-xl font-bold ${maroon}`}>
-					Cheque Details Report
+					Selected Payee Within Date Range
 				</h2>
 			</div>
 
@@ -410,6 +419,8 @@ const CashBookDetailsReport: React.FC = () => {
 							type="date"
 							value={fromDate}
 							onChange={(e) => setFromDate(e.target.value)}
+							min={minDate}
+							max={maxDate}
 							className="pl-3 pr-3 py-1.5 w-full rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
 						/>
 					</div>
@@ -425,6 +436,8 @@ const CashBookDetailsReport: React.FC = () => {
 							type="date"
 							value={toDate}
 							onChange={(e) => setToDate(e.target.value)}
+							min={minDate}
+							max={maxDate}
 							className="pl-3 pr-3 py-1.5 w-full rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
 						/>
 					</div>

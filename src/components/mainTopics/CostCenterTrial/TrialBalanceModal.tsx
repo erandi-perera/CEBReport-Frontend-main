@@ -59,11 +59,11 @@ const TrialBalanceModal: React.FC<TrialBalanceModalProps> = ({
   // Get category icon and description
   const getCategoryIcon = (category: string): string => {
     switch (category) {
-      case 'Assets': return '🏦';
-      case 'Expenditure': return '💸';
-      case 'Liabilities': return '📋';
-      case 'Revenue': return '💰';
-      default: return '📊';
+      case 'Assets': return '';
+      case 'Expenditure': return '';
+      case 'Liabilities': return '';
+      case 'Revenue': return '';
+      default: return '';
     }
   };
 

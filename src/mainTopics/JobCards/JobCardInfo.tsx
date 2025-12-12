@@ -223,7 +223,7 @@ const JobCardTable: React.FC<{
         .print-currency { text-align: right; font-size: 0.875rem; font-weight: 600; color: #4B5563; margin-bottom: 1.25rem; margin-right: 2rem; }
         table.print-table { border-collapse: collapse; width: 100%; margin-left: 0; margin-right: 3rem; }
         table.print-table th, table.print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; }
-        table.print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
+        table.print-table th { background: linear-gradient(to right, #7A0000, #A52A2A);  text-align: center; }
         table.print-table td { text-align: right; }
         table.print-table tr.bg-white { background-color: #fff; }
         table.print-table tr.bg-gray-50 { background-color: #F9FAFB; }
@@ -467,7 +467,7 @@ const JobCardTable: React.FC<{
           .print-header { margin-bottom: 2.5rem; margin-top: 3rem; margin-left: 2rem; font-size: 1.125rem; font-weight: bold; text-align: center; }
           .print-table { border-collapse: collapse; width: 100%; }
           .print-table th, .print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; }
-          .print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
+          .print-table th { background: linear-gradient(to right, #7A0000, #A52A2A);  text-align: center; }
           .print-table tr { page-break-inside: avoid; }
           thead { display: table-header-group; }
           tfoot { display: table-footer-group; }
@@ -496,7 +496,7 @@ const JobCardTable: React.FC<{
 							onClick={() => printPDF(jobCards, departmentName)}
 							className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
 						>
-							<Printer className="w-4 h-4" /> Print
+							<Printer className="w-4 h-4" /> PDF
 						</button>
 						<button
 							onClick={onClose}

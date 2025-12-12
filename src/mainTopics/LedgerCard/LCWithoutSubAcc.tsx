@@ -407,7 +407,7 @@ const LCWithoutSubAcc: React.FC = () => {
           <td class="p-1 border border-gray-300 text-left text-xs">${
 					item.DocPf || ""
 				}</td>
-          <td class="p-1 border border-gray-300 text-left text-xs">${
+          <td class="p-1 border border-gray-300 text-left text-xs" style="word-wrap: break-word;">${
 					item.DocNo || ""
 				}</td>
           <td class="p-1 border border-gray-300 text-left text-xs" style="word-wrap: break-word; word-break: break-word;">${
@@ -744,7 +744,7 @@ const LCWithoutSubAcc: React.FC = () => {
 									onClick={printPDF}
 									className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium hover:bg-green-50"
 								>
-									<Printer className="w-4 h-4" /> Print
+									<Printer className="w-4 h-4" /> PDF
 								</button>
 								<button
 									onClick={() => setShowReport(false)}
@@ -852,7 +852,7 @@ const LCWithoutSubAcc: React.FC = () => {
 																	: "bg-gray-50"
 															}
 														>
-															<td className="px-2 py-1 text-left truncate">
+															<td className="px-2 py-1 text-left break-words">
 																{item.DocPf}
 																{item.DocNo}
 															</td>
@@ -866,7 +866,7 @@ const LCWithoutSubAcc: React.FC = () => {
 																	  ).toLocaleDateString()
 																	: ""}
 															</td>
-															<td className="px-2 py-1 text-left truncate">
+															<td className="px-2 py-1 text-left break-words">
 																{item.Ref1}{" "}
 																{item.ChqNo &&
 																	`/ Chq: ${item.ChqNo}`}

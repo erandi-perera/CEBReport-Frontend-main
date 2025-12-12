@@ -3,6 +3,9 @@ import {data as sidebarData} from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import ProvincePIV from "../mainTopics/PIV/ProvincePIV";
 import ProvincePIVProvincial from "../mainTopics/PIV/ProvincePIVProvincial";
+import ProvincePIVAll from "../mainTopics/PIV/ProvincePIVAll";
+import ProvincePivOtherCC from "../mainTopics/PIV/ProvincePivOtherCC";
+import OtherCCtoProvince from "../mainTopics/PIV/OtherCCtoProvince";
 
 type Subtopic = {
 	id: number;
@@ -34,6 +37,12 @@ const PIVDetails = () => {
 				return <ProvincePIV />;
 			case "Branch/Province wise PIV Collections by Provincial POS relevant to the Province":
 				return <ProvincePIVProvincial />;
+			case "Branch/Province wise PIV Collections Paid to Provincial POS":
+				return <ProvincePIVAll />;
+			case "PIV Collections by Provincial POS relevant to Other Cost Centers":
+				return <ProvincePivOtherCC />;
+			case "PIV Collections by Other Cost Centers relevant to the Province":
+				return <OtherCCtoProvince />;
 			default:
 				return (
 					<div className="text-red-500 text-xs">

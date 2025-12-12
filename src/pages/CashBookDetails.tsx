@@ -29,9 +29,9 @@ const CashBookDetails = () => {
 
 	const renderSubtopicContent = (subtopicName: string) => {
 		switch (subtopicName) {
-			case "Cheque Details":
+			case "Selected Payee Within Date Range":
 				return <CashBookDetailsReport />;
-			case "Cost Center Wise Cheque Details":
+			case "Cost Center Wise Selected Payee Within Date Range":
 				return <CashBookCCReport />;
 			case "Cost Center Wise Document Inquiry Cash Book With Cheque Details":
 				return <DocumentInquiry />;

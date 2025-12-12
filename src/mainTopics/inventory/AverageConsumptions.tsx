@@ -520,7 +520,6 @@ const AverageConsumption: React.FC = () => {
       }
       th {
         background: linear-gradient(to right, #7A0000, #A52A2A);
-        color: white;
         text-align: center;
         font-weight: bold;
         font-size: 8.5px;
@@ -947,7 +946,7 @@ const AverageConsumption: React.FC = () => {
 										onClick={handlePrintClick}
 										className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
 									>
-										<Printer className="w-4 h-4" /> Print
+										<Printer className="w-4 h-4" /> PDF
 									</button>
 									<button
 										onClick={() => setShowInventoryModal(false)}

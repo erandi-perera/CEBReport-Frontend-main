@@ -224,8 +224,8 @@ export const data = [
 		name: "Cash Book",
 		icon: FaMoneyCheckAlt,
 		subtopics: [
-			{id: 116, name: "Cheque Details"},
-			{id: 117, name: "Cost Center Wise Cheque Details"},
+			{id: 116, name: "Selected Payee Within Date Range"},
+			{id: 117, name: "Cost Center Wise Selected Payee Within Date Range"},
 			{
 				id: 118,
 				name: "Cost Center Wise Document Inquiry Cash Book With Cheque Details",
@@ -244,6 +244,18 @@ export const data = [
 			{
 				id: 120,
 				name: "Branch/Province wise PIV Collections by Provincial POS relevant to the Province",
+			},
+			{
+				id: 121,
+				name: "Branch/Province wise PIV Collections Paid to Provincial POS",
+			},
+			{
+				id: 122,
+				name: "PIV Collections by Provincial POS relevant to Other Cost Centers",
+			},
+			{
+				id: 123,
+				name: "PIV Collections by Other Cost Centers relevant to the Province",
 			},
 		],
 

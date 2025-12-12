@@ -23,7 +23,7 @@ interface CashBookItem {
 const MIN_PAYEE_LENGTH = 3;
 const MAX_PAYEE_LENGTH = 50;
 const PAGE_SIZE = 9;
-const FETCH_TIMEOUT_MS = 15000;
+const FETCH_TIMEOUT_MS = 180000;
 
 /* ────── Formatting helpers ────── */
 const formatNumber = (num: number | string | null | undefined): string => {
@@ -52,6 +52,15 @@ const csvEscape = (val: string | number | null | undefined): string => {
 };
 
 const toYYYYMMDD = (date: string): string => date.replace(/-/g, "");
+
+const today = new Date();
+const currentYear = today.getFullYear();
+const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
+const currentDay = String(today.getDate()).padStart(2, "0");
+const maxDate = `${currentYear}-${currentMonth}-${currentDay}`; // Today's date: YYYY-MM-DD
+
+const minYear = currentYear - 20;
+const minDate = `${minYear}-${currentMonth}-${currentDay}`; // 20 years ago, same month/day
 
 /* ────── CashBook Table Modal ────── */
 const CashBookTable: React.FC<{
@@ -286,7 +295,7 @@ const CashBookTable: React.FC<{
 							onClick={printPDF}
 							className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50"
 						>
-							<Printer className="w-4 h-4" /> Print
+							<Printer className="w-4 h-4" /> PDF
 						</button>
 						<button
 							onClick={onClose}
@@ -593,7 +602,7 @@ const CashBookCCReport: React.FC = () => {
 			style={{marginLeft: "2rem"}}
 		>
 			<h2 className="text-lg md:text-xl font-bold mb-4 text-[#7A0000]">
-				Cash Book Report (Cost Center)
+				Cost Center Wise Selected Payee Within Date Range
 			</h2>
 
 			{/* Date + Payee */}
@@ -606,6 +615,8 @@ const CashBookCCReport: React.FC = () => {
 						type="date"
 						value={fromDate}
 						onChange={(e) => setFromDate(e.target.value)}
+						min={minDate}
+						max={maxDate}
 						className="pl-3 pr-3 py-1.5 w-full rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
 					/>
 				</div>
@@ -617,6 +628,8 @@ const CashBookCCReport: React.FC = () => {
 						type="date"
 						value={toDate}
 						onChange={(e) => setToDate(e.target.value)}
+						min={minDate}
+						max={maxDate}
 						className="pl-3 pr-3 py-1.5 w-full rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
 					/>
 				</div>
@@ -655,7 +668,7 @@ const CashBookCCReport: React.FC = () => {
 					<input
 						type="text"
 						value={searchId}
-						placeholder="Search by Cost Center ID"
+						placeholder="Search by ID"
 						onChange={(e) => setSearchId(e.target.value)}
 						className="pl-10 pr-3 py-1.5 w-40 rounded border border-gray-300 focus:ring-2 focus:ring-[#7A0000] text-sm"
 					/>

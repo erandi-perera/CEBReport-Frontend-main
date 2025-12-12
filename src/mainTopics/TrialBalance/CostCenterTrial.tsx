@@ -300,13 +300,13 @@ const CostCenterTrial: React.FC = () => {
 
 	const formatNumber = (num: number): string => {
 		// Handle undefined, null, or NaN values
-		if (num === undefined || num === null || isNaN(num)) return "-";
+		if (num === undefined || num === null || isNaN(num)) return "0.00";
 
 		// Convert to number if it's a string
 		const numValue = typeof num === "string" ? parseFloat(num) : num;
 
 		// Handle zero values
-		if (numValue === 0) return "-";
+		if (numValue === 0) return "0.00";
 
 		// Get absolute value for formatting
 		const absValue = Math.abs(numValue);
@@ -507,6 +507,8 @@ const CostCenterTrial: React.FC = () => {
 			[`Cost Center: ${trialData.costctr} - ${trialData.deptName}`],
 			[""], // Empty row for spacing
 			[
+				"Code",
+				"Category",
 				"Description/Name",
 				"Opening Balance",
 				"Debit Amount",
@@ -528,13 +530,15 @@ const CostCenterTrial: React.FC = () => {
 				csvRows.push([""], [`=== ${rowCategory.toUpperCase()} ===`]); // Category separator
 			}
 
-			// Add data row
+			// Add data row with Code and Category
 			csvRows.push([
-				row.GlName.trim(),
-				formatNumber(row.OpSbal),
-				formatNumber(row.DrSamt),
-				formatNumber(row.CrSamt),
-				formatNumber(row.ClSbal),
+				row.AcCd, // Code column
+				rowCategory, // Category column (repeats for each row)
+				row.GlName.trim(), // Description/Name column
+				formatNumber(row.OpSbal), // Opening Balance
+				formatNumber(row.DrSamt), // Debit Amount
+				formatNumber(row.CrSamt), // Credit Amount
+				formatNumber(row.ClSbal), // Closing Balance
 			]);
 
 			// Check if this is the last row of current category
@@ -547,6 +551,8 @@ const CostCenterTrial: React.FC = () => {
 			if (isLastInCategory && categoryTotals[categoryKey]) {
 				csvRows.push([
 					`TOTAL ${rowCategory.toUpperCase()}`,
+					"",
+					"", 
 					formatNumber(categoryTotals[categoryKey].opening),
 					formatNumber(categoryTotals[categoryKey].debit),
 					formatNumber(categoryTotals[categoryKey].credit),
@@ -557,11 +563,14 @@ const CostCenterTrial: React.FC = () => {
 		});
 
 		// Add grand total
+		// Add grand total
 		csvRows.push(
 			[""], // Extra spacing before grand total
 			["=== GRAND TOTAL ==="],
 			[
-				"GRAND TOTAL",
+				"GRAND TOTAL", // Spans Code + Category columns
+				"",
+				"", // Empty for Category
 				formatNumber(grandTotals.opening),
 				formatNumber(grandTotals.debit),
 				formatNumber(grandTotals.credit),
@@ -637,7 +646,7 @@ const CostCenterTrial: React.FC = () => {
 			if (showCategoryHeader) {
 				tableRowsHTML += `
           <tr class="category-header">
-            <td colspan="5" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">${currentCategory}</td>
+            <td colspan="6" style="text-align:left; font-weight: bold; background-color: #f5f5f5; color: #7A0000;  padding: 7px; font-size: 14px;">${currentCategory}</td>
           </tr>
         `;
 			}
@@ -645,6 +654,7 @@ const CostCenterTrial: React.FC = () => {
 			// Data row
 			tableRowsHTML += `
         <tr>
+		  <td style="padding: 6px; border: 1px solid #ddd;">${row.AcCd}</td>
           <td style="padding: 6px; border: 1px solid #ddd;">${row.GlName.trim()}</td>
           <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
 					row.OpSbal
@@ -666,7 +676,7 @@ const CostCenterTrial: React.FC = () => {
 				const categoryKey = row.AcCd.charAt(0).toUpperCase();
 				tableRowsHTML += `
           <tr class="category-total">
-            <td style="padding: 6px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">Total ${currentCategory}</td>
+            <td colspan="2"; style="padding: 6px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">Total ${currentCategory}</td>
             <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">${formatNumber(
 					categoryTotals[categoryKey].opening
 				)}</td>
@@ -686,18 +696,18 @@ const CostCenterTrial: React.FC = () => {
 
 		// Add Grand Total row at the end of tbody
 		tableRowsHTML += `
-      <tr style="background-color: #7A0000; color: white; font-weight: bold;">
-        <td style="padding: 8px; border: 1px solid #7A0000;">Grand Total</td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(
+      <tr style="font-weight: bold;">
+        <td colspan="2"; style="padding: 8px; border: 1px solid #ddd;">Grand Total</td>
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
 				grandTotals.opening
 			)}</td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
 				grandTotals.debit
 			)}</td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
 				grandTotals.credit
 			)}</td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
 				grandTotals.closing
 			)}</td>
       </tr>
@@ -720,7 +730,6 @@ const CostCenterTrial: React.FC = () => {
           .header {
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #7A0000;
             padding-bottom: 15px;
           }
           
@@ -751,11 +760,10 @@ const CostCenterTrial: React.FC = () => {
           
           th {
             background-color: #7A0000;
-            color: white;
             font-weight: bold;
             text-align: center;
             padding: 8px;
-            border: 1px solid #7A0000;
+            border: 1px solid #ddd;
           }
           
           .footer {
@@ -791,6 +799,8 @@ const CostCenterTrial: React.FC = () => {
         <table>
           <thead>
             <tr>
+			
+			  <th style="width: 15%;">Code</th>
               <th style="width: 40%;">Description/Name</th>
               <th style="width: 15%;">Opening Balance</th>
               <th style="width: 15%;">Debit Amount</th>

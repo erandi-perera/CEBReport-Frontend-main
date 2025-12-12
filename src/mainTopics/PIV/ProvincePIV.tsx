@@ -1,3 +1,5 @@
+//01.Branch/Province wise PIV Collections Paid to Bank
+
 // File: ProvincePIV.tsx
 import React, {useEffect, useState, useRef} from "react";
 import {Search, RotateCcw, Eye, X, Download, Printer} from "lucide-react";
@@ -22,9 +24,10 @@ interface PIVItem {
 	Amount: number;
 	BankCheckNo: string;
 	PaymentMode: string;
+	COMPANY_NAME?: string; // optional if present
 }
 
-/* ────── CSV safe escape ────── */
+/* ────── Helpers ────── */
 const csvEscape = (val: string | number | null | undefined): string => {
 	if (val == null) return '""';
 	const str = String(val);
@@ -47,9 +50,17 @@ const formatDate = (dateStr: string | null): string => {
 	try {
 		return new Date(dateStr).toLocaleDateString("en-GB");
 	} catch {
-		return dateStr;
+		return dateStr || "-";
 	}
 };
+
+const today = new Date();
+const currentYear = today.getFullYear();
+const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
+const currentDay = String(today.getDate()).padStart(2, "0");
+const maxDate = `${currentYear}-${currentMonth}-${currentDay}`;
+const minYear = currentYear - 20;
+const minDate = `${minYear}-${currentMonth}-${currentDay}`;
 
 const ProvincePIV: React.FC = () => {
 	const {user} = useUser();
@@ -76,6 +87,58 @@ const ProvincePIV: React.FC = () => {
 	const maroon = "text-[#7A0000]";
 	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
+	/* ────── NEW: Same grouping method as ProvincePIVAll.tsx ────── */
+	const groupPIVData = (data: PIVItem[]) => {
+		const map = new Map<
+			string,
+			{item: PIVItem; accountAmounts: Record<string, number>}
+		>();
+
+		data.forEach((row) => {
+			const key = row.PivNo;
+			if (!map.has(key)) {
+				map.set(key, {item: {...row}, accountAmounts: {}});
+			}
+
+			const entry = map.get(key)!;
+			const first = entry.item;
+
+			// Fill missing common fields from any row
+			if (!first.PivDate) first.PivDate = row.PivDate;
+			if (!first.PaidDate) first.PaidDate = row.PaidDate;
+			if (!first.ChequeNo) first.ChequeNo = row.ChequeNo;
+			if (!first.BankCheckNo) first.BankCheckNo = row.BankCheckNo;
+			if (!first.CCT_NAME) first.CCT_NAME = row.CCT_NAME;
+			if (!first.PaymentMode) first.PaymentMode = row.PaymentMode;
+			if (!first.PivReceiptNo) first.PivReceiptNo = row.PivReceiptNo;
+
+			// Accumulate account amounts
+			entry.accountAmounts[row.AccountCode] = row.Amount;
+		});
+
+		return Array.from(map.values());
+	};
+
+	const groupByCostCenter = () => {
+		const groupedPIVs = groupPIVData(reportData);
+		const grouped: Record<string, typeof groupedPIVs> = {};
+
+		groupedPIVs.forEach(({item, accountAmounts}) => {
+			const cc = item.CostCenter || "Unknown";
+			if (!grouped[cc]) grouped[cc] = [];
+			grouped[cc].push({item, accountAmounts});
+		});
+
+		return grouped;
+	};
+
+	const accountCodes = Array.from(
+		new Set(reportData.map((i) => i.AccountCode))
+	).sort();
+
+	const groupedData = groupByCostCenter();
+
+	// Fetch companies (unchanged)
 	useEffect(() => {
 		const fetchCompanies = async () => {
 			if (!epfNo) {
@@ -133,12 +196,10 @@ const ProvincePIV: React.FC = () => {
 		setShowReport(true);
 
 		try {
-			const url = `/misapi/api/provincepivbank/get?compId=${
-				company.compId
-			}&fromDate=${fromDate.replace(/-/g, "")}&toDate=${toDate.replace(
+			const url = `/misapi/api/provincepivbank/get?compId=${company.compId}&fromDate=${fromDate.replace(
 				/-/g,
 				""
-			)}`;
+			)}&toDate=${toDate.replace(/-/g, "")}`;
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const data = await res.json();
@@ -160,34 +221,9 @@ const ProvincePIV: React.FC = () => {
 		setSelectedCompany(null);
 	};
 
-	const groupData = () => {
-		const grouped: Record<string, Record<string, PIVItem[]>> = {};
-		reportData.forEach((item) => {
-			const cc = item.CostCenter || "Unknown";
-			const acc = item.AccountCode || "Unknown";
-			if (!grouped[cc]) grouped[cc] = {};
-			if (!grouped[cc][acc]) grouped[cc][acc] = [];
-			grouped[cc][acc].push(item);
-		});
-		return grouped;
-	};
-
-	const accountCodes = Array.from(
-		new Set(reportData.map((i) => i.AccountCode))
-	).sort();
-
-	const calculateCCTotal = (cc: string) => {
-		return reportData
-			.filter((i) => i.CostCenter === cc)
-			.reduce((sum, i) => sum + i.GrandTotal, 0);
-	};
-
-	const grandTotal = reportData.reduce((sum, i) => sum + i.GrandTotal, 0);
-
+	// CSV Export - Updated to use new grouping
 	const handleDownloadCSV = () => {
 		if (reportData.length === 0) return;
-
-		const grouped = groupData();
 
 		const headers = [
 			"Cost Center",
@@ -204,7 +240,7 @@ const ProvincePIV: React.FC = () => {
 		];
 
 		const rows: string[] = [
-			`Branch/Province wise PIV Collections Paid to Bank`,
+			"Branch/Province wise PIV Collections Paid to Bank",
 			`Company: ${selectedCompany?.compId} - ${selectedCompany?.CompName}`,
 			`Period: ${fromDate} to ${toDate}`,
 			`Generated: ${new Date().toLocaleString()}`,
@@ -212,14 +248,18 @@ const ProvincePIV: React.FC = () => {
 			headers.map(csvEscape).join(","),
 		];
 
-		Object.keys(grouped).forEach((cc) => {
+		Object.keys(groupedData).forEach((cc) => {
 			const ccName =
 				reportData.find((i) => i.CostCenter === cc)?.CCT_NAME || cc;
-			const ccItems = Object.values(grouped[cc]).flat();
+			const pivGroups = groupedData[cc];
 
-			ccItems.forEach((item) => {
+			pivGroups.forEach(({item, accountAmounts}) => {
+				const pivTotal = accountCodes.reduce(
+					(s, acc) => s + (accountAmounts[acc] || 0),
+					0
+				);
 				const row = [
-					csvEscape(item.CostCenter),
+					csvEscape(cc),
 					csvEscape(ccName),
 					csvEscape(item.PivNo),
 					csvEscape(item.PivReceiptNo),
@@ -228,31 +268,77 @@ const ProvincePIV: React.FC = () => {
 					csvEscape(item.ChequeNo || ""),
 					csvEscape(item.BankCheckNo || ""),
 					csvEscape(item.PaymentMode),
+					...accountCodes.map((acc) =>
+						csvEscape(formatNumber(accountAmounts[acc] || 0))
+					),
+					csvEscape(formatNumber(pivTotal)),
 				];
-				accountCodes.forEach((acc) => {
-					const match = grouped[cc][acc]?.find(
-						(x) => x.PivNo === item.PivNo
-					);
-					row.push(csvEscape(match ? formatNumber(match.Amount) : "0.00"));
-				});
-				row.push(csvEscape(formatNumber(item.GrandTotal)));
 				rows.push(row.join(","));
 			});
 
-			const totalRow = Array(headers.length).fill('""');
-			totalRow[0] = csvEscape("TOTAL");
-			totalRow[totalRow.length - 1] = csvEscape(
-				formatNumber(calculateCCTotal(cc))
-			);
-			rows.push(totalRow.join(","));
+			// Cost Center Total
+			const ccTotal = pivGroups.reduce((sum, g) => {
+				const pivSum = accountCodes.reduce(
+					(s, acc) => s + (g.accountAmounts[acc] || 0),
+					0
+				);
+				return sum + pivSum;
+			}, 0);
 
+			const ccAccTotals = accountCodes.map((acc) =>
+				pivGroups.reduce((s, g) => s + (g.accountAmounts[acc] || 0), 0)
+			);
+
+			rows.push(
+				[
+					csvEscape("TOTAL"),
+					csvEscape(`Cost Center: ${cc} - ${ccName}`),
+					"",
+					"",
+					"",
+					"",
+					"",
+					"",
+					"",
+					...ccAccTotals.map((t) => csvEscape(formatNumber(t))),
+					csvEscape(formatNumber(ccTotal)),
+				].join(",")
+			);
 			rows.push("");
 		});
 
-		const grandRow = Array(headers.length).fill('""');
-		grandRow[0] = csvEscape("GRAND TOTAL");
-		grandRow[grandRow.length - 1] = csvEscape(formatNumber(grandTotal));
-		rows.push(grandRow.join(","));
+		// Grand Total
+		const grandTotal = Object.values(groupedData)
+			.flat()
+			.reduce((sum, g) => {
+				const pivSum = accountCodes.reduce(
+					(s, acc) => s + (g.accountAmounts[acc] || 0),
+					0
+				);
+				return sum + pivSum;
+			}, 0);
+
+		const grandAccTotals = accountCodes.map((acc) =>
+			Object.values(groupedData)
+				.flat()
+				.reduce((s, g) => s + (g.accountAmounts[acc] || 0), 0)
+		);
+
+		rows.push(
+			[
+				csvEscape("GRAND TOTAL"),
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				...grandAccTotals.map((t) => csvEscape(formatNumber(t))),
+				csvEscape(formatNumber(grandTotal)),
+			].join(",")
+		);
 
 		const blob = new Blob([rows.join("\n")], {
 			type: "text/csv;charset=utf-8;",
@@ -260,186 +346,200 @@ const ProvincePIV: React.FC = () => {
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement("a");
 		a.href = url;
-		a.download = `ProvincePIV_${selectedCompany?.compId}_${fromDate}_to_${toDate}.csv`;
+		a.download = `ProvincePIV_Bank_${selectedCompany?.compId}_${fromDate}_to_${toDate}.csv`;
 		a.click();
 		URL.revokeObjectURL(url);
 	};
 
+	// Print PDF - Updated to use new grouping
 	const printPDF = () => {
-  if (reportData.length === 0 || !iframeRef.current || !selectedCompany) return;
+		if (reportData.length === 0 || !iframeRef.current || !selectedCompany)
+			return;
 
-  const grouped = groupData();
-  const numAccCols = accountCodes.length;
+		const numAccCols = accountCodes.length;
+		const baseFontSize =
+			numAccCols > 20
+				? "4.2px"
+				: numAccCols > 15
+				? "4.5px"
+				: numAccCols > 10
+				? "4.8px"
+				: "5.2px";
 
-  // Grand Total per Account Code
-  const grandAccountTotals = accountCodes.reduce((acc, code) => {
-    acc[code] = reportData
-      .filter((i) => i.AccountCode === code)
-      .reduce((sum, i) => sum + i.Amount, 0);
-    return acc;
-  }, {} as Record<string, number>);
+		let bodyHTML = "";
 
-  const baseFontSize =
-    numAccCols > 20 ? "4.2px" : numAccCols > 15 ? "4.5px" : numAccCols > 10 ? "4.8px" : "5.2px";
+		Object.keys(groupedData).forEach((cc, groupIndex) => {
+			const ccName =
+				reportData.find((i) => i.CostCenter === cc)?.CCT_NAME || cc;
+			const pivGroups = groupedData[cc];
 
-  let bodyHTML = "";
+			pivGroups.forEach(({item, accountAmounts}, idx) => {
+				const pivTotal = accountCodes.reduce(
+					(s, acc) => s + (accountAmounts[acc] || 0),
+					0
+				);
 
-  Object.keys(grouped).forEach((cc, groupIndex) => {
-    const ccName = reportData.find((i) => i.CostCenter === cc)?.CCT_NAME || cc;
-    const ccItems = Object.values(grouped[cc]).flat();
+				bodyHTML += `<tr class="${
+					idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+				}">
+					${
+						idx === 0
+							? `<td rowspan="${pivGroups.length}" class="border border-gray-300 p-1 text-2xs bg-gray-100 align-top font-medium" style="word-break: break-word; white-space: normal;">
+								${cc}<br/><small style="font-size:4.8px; color:#444;">${ccName}</small>
+						   </td>`
+							: ""
+					}
+					<td class="border border-gray-300 p-1 text-2xs">${item.ChequeNo || "-"}</td>
+					<td class="border border-gray-300 p-1 text-2xs text-center">${formatDate(
+						item.PaidDate
+					)}</td>
+					<td class="border border-gray-300 p-1 text-right text-2xs font-bold">${formatNumber(
+						pivTotal
+					)}</td>
+					<td class="border border-gray-300 p-1 text-2xs">${item.PivNo}</td>
+					<td class="border border-gray-300 p-1 text-2xs">${item.PaymentMode}</td>
+					<td class="border border-gray-300 p-1 text-2xs">${item.PivReceiptNo}</td>
+					${accountCodes
+						.map(
+							(acc) =>
+								`<td class="border border-gray-300 p-1 text-right text-2xs">${formatNumber(
+									accountAmounts[acc] || 0
+								)}</td>`
+						)
+						.join("")}
+					<td class="border border-gray-300 p-1 text-right text-2xs font-bold">${formatNumber(
+						pivTotal
+					)}</td>
+				</tr>`;
+			});
 
-    const ccAccountTotals = accountCodes.reduce((acc, code) => {
-      acc[code] = reportData
-        .filter((i) => i.CostCenter === cc && i.AccountCode === code)
-        .reduce((s, i) => s + i.Amount, 0);
-      return acc;
-    }, {} as Record<string, number>);
+			// Cost Center Total
+			const ccTotal = pivGroups.reduce((sum, g) => {
+				const pivSum = accountCodes.reduce(
+					(s, acc) => s + (g.accountAmounts[acc] || 0),
+					0
+				);
+				return sum + pivSum;
+			}, 0);
 
-    ccItems.forEach((item, idx) => {
-      bodyHTML += `<tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}">
-        ${idx === 0
-          ? `<td rowspan="${ccItems.length}" class="border border-gray-300 p-1 text-2xs bg-gray-100 align-top font-medium" style="word-break: break-word; white-space: normal;">
-               ${cc}<br/><small style="font-size:4.8px; color:#444;">${ccName}</small>
-             </td>`
-          : ""
-        }
-        <td class="border border-gray-300 p-1 text-2xs">${item.ChequeNo || "-"}</td>
-        <td class="border border-gray-300 p-1 text-2xs text-center">${formatDate(item.PaidDate)}</td>
-        <td class="border border-gray-300 p-1 text-right text-2xs font-bold">${formatNumber(item.GrandTotal)}</td>
-        <td class="border border-gray-300 p-1 text-2xs">${item.PivNo}</td>
-        <td class="border border-gray-300 p-1 text-2xs">${item.PaymentMode}</td>
-        <td class="border border-gray-300 p-1 text-2xs">${item.PivReceiptNo}</td>
-        ${accountCodes
-          .map((acc) => {
-            const match = grouped[cc][acc]?.find((x) => x.PivNo === item.PivNo);
-            return `<td class="border border-gray-300 p-1 text-right text-2xs">${match ? formatNumber(match.Amount) : "0.00"}</td>`;
-          })
-          .join("")}
-        <td class="border border-gray-300 p-1 text-right text-2xs font-bold">${formatNumber(item.GrandTotal)}</td>
-      </tr>`;
-    });
+			bodyHTML += `<tr class="bg-gray-200 font-bold">
+				<td colspan="2" class="border border-gray-300 p-1 text-2xs"></td>
+				<td colspan="5" class="border border-gray-300 p-1 text-right text-2xs">Total - ${ccName}</td>
+				${accountCodes
+					.map((acc) => {
+						const sum = pivGroups.reduce(
+							(s, g) => s + (g.accountAmounts[acc] || 0),
+							0
+						);
+						return `<td class="border border-gray-300 p-1 text-right text-2xs font-bold">${formatNumber(
+							sum
+						)}</td>`;
+					})
+					.join("")}
+				<td class="border border-gray-300 p-1 text-right text-2xs font-bold">${formatNumber(
+					ccTotal
+				)}</td>
+			</tr>`;
 
-    // Cost Center Total Row (keeps borders)
-    bodyHTML += `<tr class="bg-gray-200 font-bold">
-      <td colspan="2" class="border border-gray-300 p-1 text-2xs"></td>
-      <td colspan="5" class="border border-gray-300 p-1 text-right text-2xs">Total - ${ccName}</td>
-      ${accountCodes
-        .map((acc) => `<td class="border border-gray-300 p-1 text-right text-2xs font-bold">${formatNumber(ccAccountTotals[acc] || 0)}</td>`)
-        .join("")}
-      <td class="border border-gray-300 p-1 text-right text-2xs font-bold">${formatNumber(calculateCCTotal(cc))}</td>
-    </tr>`;
+			if (groupIndex < Object.keys(groupedData).length - 1) {
+				bodyHTML += `<tr class="no-border-row">
+					<td colspan="${
+						7 + accountCodes.length + 1
+					}" style="height: 14px; border: none !important; padding: 0; background: transparent;"></td>
+				</tr>`;
+			}
+		});
 
-    // Only add spacing row if not the last group
-    if (groupIndex < Object.keys(grouped).length - 1) {
-      bodyHTML += `<tr class="no-border-row">
-        <td colspan="${7 + accountCodes.length + 1}" style="height: 14px; border: none !important; padding: 0; background: transparent;"></td>
-      </tr>`;
-    }
-  });
+		// Grand Total
+		const grandTotal = Object.values(groupedData)
+			.flat()
+			.reduce((sum, g) => {
+				const pivSum = accountCodes.reduce(
+					(s, acc) => s + (g.accountAmounts[acc] || 0),
+					0
+				);
+				return sum + pivSum;
+			}, 0);
 
-  // Grand Total Row
-  bodyHTML += `<tr class="bg-gray-300 font-bold">
-    <td colspan="7" class="border border-gray-300 p-2 text-right text-xs">GRAND TOTAL</td>
-    ${accountCodes
-      .map((acc) => `<td class="border border-gray-300 p-2 text-right text-xs font-bold">${formatNumber(grandAccountTotals[acc] || 0)}</td>`)
-      .join("")}
-    <td class="border border-gray-300 p-2 text-right text-xs font-bold">${formatNumber(grandTotal)}</td>
-  </tr>`;
+		bodyHTML += `<tr class="bg-gray-300 font-bold">
+			<td colspan="7" class="border border-gray-300 p-2 text-right text-xs">GRAND TOTAL</td>
+			${accountCodes
+				.map((acc) => {
+					const sum = Object.values(groupedData)
+						.flat()
+						.reduce((s, g) => s + (g.accountAmounts[acc] || 0), 0);
+					return `<td class="border border-gray-300 p-2 text-right text-xs font-bold">${formatNumber(
+						sum
+					)}</td>`;
+				})
+				.join("")}
+			<td class="border border-gray-300 p-2 text-right text-xs font-bold">${formatNumber(
+				grandTotal
+			)}</td>
+		</tr>`;
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
+		const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
 <style>
-  @media print {
-    @page { margin: 10mm; size: landscape; }
-    body { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: ${baseFontSize}; line-height: 1.3; }
-    .title { margin: 8px 0; text-align: center; font-weight: bold; color: #7A0000; font-size: 13px; }
-    .info { margin: 4px 8px; font-size: 8px; display: flex; justify-content: space-between; color: #333; }
-    
-table {
-  width: 100%;
-  border-collapse: collapse !important;
-}    
-    th {
-      background: #555 !important;
-      color: white !important;
-      font-weight: bold;
-      font-size: 6.5px;
-      text-align: center;
-      padding: 5px 2px;
-      border: 1px solid #ccc;
-    }
-    
-    td {
-      border: 1px solid #ccc;
-      padding: 3px 4px;
-      font-size: 5.2px;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-    
-    /* Only remove borders from spacing rows */
-    .no-border-row td {
-      border: none !important;
-      padding: 0 !important;
-      height: 14px !important;
-    }
-    
-    .text-right { text-align: right; }
-    .text-center { text-align: center; }
-    
-    @page {
-      @bottom-left { content: "Printed on: ${new Date().toLocaleString()}"; font-size: 7px; color: #666; }
-      @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 7px; color: #666; }
-    }
-  }
+	@media print {
+		@page { margin: 10mm; size: landscape; }
+		body { margin: 0; font-family: Arial, sans-serif; }
+		thead { display: table-header-group !important; }
+		tr { page-break-inside: avoid; }
+	}
+	body { font-size: ${baseFontSize}; line-height: 1.3; }
+	.title { margin: 8px 0; text-align: center; font-weight: bold; color: #7A0000; font-size: 13px; }
+	table { width: 100%; border-collapse: collapse; }
+	th, td { border: 1px solid #ccc; padding: 3px 4px; font-size: 5.2px; white-space: nowrap; }
+	.no-border-row td { border: none !important; padding: 0 !important; height: 14px !important; }
+	@page {
+		@bottom-left { content: "Printed on: ${new Date().toLocaleString()}"; font-size: 7px; color: #666; }
+		@bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 7px; color: #666; }
+	}
 </style>
-</head>
-<body>
-  <div class="title">Branch/Province wise PIV Collections Paid to Bank</div>
-  <div class="info">
-    <div>
-      <strong>Company:</strong> ${selectedCompany.compId} - ${
-		selectedCompany.CompName
-  }<br>
-      <strong>Period:</strong> ${fromDate} to ${toDate}
-    </div>
-    <div style="text-align:right"><strong>Currency: LKR</strong></div>
-  </div>
+</head><body>
+	<div class="title">Branch/Province wise PIV Collections Paid to Bank</div>
+	<div style="margin:4px 8px; font-size:8px; display:flex; justify-content:space-between;">
+		<div><strong>Company:</strong> ${selectedCompany.compId} - ${
+			selectedCompany.CompName
+		}<br><strong>Period:</strong> ${fromDate} to ${toDate}</div>
+		<div style="text-align:right"><strong>Currency: LKR</strong></div>
+	</div>
 
-  <table>
-    <thead>
-      <tr>
-        <th width="11%">Cost Center</th>
-        <th width="7%">Chq No</th>
-        <th width="6%">Date</th>
-        <th width="8%">Paid Amt</th>
-        <th width="8%">PIV No</th>
-        <th width="5%">Mode</th>
-        <th width="8%">Receipt</th>
-        ${accountCodes.map(() => `<th width="4.8%">Account</th>`).join("")}
-        <th width="9%">Total</th>
-      </tr>
-    </thead>
-    <tbody>${bodyHTML}</tbody>
-  </table>
-</body>
-</html>`;
+	<table>
+		<thead>
+			<tr>
+				<th width="11%">Cost Center</th>
+				<th width="7%">Chq No</th>
+				<th width="6%">Date</th>
+				<th width="8%">Paid Amt</th>
+				<th width="8%">PIV No</th>
+				<th width="5%">Mode</th>
+				<th width="8%">Receipt</th>
+				${accountCodes.map((acc) => `<th width="4.8%">${acc}</th>`).join("")}
+				<th width="9%">Total</th>
+			</tr>
+		</thead>
+		<tbody>${bodyHTML}</tbody>
+	</table>
+</body></html>`;
 
-  const doc = iframeRef.current!.contentDocument!;
-  doc.open();
-  doc.write(html);
-  doc.close();
+		const doc = iframeRef.current!.contentDocument!;
+		doc.open();
+		doc.write(html);
+		doc.close();
 
-  setTimeout(() => iframeRef.current?.contentWindow?.print(), 800);
-	};	return (
+		setTimeout(() => iframeRef.current?.contentWindow?.print(), 800);
+	};
+
+	// Render (updated table to use groupedData)
+	return (
 		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
 			<h2 className={`text-xl font-bold mb-4 ${maroon}`}>
 				Branch/Province wise PIV Collections Paid to Bank
 			</h2>
 
-			{/* Date Pickers - Right Aligned */}
+			{/* Date Pickers */}
 			<div className="flex justify-end gap-6 mb-4">
 				<div className="flex items-center gap-2">
 					<label className="text-xs font-bold text-[#7A0000]">
@@ -449,8 +549,9 @@ table {
 						type="date"
 						value={fromDate}
 						onChange={(e) => setFromDate(e.target.value)}
-						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white
-                 focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+						min={minDate}
+						max={maxDate}
+						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
 					/>
 				</div>
 				<div className="flex items-center gap-2">
@@ -461,26 +562,25 @@ table {
 						type="date"
 						value={toDate}
 						onChange={(e) => setToDate(e.target.value)}
-						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white
-                 focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+						min={minDate}
+						max={maxDate}
+						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
 					/>
 				</div>
 			</div>
 
-			{/* Search Filters */}
+			{/* Search */}
 			<div className="flex flex-wrap items-center gap-3 mb-4">
 				<div className="relative">
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
 					<input
 						type="text"
 						value={searchId}
-						placeholder="Search by  ID"
+						placeholder="Search by ID"
 						onChange={(e) => setSearchId(e.target.value)}
-						className="pl-10 pr-4 py-1.5 w-48 rounded-md border border-gray-300 
-                 focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+						className="pl-10 pr-4 py-1.5 w-48 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
 					/>
 				</div>
-
 				<div className="relative">
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
 					<input
@@ -488,28 +588,23 @@ table {
 						value={searchName}
 						placeholder="Search by Name"
 						onChange={(e) => setSearchName(e.target.value)}
-						className="pl-10 pr-4 py-1.5 w-48 rounded-md border border-gray-300 
-                 focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+						className="pl-10 pr-4 py-1.5 w-48 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
 					/>
 				</div>
-
-				{/* Clear Button */}
 				{(searchId || searchName) && (
 					<button
 						onClick={() => {
 							setSearchId("");
 							setSearchName("");
 						}}
-						className="flex items-center gap-1.5 px-4 py-1.5 bg-gray-100 hover:bg-gray-200 
-                 border border-gray-300 rounded-md text-xs font-medium transition"
+						className="flex items-center gap-1.5 px-4 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-md text-xs font-medium transition"
 					>
-						<RotateCcw className="w-3.5 h-3.5" />
-						Clear
+						<RotateCcw className="w-3.5 h-3.5" /> Clear
 					</button>
 				)}
 			</div>
 
-			{/* Loading & Error */}
+			{/* Loading / Companies (unchanged) */}
 			{loading && (
 				<div className="text-center py-12">
 					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
@@ -518,7 +613,6 @@ table {
 					</p>
 				</div>
 			)}
-
 			{error && (
 				<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
 					Error: {error}
@@ -527,40 +621,31 @@ table {
 
 			{!loading && filtered.length > 0 && (
 				<>
-					<div className="overflow-x-auto rounded-lg border border-gray-200">
-						<div className="max-h-[70vh] overflow-y-auto">
-							<table className="w-full table-auto text-left text-sm">
-								<thead className={`${maroonGrad} text-white`}>
-									<tr>
-										<th className="px-4 py-2">Company Code</th>
-										<th className="px-4 py-2">Company Name</th>
-										<th className="px-4 py-2 text-center">Action</th>
-									</tr>
-								</thead>
+					<div className="rounded-lg border border-gray-200 overflow-hidden">
+						<table className="w-full text-left">
+							<thead className={`${maroonGrad} text-white`}>
+								<tr>
+									<th className="px-4 py-2">Company Code</th>
+									<th className="px-4 py-2">Company Name</th>
+									<th className="px-4 py-2 text-center">Action</th>
+								</tr>
+							</thead>
+						</table>
+						<div className="max-h-[60vh] overflow-y-auto">
+							<table className="w-full text-left">
 								<tbody>
 									{paginated.map((c, i) => (
-										<tr
-											key={i}
-											className={
-												i % 2 === 0 ? "bg-white" : "bg-gray-50"
-											}
-										>
+										<tr key={i} className="hover:bg-gray-50">
 											<td className="px-4 py-2">{c.compId}</td>
 											<td className="px-4 py-2">{c.CompName}</td>
 											<td className="px-4 py-2 text-center">
 												<button
 													onClick={() => handleViewReport(c)}
 													disabled={!fromDate || !toDate}
-													className={`px-3 py-1 rounded text-white text-xs font-medium ${
-														selectedCompany?.compId === c.compId
-															? "bg-green-600"
-															: maroonGrad
-													} disabled:opacity-50 hover:brightness-110 transition`}
+													className={`px-3 py-1 rounded text-white text-xs font-medium ${maroonGrad} disabled:opacity-50 hover:brightness-110`}
 												>
-													<Eye className="inline mr-1 w-3 h-3" />
-													{selectedCompany?.compId === c.compId
-														? "Viewing"
-														: "View"}
+													<Eye className="inline w-3 h-3 mr-1" />{" "}
+													View
 												</button>
 											</td>
 										</tr>
@@ -570,7 +655,7 @@ table {
 						</div>
 					</div>
 
-					<div className="flex justify-end items-center gap-3 mt-3">
+					<div className="flex justify-end items-center gap-3 mt-4">
 						<button
 							onClick={() => setPage((p) => Math.max(1, p - 1))}
 							disabled={page === 1}
@@ -615,7 +700,7 @@ table {
 									onClick={printPDF}
 									className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded hover:bg-green-50 text-xs"
 								>
-									<Printer className="w-4 h-4" /> Print
+									<Printer className="w-4 h-4" /> PDF
 								</button>
 								<button
 									onClick={closeReport}
@@ -628,7 +713,7 @@ table {
 							<h2
 								className={`text-xl font-bold text-center mb-2 ${maroon}`}
 							>
-								Branch/Province wise PIV Collections Paid to Bank{" "}
+								Branch/Province wise PIV Collections Paid to Bank
 							</h2>
 							<div className="flex justify-between text-sm mb-3">
 								<div>
@@ -685,108 +770,92 @@ table {
 											</tr>
 										</thead>
 										<tbody>
-											{Object.keys(groupData()).map((cc) => {
+											{Object.keys(groupedData).map((cc) => {
 												const ccName =
 													reportData.find(
 														(i) => i.CostCenter === cc
 													)?.CCT_NAME || cc;
-												const ccItems = Object.values(
-													groupData()[cc]
-												).flat();
-												const ccAccountTotals = accountCodes.reduce(
-													(acc, code) => {
-														acc[code] = reportData
-															.filter(
-																(i) =>
-																	i.CostCenter === cc &&
-																	i.AccountCode === code
-															)
-															.reduce(
-																(sum, i) => sum + i.Amount,
-																0
-															);
-														return acc;
-													},
-													{} as Record<string, number>
-												);
-												const ccGrandTotal = calculateCCTotal(cc);
+												const pivGroups = groupedData[cc];
 
 												return (
 													<React.Fragment key={cc}>
-														{ccItems.map((item, idx) => {
-															const isFirst = idx === 0;
-															return (
-																<tr
-																	key={item.PivNo}
-																	className={
-																		idx % 2 === 0
-																			? "bg-white"
-																			: "bg-gray-50"
-																	}
-																>
-																	{isFirst && (
-																		<>
+														{pivGroups.map(
+															({item, accountAmounts}, idx) => {
+																const pivTotal =
+																	accountCodes.reduce(
+																		(s, acc) =>
+																			s +
+																			(accountAmounts[acc] ||
+																				0),
+																		0
+																	);
+
+																return (
+																	<tr
+																		key={item.PivNo}
+																		className={
+																			idx % 2 === 0
+																				? "bg-white"
+																				: "bg-gray-50"
+																		}
+																	>
+																		{idx === 0 && (
 																			<td
 																				rowSpan={
-																					ccItems.length
+																					pivGroups.length
 																				}
 																				className="px-2 py-1 border border-gray-200 font-medium bg-gray-100 text-left align-top break-words"
 																			>
 																				{cc} - {ccName}
 																			</td>
-																		</>
-																	)}
-																	<td className="px-2 py-1 border border-gray-200">
-																		{item.ChequeNo || "-"}
-																	</td>
-																	<td className="px-2 py-1 border border-gray-200 text-center">
-																		{formatDate(
-																			item.PaidDate
 																		)}
-																	</td>
-																	<td className="px-2 py-1 border border-gray-200 text-right font-mono font-bold">
-																		{formatNumber(
-																			item.GrandTotal
+																		<td className="px-2 py-1 border border-gray-200">
+																			{item.ChequeNo || "-"}
+																		</td>
+																		<td className="px-2 py-1 border border-gray-200 text-center">
+																			{formatDate(
+																				item.PaidDate
+																			)}
+																		</td>
+																		<td className="px-2 py-1 border border-gray-200 text-right font-mono font-bold">
+																			{formatNumber(
+																				pivTotal
+																			)}
+																		</td>
+																		<td className="px-2 py-1 border border-gray-200">
+																			{item.PivNo}
+																		</td>
+																		<td className="px-2 py-1 border border-gray-200">
+																			{item.PaymentMode}
+																		</td>
+																		<td className="px-2 py-1 border border-gray-200">
+																			{item.PivReceiptNo}
+																		</td>
+																		{accountCodes.map(
+																			(acc) => (
+																				<td
+																					key={acc}
+																					className="px-2 py-1 border border-gray-200 text-right font-mono"
+																				>
+																					{formatNumber(
+																						accountAmounts[
+																							acc
+																						] || 0
+																					)}
+																				</td>
+																			)
 																		)}
-																	</td>
-																	<td className="px-2 py-1 border border-gray-200">
-																		{item.PivNo}
-																	</td>
-																	<td className="px-2 py-1 border border-gray-200">
-																		{item.PaymentMode}
-																	</td>
-																	<td className="px-2 py-1 border border-gray-200">
-																		{item.PivReceiptNo}
-																	</td>
-																	{accountCodes.map((acc) => {
-																		const match = groupData()[
-																			cc
-																		][acc]?.find(
-																			(x) =>
-																				x.PivNo ===
-																				item.PivNo
-																		);
-																		return (
-																			<td
-																				key={acc}
-																				className="px-2 py-1 border border-gray-200 text-right font-mono"
-																			>
-																				{match
-																					? formatNumber(
-																							match.Amount
-																					  )
-																					: "0.00"}
-																			</td>
-																		);
-																	})}
-																	<td className="px-2 py-1 border border-gray-200 text-right font-mono font-bold">
-																		{formatNumber(
-																			item.GrandTotal
-																		)}
-																	</td>
-																</tr>
-															);
-														})}
+																		<td className="px-2 py-1 border border-gray-200 text-right font-mono font-bold">
+																			{formatNumber(
+																				pivTotal
+																			)}
+																		</td>
+																	</tr>
+																);
+															}
+														)}
+
+														{/* Cost Center Total */}
 														<tr className="bg-gray-200 font-bold">
 															<td
 																colSpan={7}
@@ -794,18 +863,42 @@ table {
 															>
 																Total - {ccName}
 															</td>
-															{accountCodes.map((acc) => (
-																<td
-																	key={acc}
-																	className="px-2 py-1 border border-gray-200 text-right font-mono"
-																>
-																	{formatNumber(
-																		ccAccountTotals[acc] || 0
-																	)}
-																</td>
-															))}
+															{accountCodes.map((acc) => {
+																const sum = pivGroups.reduce(
+																	(s, g) =>
+																		s +
+																		(g.accountAmounts[acc] ||
+																			0),
+																	0
+																);
+																return (
+																	<td
+																		key={acc}
+																		className="px-2 py-1 border border-gray-200 text-right font-mono"
+																	>
+																		{formatNumber(sum)}
+																	</td>
+																);
+															})}
 															<td className="px-2 py-1 border border-gray-200 text-right font-mono">
-																{formatNumber(ccGrandTotal)}
+																{formatNumber(
+																	pivGroups.reduce(
+																		(sum, g) => {
+																			const pivSum =
+																				accountCodes.reduce(
+																					(s, acc) =>
+																						s +
+																						(g
+																							.accountAmounts[
+																							acc
+																						] || 0),
+																					0
+																				);
+																			return sum + pivSum;
+																		},
+																		0
+																	)
+																)}
 															</td>
 														</tr>
 														<tr>
@@ -819,21 +912,50 @@ table {
 													</React.Fragment>
 												);
 											})}
-											<tr className="bg-gray-200 font-bold">
+
+											{/* Grand Total */}
+											<tr className="bg-gray-300 font-bold">
 												<td
 													colSpan={7}
 													className="px-2 py-2 border border-gray-200 text-right text-sm"
 												>
 													GRAND TOTAL
 												</td>
-												{accountCodes.map(() => (
+												{accountCodes.map((acc) => (
 													<td
-														key={Math.random()}
-														className="px-2 py-2 border border-gray-200"
-													></td>
+														key={acc}
+														className="px-2 py-2 border border-gray-200 text-right font-mono font-bold"
+													>
+														{formatNumber(
+															Object.values(groupedData)
+																.flat()
+																.reduce(
+																	(s, g) =>
+																		s +
+																		(g.accountAmounts[acc] ||
+																			0),
+																	0
+																)
+														)}
+													</td>
 												))}
 												<td className="px-2 py-2 border border-gray-200 text-right font-mono font-bold text-base">
-													{formatNumber(grandTotal)}
+													{formatNumber(
+														Object.values(groupedData)
+															.flat()
+															.reduce((sum, g) => {
+																const pivSum =
+																	accountCodes.reduce(
+																		(s, acc) =>
+																			s +
+																			(g.accountAmounts[
+																				acc
+																			] || 0),
+																		0
+																	);
+																return sum + pivSum;
+															}, 0)
+													)}
 												</td>
 											</tr>
 										</tbody>
