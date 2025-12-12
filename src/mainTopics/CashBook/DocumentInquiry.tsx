@@ -25,7 +25,7 @@ interface DocumentInquiryItem {
 }
 /* ────── Constants ────── */
 const PAGE_SIZE = 9;
-const FETCH_TIMEOUT_MS = 15000;
+const FETCH_TIMEOUT_MS = 240000;
 /* ────── Helpers ────── */
 const formatDate = (dateStr: string | null | undefined): string => {
 	if (!dateStr?.trim()) return "";
@@ -62,6 +62,15 @@ const formatAmount = (amount: string | number | null | undefined): string => {
 		maximumFractionDigits: 2,
 	});
 };
+
+const today = new Date();
+const currentYear = today.getFullYear();
+const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
+const currentDay = String(today.getDate()).padStart(2, "0");
+const maxDate = `${currentYear}-${currentMonth}-${currentDay}`; // Today's date: YYYY-MM-DD
+
+const minYear = currentYear - 20;
+const minDate = `${minYear}-${currentMonth}-${currentDay}`; // 20 years ago, same month/day
 
 const toYYYYMMDD = (date: string): string => date.replace(/-/g, "");
 /* ────── Single Table Modal (No Payee Grouping) ────── */
@@ -260,7 +269,7 @@ const DocumentInquiryTable: React.FC<{
 							onClick={printPDF}
 							className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50"
 						>
-							<Printer className="w-4 h-4" /> Print
+							<Printer className="w-4 h-4" /> PDF
 						</button>
 						<button
 							onClick={onClose}
@@ -511,7 +520,7 @@ const DocumentInquiry: React.FC = () => {
 			style={{marginLeft: "2rem"}}
 		>
 			<h2 className="text-lg md:text-xl font-bold mb-4 text-[#7A0000]">
-				Cash Book Document Inquiry
+				Cost Center Wise Document Inquiry Cash Book With Cheque Details
 			</h2>
 			<div className="flex justify-end gap-6 mb-4">
 				<div className="flex items-center gap-2">
@@ -522,6 +531,8 @@ const DocumentInquiry: React.FC = () => {
 						type="date"
 						value={fromDate}
 						onChange={(e) => setFromDate(e.target.value)}
+						min={minDate}
+						max={maxDate}
 						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white
                  focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
 					/>
@@ -534,6 +545,8 @@ const DocumentInquiry: React.FC = () => {
 						type="date"
 						value={toDate}
 						onChange={(e) => setToDate(e.target.value)}
+						min={minDate}
+						max={maxDate}
 						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white
                  focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
 					/>
@@ -545,7 +558,7 @@ const DocumentInquiry: React.FC = () => {
 					<input
 						type="text"
 						value={searchId}
-						placeholder="Search by Cost Center ID"
+						placeholder="Search by ID"
 						onChange={(e) => setSearchId(e.target.value)}
 						className="pl-10 pr-3 py-1.5 w-40 rounded border border-gray-300 focus:ring-2 focus:ring-[#7A0000] text-sm"
 					/>

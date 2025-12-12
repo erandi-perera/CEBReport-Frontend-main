@@ -22,10 +22,7 @@ interface TrialBalanceData {
 }
 
 const RegionTrial: React.FC = () => {
-	// Get user from context
 	const {user} = useUser();
-
-	// Main state
 	const [data, setData] = useState<Region[]>([]);
 	const [searchId, setSearchId] = useState("");
 	const [searchName, setSearchName] = useState("");
@@ -35,10 +32,7 @@ const RegionTrial: React.FC = () => {
 	const [page, setPage] = useState(1);
 	const pageSize = 50;
 
-	// Selection state
 	const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
-
-	// Date selection state - changed to undefined initially
 	const [selectedYear, setSelectedYear] = useState<number | undefined>(
 		undefined
 	);
@@ -46,11 +40,9 @@ const RegionTrial: React.FC = () => {
 		undefined
 	);
 
-	// Dropdown state
 	const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
 	const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
 
-	// Trial balance modal state
 	const [trialModalOpen, setTrialModalOpen] = useState(false);
 	const [trialData, setTrialData] = useState({
 		companyId: "",
@@ -59,29 +51,24 @@ const RegionTrial: React.FC = () => {
 		regionName: "",
 	});
 
-	// Trial balance table state
 	const [trialBalanceData, setTrialBalanceData] = useState<TrialBalanceData[]>(
 		[]
 	);
 	const [trialLoading, setTrialLoading] = useState(false);
 	const [trialError, setTrialError] = useState<string | null>(null);
 
-	// Get EPF Number from user context (Userno field)
 	const epfNo = user?.Userno || "";
 
-	// Colors
 	const maroon = "text-[#7A0000]";
 	const maroonBg = "bg-[#7A0000]";
 	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
-	// Available years and months
 	const years = Array.from(
 		{length: 21},
 		(_, i) => new Date().getFullYear() - i
 	);
-	const months = Array.from({length: 13}, (_, i) => i + 1); // [1, 2, ..., 13] - Includes 13th period
+	const months = Array.from({length: 13}, (_, i) => i + 1);
 
-	// Close dropdowns when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			const target = event.target as HTMLElement;
@@ -93,13 +80,11 @@ const RegionTrial: React.FC = () => {
 				setMonthDropdownOpen(false);
 			}
 		};
-
 		document.addEventListener("mousedown", handleClickOutside);
 		return () =>
 			document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
-	// Fetch regions
 	useEffect(() => {
 		const fetchData = async () => {
 			if (!epfNo) {
@@ -107,14 +92,12 @@ const RegionTrial: React.FC = () => {
 				setLoading(false);
 				return;
 			}
-
 			setLoading(true);
 			try {
 				const res = await fetch(
 					`/misapi/api/incomeexpenditure/Usercompanies/${epfNo}/70`
 				);
 				if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-
 				const txt = await res.text();
 				const parsed = JSON.parse(txt);
 				const rawData = Array.isArray(parsed) ? parsed : parsed.data || [];
@@ -133,7 +116,6 @@ const RegionTrial: React.FC = () => {
 		fetchData();
 	}, [epfNo]);
 
-	// Filter regions
 	useEffect(() => {
 		const f = data.filter(
 			(c) =>
@@ -148,20 +130,16 @@ const RegionTrial: React.FC = () => {
 
 	const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-	// Handle region selection - Auto fetch data when selected
 	const handleRegionSelect = (region: Region) => {
-		console.log("Region selected:", region);
 		setSelectedRegion(region);
 		if (selectedMonth && selectedYear) {
 			fetchTrialBalanceData(region);
 		}
 	};
 
-	// Fetch trial balance data
 	const fetchTrialBalanceData = async (region?: Region) => {
 		const targetRegion = region || selectedRegion;
 		if (!targetRegion || !selectedMonth || !selectedYear) return;
-
 		setTrialLoading(true);
 		setTrialError(null);
 		try {
@@ -171,10 +149,8 @@ const RegionTrial: React.FC = () => {
 				credentials: "include",
 				headers: {Accept: "application/json"},
 			});
-
 			if (!response.ok)
 				throw new Error(`HTTP error! status: ${response.status}`);
-
 			const contentType = response.headers.get("content-type");
 			if (!contentType || !contentType.includes("application/json")) {
 				const text = await response.text();
@@ -185,10 +161,8 @@ const RegionTrial: React.FC = () => {
 					)}`
 				);
 			}
-
 			const jsonData = await response.json();
 			let trialBalanceArray: TrialBalanceData[] = [];
-
 			if (Array.isArray(jsonData)) {
 				trialBalanceArray = jsonData;
 			} else if (jsonData.data && Array.isArray(jsonData.data)) {
@@ -198,16 +172,13 @@ const RegionTrial: React.FC = () => {
 			} else {
 				throw new Error("Unexpected data format received from server");
 			}
-
 			setTrialBalanceData(trialBalanceArray);
-
 			setTrialData({
 				companyId: targetRegion.compId,
 				year: selectedYear,
 				month: getMonthName(selectedMonth),
 				regionName: targetRegion.CompName,
 			});
-
 			setTrialModalOpen(true);
 		} catch (error: any) {
 			setTrialError(
@@ -220,7 +191,6 @@ const RegionTrial: React.FC = () => {
 		}
 	};
 
-	// Helper functions
 	const getMonthName = (monthNum: number | undefined): string => {
 		if (!monthNum) return "Select Month";
 		const monthNames = [
@@ -252,15 +222,25 @@ const RegionTrial: React.FC = () => {
 		setSelectedRegion(null);
 	};
 
-	const formatNumber = (num: number): string => {
-		if (num === undefined || num === null || isNaN(num)) return "-";
-		const numValue = typeof num === "string" ? parseFloat(num) : num;
-		if (numValue === 0) return "-";
+	const formatNum = (num: number | null | undefined): string => {
+		// Handle null, undefined, or non-number
+		if (num === null || num === undefined || isNaN(Number(num))) {
+			return "0.00";
+		}
+
+		const numValue = Number(num);
+
+		// If it's zero, show 0.00
+		if (numValue === 0) {
+			return "0.00";
+		}
+
 		const absValue = Math.abs(numValue);
 		const formatted = new Intl.NumberFormat("en-US", {
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
 		}).format(absValue);
+
 		return numValue < 0 ? `(${formatted})` : formatted;
 	};
 
@@ -280,63 +260,401 @@ const RegionTrial: React.FC = () => {
 		}
 	};
 
-	const calculateTotals = () => {
-		const categories = ["A", "E", "L", "R"];
-		const categoryTotals: Record<
+	const downloadAsCSV = () => {
+		if (!trialBalanceData || trialBalanceData.length === 0) return;
+
+		const uniqueCostCenters = [
+			...new Set(trialBalanceData.map((row) => row.CostCenter)),
+		].sort((a, b) => parseFloat(a) - parseFloat(b));
+
+		// Only Cost Center number
+		const headers = [
+			"Category",
+			"Account",
+			"Description",
+			...uniqueCostCenters.map((cc) => cc),
+			"Total of Company",
+		];
+
+		const accountsMap = new Map<
 			string,
-			{
-				opening: number;
-				debit: number;
-				credit: number;
-				closing: number;
-				count: number;
-			}
-		> = {};
-		categories.forEach((cat) => {
-			categoryTotals[cat] = {
-				opening: 0,
-				debit: 0,
-				credit: 0,
-				closing: 0,
-				count: 0,
-			};
-		});
+			{name: string; category: string; values: Map<string, number>}
+		>();
 
 		trialBalanceData.forEach((row) => {
-			const firstChar = row.AccountCode.charAt(0).toUpperCase();
-			if (categories.includes(firstChar)) {
-				categoryTotals[firstChar].opening += row.OpeningBalance || 0;
-				categoryTotals[firstChar].debit += row.DebitAmount || 0;
-				categoryTotals[firstChar].credit += row.CreditAmount || 0;
-				categoryTotals[firstChar].closing += row.ClosingBalance || 0;
-				categoryTotals[firstChar].count += 1;
+			const category = getCategory(row.AccountCode);
+			if (!accountsMap.has(row.AccountCode)) {
+				accountsMap.set(row.AccountCode, {
+					name: row.AccountName,
+					category,
+					values: new Map(),
+				});
+			}
+			accountsMap
+				.get(row.AccountCode)!
+				.values.set(row.CostCenter, row.ClosingBalance);
+		});
+
+		const sortedAccounts = Array.from(accountsMap.keys()).sort((a, b) =>
+			a.localeCompare(b, undefined, {numeric: true})
+		);
+
+		const csvRows: string[][] = [
+			[`Region Wise Trial Balance - ${trialData.month}/${trialData.year}`],
+			[`Region: ${trialData.regionName} (${trialData.companyId})`],
+			[""],
+			headers,
+		];
+
+		let currentCategory: string | null = null;
+		let categoryTotals: number[] = new Array(uniqueCostCenters.length).fill(
+			0
+		);
+		let categoryGrandTotal = 0;
+
+		sortedAccounts.forEach((code, idx) => {
+			const acc = accountsMap.get(code)!;
+			const category = acc.category;
+
+			if (currentCategory !== category) {
+				if (currentCategory !== null) {
+					csvRows.push([
+						`TOTAL ${currentCategory.toUpperCase()}`,
+						"",
+						"",
+						...categoryTotals.map(formatNum),
+						formatNum(categoryGrandTotal),
+					]);
+					csvRows.push([""]);
+				}
+				currentCategory = category;
+				categoryTotals = new Array(uniqueCostCenters.length).fill(0);
+				categoryGrandTotal = 0;
+				csvRows.push([
+					`${category.toUpperCase()}`,
+					"",
+					"",
+					...uniqueCostCenters.map(() => ""),
+					"",
+				]);
+			}
+
+			let rowTotal = 0;
+			const row: string[] = [
+				category.toUpperCase(),
+				code.trim(),
+				acc.name.trim(),
+			];
+			uniqueCostCenters.forEach((cc, i) => {
+				const val = acc.values.get(cc) || 0;
+				row.push(formatNum(val));
+				rowTotal += val;
+				categoryTotals[i] += val;
+			});
+			row.push(formatNum(rowTotal));
+			csvRows.push(row);
+			categoryGrandTotal += rowTotal;
+
+			const isLastInCategory =
+				idx === sortedAccounts.length - 1 ||
+				accountsMap.get(sortedAccounts[idx + 1])!.category !== category;
+			if (isLastInCategory) {
+				csvRows.push([
+					`TOTAL ${category.toUpperCase()}`,
+					"",
+					"",
+					...categoryTotals.map(formatNum),
+					formatNum(categoryGrandTotal),
+				]);
+				csvRows.push([""]);
 			}
 		});
 
-		const grandTotals = {
-			opening: Object.values(categoryTotals).reduce(
-				(sum, cat) => sum + cat.opening,
-				0
-			),
-			debit: Object.values(categoryTotals).reduce(
-				(sum, cat) => sum + cat.debit,
-				0
-			),
-			credit: Object.values(categoryTotals).reduce(
-				(sum, cat) => sum + cat.credit,
-				0
-			),
-			closing: Object.values(categoryTotals).reduce(
-				(sum, cat) => sum + cat.closing,
-				0
-			),
-			count: trialBalanceData.length,
-		};
+		// Grand Total
+		const grandTotals = new Array(uniqueCostCenters.length).fill(0);
+		let overallGrand = 0;
+		sortedAccounts.forEach((code) => {
+			const acc = accountsMap.get(code)!;
+			uniqueCostCenters.forEach((cc, i) => {
+				const val = acc.values.get(cc) || 0;
+				grandTotals[i] += val;
+				overallGrand += val;
+			});
+		});
 
-		return {categoryTotals, grandTotals};
+		csvRows.push(
+			[""],
+			[
+				`Generated on: ${new Date().toLocaleDateString()} | CEB © ${new Date().getFullYear()}`,
+			]
+		);
+
+		const csvContent = csvRows
+			.map((row) =>
+				row
+					.map(
+						(cell) => `"${(cell || "").toString().replace(/"/g, '""')}"`
+					)
+					.join(",")
+			)
+			.join("\n");
+
+		const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = `RegionTrialBalance_${trialData.companyId}_${trialData.month}_${trialData.year}.csv`;
+		link.click();
+		URL.revokeObjectURL(url);
 	};
 
-	// Custom Dropdown Components
+const printPDF = () => {
+	if (!trialBalanceData || trialBalanceData.length === 0) return;
+
+	const uniqueCostCenters = [
+		...new Set(trialBalanceData.map((r) => r.CostCenter)),
+	].sort((a, b) => parseFloat(a) - parseFloat(b));
+
+	const totalColumns = uniqueCostCenters.length + 3; // Acc + Description + Cost Centers + Total
+
+	// Dynamic font sizing based on number of columns
+	const baseFontSize = 10;
+	const maxColumnsPerPage = 12;
+
+	let fontSize = baseFontSize;
+	let tableFontSize = baseFontSize;
+	let paddingSize = "6px 8px";
+	let borderSize = "0.5px";
+
+	if (totalColumns > maxColumnsPerPage) {
+		const scaleFactor = maxColumnsPerPage / totalColumns;
+		fontSize = Math.max(6, baseFontSize * scaleFactor * 0.75);
+		tableFontSize = Math.max(5, baseFontSize * scaleFactor * 0.7);
+		paddingSize = "3px 5px";
+		borderSize = "0.3px";
+
+		if (totalColumns > 20) {
+			fontSize = Math.max(5, fontSize * 0.75);
+			tableFontSize = Math.max(4, tableFontSize * 0.75);
+			paddingSize = "2px 3px";
+			borderSize = "0.2px";
+		}
+
+		if (totalColumns > 40) {
+			fontSize = Math.max(4, fontSize * 0.7);
+			tableFontSize = Math.max(3, tableFontSize * 0.7);
+			paddingSize = "1px 2px";
+			borderSize = "0.15px";
+		}
+	}
+
+	// Build map: AccountCode → { name, category, values per CostCenter }
+	const map = new Map();
+	trialBalanceData.forEach((r) => {
+		const cat = getCategory(r.AccountCode);
+		if (!map.has(r.AccountCode)) {
+			map.set(r.AccountCode, {
+				n: r.AccountName.trim(),
+				c: cat,
+				v: new Map(),
+			});
+		}
+		map.get(r.AccountCode).v.set(r.CostCenter, r.ClosingBalance);
+	});
+
+	const sorted = Array.from(map.keys()).sort((a, b) =>
+		a.localeCompare(b, undefined, {numeric: true})
+	);
+
+	let tableRowsHTML = "";
+	let curCat: string | null = null;
+	let catTot = new Array(uniqueCostCenters.length).fill(0);
+	let catGrand = 0;
+
+	sorted.forEach((code, i) => {
+		const acc = map.get(code)!;
+		const cat = acc.c;
+		const isNewCategory = curCat !== cat;
+
+		// === Close previous category with TOTAL row (only when changing category) ===
+		if (isNewCategory && curCat !== null) {
+			tableRowsHTML += `
+				<tr style="background-color: #d3d3d3; font-weight: bold;">
+					<td style="padding: ${paddingSize}; border: ${borderSize} solid #999;"></td>
+					<td style="padding: ${paddingSize}; border: ${borderSize} solid #999; font-weight: bold; color: #7A0000;">TOTAL ${curCat.toUpperCase()}</td>
+					${catTot
+						.map(
+							(t) =>
+								`<td style="padding: ${paddingSize}; border: ${borderSize} solid #999; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px; color: #7A0000;">${formatNum(
+									t
+								)}</td>`
+						)
+						.join("")}
+					<td style="padding: ${paddingSize}; border: ${borderSize} solid #999; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px; color: #7A0000;">${formatNum(
+				catGrand
+			)}</td>
+				</tr>
+				<tr><td colspan="${totalColumns}" style="padding: 6px 0;"></td></tr> <!-- spacing -->
+			`;
+		}
+
+		// === Start new category header ===
+		if (isNewCategory) {
+			curCat = cat;
+			catTot = new Array(uniqueCostCenters.length).fill(0);
+			catGrand = 0;
+
+			tableRowsHTML += `
+				<tr class="category-header">
+					<td colspan="${totalColumns}" style="text-align: left; font-weight: bold; background-color: #e8e8e8; color: #7A0000; padding: ${paddingSize}; border: ${borderSize} solid #999; font-size: ${fontSize}px;">
+						${cat.toUpperCase()}
+					</td>
+				</tr>
+			`;
+		}
+
+		// === Current account row ===
+		let rowTotal = 0;
+		const cells = uniqueCostCenters.map((cc, idx) => {
+			const val = acc.v.get(cc) || 0;
+			rowTotal += val;
+			catTot[idx] += val;
+			return `<td style="padding: ${paddingSize}; border: ${borderSize} solid #ccc; text-align: right; font-family: monospace; font-size: ${tableFontSize}px;">${formatNum(
+				val
+			)}</td>`;
+		});
+		catGrand += rowTotal;
+
+		tableRowsHTML += `
+			<tr>
+				<td style="padding: ${paddingSize}; border: ${borderSize} solid #ccc; font-family: monospace; font-size: ${tableFontSize}px;">${code}</td>
+				<td style="padding: ${paddingSize}; border: ${borderSize} solid #ccc; font-size: ${tableFontSize}px;">${
+			acc.n
+		}</td>
+				${cells.join("")}
+				<td style="padding: ${paddingSize}; border: ${borderSize} solid #ccc; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px; background-color: #f5f5f5;">${formatNum(
+			rowTotal
+		)}</td>
+			</tr>
+		`;
+
+		// === After the very last row → add final category total ===
+		const isLastRow = i === sorted.length - 1;
+		if (isLastRow && curCat !== null) {
+			tableRowsHTML += `
+				<tr style="background-color: #d3d3d3; font-weight: bold;">
+					<td style="padding: ${paddingSize}; border: ${borderSize} solid #999;"></td>
+					<td style="padding: ${paddingSize}; border: ${borderSize} solid #999; font-weight: bold; color: #7A0000;">TOTAL ${curCat.toUpperCase()}</td>
+					${catTot
+						.map(
+							(t) =>
+								`<td style="padding: ${paddingSize}; border: ${borderSize} solid #999; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px; color: #7A0000;">${formatNum(
+									t
+								)}</td>`
+						)
+						.join("")}
+					<td style="padding: ${paddingSize}; border: ${borderSize} solid #999; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px; color: #7A0000;">${formatNum(
+				catGrand
+			)}</td>
+				</tr>
+			`;
+		}
+	});
+
+	// Dynamic column widths
+	const accountWidth = 70;
+	const descriptionWidth = 180;
+	const totalWidth = 90;
+	const remainingWidth = 1000 - accountWidth - descriptionWidth - totalWidth;
+	const costCenterColumnWidth = Math.max(
+		50,
+		Math.floor(remainingWidth / uniqueCostCenters.length)
+	);
+
+	const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Region Wise Trial Balance - ${trialData.month}/${
+		trialData.year
+	}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 8px; font-size: ${fontSize}px; color: #333; line-height: 1.4; }
+    .header { text-align: center; margin-bottom: 12px; border-bottom: 2px solid #7A0000; padding-bottom: 10px; }
+    .header h1 { color: #7A0000; font-size: ${Math.max(
+			14,
+			fontSize + 3
+		)}px; margin: 0 0 6px 0; font-weight: bold; }
+    .header h2 { color: #7A0000; font-size: ${Math.max(
+			11,
+			fontSize + 1
+		)}px; margin: 4px 0; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: ${tableFontSize}px; table-layout: fixed; }
+    th { background-color: #d3d3d3; color: #000; font-weight: bold; text-align: center; padding: ${paddingSize}; border: ${borderSize} solid #999; font-size: ${tableFontSize}px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    td { padding: ${paddingSize}; border: ${borderSize} solid #ccc; font-size: ${tableFontSize}px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .account-col { width: ${accountWidth}px; }
+    .description-col { width: ${descriptionWidth}px; }
+    .cc-col { width: ${costCenterColumnWidth}px; }
+    .total-col { width: ${totalWidth}px; background-color: #f5f5f5; }
+    .footer { position: fixed; bottom: 10px; width: 100%; display: flex; justify-content: space-between; font-size: ${Math.max(
+			8,
+			tableFontSize
+		)}px; color: #666; padding: 0 20px; }
+    @media print {
+      body { margin: 0.3cm; font-size: ${tableFontSize}px; }
+      @page { size: A3 landscape; margin: 0.3cm; 
+	   @bottom-left { 
+                content: "Printed on: ${new Date().toLocaleString("en-US", {
+							timeZone: "Asia/Colombo",
+						})}"; 
+                font-size: ${Math.max(6, tableFontSize - 2)}px; 
+                color: gray; 
+              }
+              @bottom-right { 
+                content: "Page " counter(page) " of " counter(pages); 
+                font-size: ${Math.max(6, tableFontSize - 2)}px; 
+                color: gray; 
+              }
+				}
+      
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Region Wise Trial Balance</h1>
+    <h1>Period: ${trialData.month}/${trialData.year}</h1>
+    <h2>Region: ${trialData.regionName} (${trialData.companyId})</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th class="account-col">Acc</th>
+        <th class="description-col">Description</th>
+        ${uniqueCostCenters
+				.map((c) => `<th class="cc-col" title="Cost Center ${c}">${c}</th>`)
+				.join("")}
+        <th class="total-col">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${tableRowsHTML}
+    </tbody>
+  </table>
+</body>
+</html>
+`;
+
+	const printWindow = window.open("", "_blank");
+	if (!printWindow) return;
+
+	printWindow.document.write(htmlContent);
+	printWindow.document.close();
+
+	printWindow.onload = () => {
+		printWindow.print();
+		printWindow.close();
+	};
+};
 	const YearDropdown = () => (
 		<div className="year-dropdown relative">
 			<label className="block text-xs font-medium text-gray-700 mb-1">
@@ -357,7 +675,6 @@ const RegionTrial: React.FC = () => {
 					}`}
 				/>
 			</button>
-
 			{yearDropdownOpen && (
 				<div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
 					{years.map((year) => (
@@ -367,9 +684,8 @@ const RegionTrial: React.FC = () => {
 							onClick={() => {
 								setSelectedYear(year);
 								setYearDropdownOpen(false);
-								if (selectedMonth && selectedRegion) {
+								if (selectedMonth && selectedRegion)
 									fetchTrialBalanceData();
-								}
 							}}
 							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
 								selectedYear === year
@@ -405,7 +721,6 @@ const RegionTrial: React.FC = () => {
 					}`}
 				/>
 			</button>
-
 			{monthDropdownOpen && (
 				<div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
 					{months.map((month) => (
@@ -415,9 +730,8 @@ const RegionTrial: React.FC = () => {
 							onClick={() => {
 								setSelectedMonth(month);
 								setMonthDropdownOpen(false);
-								if (selectedYear && selectedRegion) {
+								if (selectedYear && selectedRegion)
 									fetchTrialBalanceData();
-								}
 							}}
 							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
 								selectedMonth === month
@@ -433,307 +747,6 @@ const RegionTrial: React.FC = () => {
 		</div>
 	);
 
-	// UPDATED CSV FUNCTION to match CompletedCostCenterWise style
-	const downloadAsCSV = () => {
-		if (!trialBalanceData || trialBalanceData.length === 0) return;
-
-		const {categoryTotals, grandTotals} = calculateTotals();
-
-		const formatNum = (num: number) => {
-			if (num === undefined || num === null || isNaN(num)) return "0.00";
-			if (num === 0) return "0.00";
-			return num.toFixed(2);
-		};
-
-		const escape = (field: string | number): string => {
-			const str = String(field || "");
-			if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-				return '"' + str.replace(/"/g, '""') + '"';
-			}
-			return str;
-		};
-
-		const sortedData = [...trialBalanceData].sort((a, b) => {
-			const categoryOrder: {[key: string]: number} = {
-				A: 1,
-				E: 2,
-				L: 3,
-				R: 4,
-			};
-			const aCat = a.AccountCode.charAt(0).toUpperCase();
-			const bCat = b.AccountCode.charAt(0).toUpperCase();
-			return (categoryOrder[aCat] || 5) - (categoryOrder[bCat] || 5);
-		});
-
-		const csvRows = [
-			[`Region Wise Trial Balance - ${trialData.month}/${trialData.year}`],
-			[`Region: ${trialData.companyId} / ${trialData.regionName}`],
-			[`Generated: ${new Date().toLocaleString()}`],
-			[],
-			[
-				"Account Code",
-				"Account Name",
-				"Title Flag",
-				"Cost Center",
-				"Company Name",
-				"Cost Center Code",
-				"Opening Balance",
-				"Debit Amount",
-				"Credit Amount",
-				"Closing Balance",
-			],
-		];
-
-		let currentCategory = "";
-		sortedData.forEach((row, index) => {
-			const rowCategory = getCategory(row.AccountCode);
-			const categoryKey = row.AccountCode.charAt(0).toUpperCase();
-
-			if (rowCategory !== currentCategory) {
-				currentCategory = rowCategory;
-				csvRows.push([]);
-				csvRows.push([rowCategory.toUpperCase()]);
-			}
-
-			csvRows.push([
-				row.AccountCode.trim(),
-				escape(row.AccountName.trim()),
-				row.TitleFlag,
-				row.CostCenter,
-				escape(row.CompanyName.trim()),
-				row.DepartmentId,
-				formatNum(row.OpeningBalance),
-				formatNum(row.DebitAmount),
-				formatNum(row.CreditAmount),
-				formatNum(row.ClosingBalance),
-			]);
-
-			const nextIndex = index + 1;
-			const isLastInCategory =
-				nextIndex >= sortedData.length ||
-				getCategory(sortedData[nextIndex].AccountCode) !== currentCategory;
-
-			if (isLastInCategory && categoryTotals[categoryKey]) {
-				csvRows.push([]);
-				csvRows.push([
-					`TOTAL ${rowCategory.toUpperCase()}`,
-					"",
-					"",
-					"",
-					"",
-					"",
-					formatNum(categoryTotals[categoryKey].opening),
-					formatNum(categoryTotals[categoryKey].debit),
-					formatNum(categoryTotals[categoryKey].credit),
-					formatNum(categoryTotals[categoryKey].closing),
-				]);
-			}
-		});
-
-		csvRows.push([]);
-		csvRows.push([]);
-		csvRows.push([
-			"GRAND TOTAL",
-			"",
-			"",
-			"",
-			"",
-			"",
-			formatNum(grandTotals.opening),
-			formatNum(grandTotals.debit),
-			formatNum(grandTotals.credit),
-			formatNum(grandTotals.closing),
-		]);
-
-		csvRows.push([]);
-		csvRows.push(["SUMMARY"]);
-		csvRows.push(["Total Opening Balance", formatNum(grandTotals.opening)]);
-		csvRows.push(["Total Debit Amount", formatNum(grandTotals.debit)]);
-		csvRows.push(["Total Credit Amount", formatNum(grandTotals.credit)]);
-		csvRows.push(["Total Closing Balance", formatNum(grandTotals.closing)]);
-
-		csvRows.push([]);
-		csvRows.push([`CEB@${new Date().getFullYear()}`]);
-
-		const csvContent = csvRows.map((row) => row.join(",")).join("\n");
-		const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement("a");
-		link.href = url;
-		link.download = `RegionTrialBalance_${trialData.regionName}_${trialData.month}_${trialData.year}.csv`;
-		link.style.display = "none";
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-		URL.revokeObjectURL(url);
-	};
-
-	const printPDF = () => {
-		if (!trialBalanceData || trialBalanceData.length === 0) return;
-
-		const {categoryTotals, grandTotals} = calculateTotals();
-
-		const printWindow = window.open("", "_blank");
-		if (!printWindow) return;
-
-		let tableRowsHTML = "";
-		trialBalanceData.forEach((row, index) => {
-			const currentCategory = getCategory(row.AccountCode);
-			const prevCategory =
-				index > 0
-					? getCategory(trialBalanceData[index - 1].AccountCode)
-					: null;
-			const showCategoryHeader = currentCategory !== prevCategory;
-			const nextCategory =
-				index < trialBalanceData.length - 1
-					? getCategory(trialBalanceData[index + 1].AccountCode)
-					: null;
-			const showCategoryTotal = currentCategory !== nextCategory;
-
-			if (showCategoryHeader) {
-				tableRowsHTML += `
-          <tr class="category-header">
-            <td colspan="10" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">${currentCategory}</td>
-          </tr>
-        `;
-			}
-
-			tableRowsHTML += `
-        <tr>
-          <td style="padding: 6px; border: 1px solid #ddd;">${row.AccountCode.trim()}</td>
-          <td style="padding: 6px; border: 1px solid #ddd;">${row.AccountName.trim()}</td>
-          <td style="padding: 6px; border: 1px solid #ddd;">${
-					row.TitleFlag
-				}</td>
-          <td style="padding: 6px; border: 1px solid #ddd;">${
-					row.CostCenter
-				}</td>
-          <td style="padding: 6px; border: 1px solid #ddd;">${row.CompanyName.trim()}</td>
-          <td style="padding: 6px; border: 1px solid #ddd;">${
-					row.DepartmentId
-				}</td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
-					row.OpeningBalance
-				)}</td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
-					row.DebitAmount
-				)}</td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
-					row.CreditAmount
-				)}</td>
-          <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
-					row.ClosingBalance
-				)}</td>
-        </tr>
-      `;
-
-			if (showCategoryTotal) {
-				const categoryKey = row.AccountCode.charAt(0).toUpperCase();
-				tableRowsHTML += `
-          <tr class="category-total">
-            <td colspan="6" style="padding: 6px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">Total ${currentCategory}</td>
-            <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">${formatNumber(
-					categoryTotals[categoryKey].opening
-				)}</td>
-            <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">${formatNumber(
-					categoryTotals[categoryKey].debit
-				)}</td>
-            <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">${formatNumber(
-					categoryTotals[categoryKey].credit
-				)}</td>
-            <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f9f9f9; font-weight: bold;">${formatNumber(
-					categoryTotals[categoryKey].closing
-				)}</td>
-          </tr>
-        `;
-			}
-		});
-
-		tableRowsHTML += `
-      <tr style="background-color: #7A0000; color: white; font-weight: bold;">
-        <td colspan="6" style="padding: 8px; border: 1px solid #7A0000;">Grand Total</td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(
-				grandTotals.opening
-			)}</td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(
-				grandTotals.debit
-			)}</td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(
-				grandTotals.credit
-			)}</td>
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(
-				grandTotals.closing
-			)}</td>
-      </tr>
-    `;
-
-		const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Region Trial Balance - ${trialData.month}/${
-			trialData.year
-		}</title>
-        <style>
-          * { text-transform: none !important; }
-          body {font-family: Arial, sans-serif;margin:20px;font-size:10px;color:#333;}
-          .header {text-align:center;margin-bottom:30px;border-bottom:2px solid #7A0000;padding-bottom:15px;}
-          .header h1 {color:#7A0000;font-size:18px;margin:0;font-weight:bold;text-transform:none;}
-          .header h2 {color:#7A0000;font-size:14px;margin:5px 0;text-transform:none;}
-          table {width:100%;border-collapse:collapse;margin-bottom:20px;}
-          th {background:#7A0000;color:white;font-weight:bold;text-align:center;padding:8px;border:1px solid #7A0000;}
-          @media print {
-            body {margin:0;}
-            .header {page-break-inside:avoid;}
-            table {page-break-inside:auto;}
-            tr {page-break-inside:avoid;}
-            @page {
-              @bottom-left {content:"Printed on: ${new Date().toLocaleString(
-						"en-US",
-						{timeZone: "Asia/Colombo"}
-					)}";font-size:0.75rem;color:gray;}
-              @bottom-right {content:"Page " counter(page) " of " counter(pages);font-size:0.75rem;color:gray;}
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>Region Wise Trial Balance - ${trialData.month}/${
-			trialData.year
-		}</h1>
-          <h2>Region: ${trialData.regionName}</h2>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Account Code</th>
-              <th>Account Name</th>
-              <th>Title Flag</th>
-              <th>Cost Center</th>
-              <th>Company Name</th>
-              <th>Cost Center Code</th>
-              <th>Opening Balance</th>
-              <th>Debit Amount</th>
-              <th>Credit Amount</th>
-              <th>Closing Balance</th>
-            </tr>
-          </thead>
-          <tbody>${tableRowsHTML}</tbody>
-        </table>
-      </body>
-      </html>
-    `;
-
-		printWindow.document.write(htmlContent);
-		printWindow.document.close();
-		printWindow.onload = () => {
-			printWindow.print();
-			printWindow.close();
-		};
-	};
-
-	// Custom Region Table Component with integrated date selection
 	const CustomRegionTable = () => (
 		<>
 			<div className="flex justify-between items-center mb-4">
@@ -744,10 +757,8 @@ const RegionTrial: React.FC = () => {
 				</div>
 			</div>
 
-			{/* Search and Date Selection Section */}
 			<div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
 				<div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-					{/* Search by Code */}
 					<div>
 						<label className="block text-xs font-medium text-gray-700 mb-1">
 							Search by Code
@@ -763,8 +774,6 @@ const RegionTrial: React.FC = () => {
 							/>
 						</div>
 					</div>
-
-					{/* Search by Name */}
 					<div>
 						<label className="block text-xs font-medium text-gray-700 mb-1">
 							Search by Name
@@ -780,14 +789,8 @@ const RegionTrial: React.FC = () => {
 							/>
 						</div>
 					</div>
-
-					{/* Year Dropdown */}
 					<YearDropdown />
-
-					{/* Month Dropdown */}
 					<MonthDropdown />
-
-					{/* Clear Filters Button */}
 					<div>
 						{(searchId || searchName) && (
 							<button
@@ -799,7 +802,6 @@ const RegionTrial: React.FC = () => {
 						)}
 					</div>
 				</div>
-
 				{selectedRegion && (
 					<div className="mt-2 text-xs text-gray-600">
 						Selected:{" "}
@@ -817,19 +819,16 @@ const RegionTrial: React.FC = () => {
 					<p className="mt-2 text-gray-600">Loading regions...</p>
 				</div>
 			)}
-
 			{error && (
 				<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
 					Error: {error}
 				</div>
 			)}
-
 			{!loading && !error && filtered.length === 0 && (
 				<div className="text-gray-600 bg-gray-100 p-4 rounded">
 					No regions found.
 				</div>
 			)}
-
 			{!loading && !error && filtered.length > 0 && (
 				<>
 					<div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -925,7 +924,6 @@ const RegionTrial: React.FC = () => {
 	return (
 		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
 			<CustomRegionTable />
-
 			<TrialBalanceModal
 				trialModalOpen={trialModalOpen}
 				closeTrialModal={closeTrialModal}
@@ -935,9 +933,8 @@ const RegionTrial: React.FC = () => {
 				trialError={trialError}
 				maroon={maroon}
 				maroonBg={maroonBg}
-				formatNumber={formatNumber}
+				formatNumber={formatNum}
 				getCategory={getCategory}
-				calculateTotals={calculateTotals}
 				downloadAsCSV={downloadAsCSV}
 				printPDF={printPDF}
 				goBack={() => setTrialModalOpen(false)}

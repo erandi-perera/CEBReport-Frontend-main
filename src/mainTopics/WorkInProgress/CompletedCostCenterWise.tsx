@@ -557,7 +557,6 @@ const CompletedCostCenterWise = () => {
 
         th {
           background-color: #7A0000;
-          color: white;
           font-weight: bold;
           text-align: center;
         }

@@ -551,7 +551,7 @@ const LedgerCardSubAccountTotal: React.FC = () => {
 									onClick={printPDF}
 									className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium hover:bg-green-50"
 								>
-									<Printer className="w-4 h-4" /> Print
+									<Printer className="w-4 h-4" /> PDF
 								</button>
 								<button
 									onClick={() => setShowReport(false)}
