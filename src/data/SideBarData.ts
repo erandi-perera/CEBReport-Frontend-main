@@ -102,7 +102,7 @@ export const data = [
   },
   {
     id: 6,
-    name: "Solar Information",
+    name: "Solar Information – Billing",
     icon: GiSolarPower,
     subtopics: [
       { id: 50, name: "Solar PV billing information" },
