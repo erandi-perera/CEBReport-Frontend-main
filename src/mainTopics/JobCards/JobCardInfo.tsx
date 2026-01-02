@@ -27,12 +27,13 @@ interface JobcardModel {
 	ResType: string;
 }
 
-// Format number with commas
+// Format number: negative values in parentheses
 const formatNumber = (num: number): string => {
-	return num.toLocaleString("en-US", {
+	const abs = Math.abs(num).toLocaleString("en-US", {
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2,
 	});
+	return num < 0 ? `(${abs})` : abs;
 };
 
 // JobCardTable Component
@@ -45,16 +46,9 @@ const JobCardTable: React.FC<{
 }> = ({jobCards, loading, error, departmentName, onClose}) => {
 	const maroon = "text-[#7A0000]";
 	const iframeRef = useRef<HTMLIFrameElement | null>(null);
-	const [showOrientationModal, setShowOrientationModal] = useState(false);
-	const [, setSelectedOrientation] = useState<"portrait" | "landscape" | null>(
-		null
-	);
 
-	const printPDF = (
-		jobCards: JobcardModel[],
-		_departmentName: string,
-		orientation: "portrait" | "landscape"
-	) => {
+	// Print in landscape (fixed)
+	const printPDF = (jobCards: JobcardModel[], _departmentName: string) => {
 		if (!jobCards || jobCards.length === 0) return;
 
 		const firstJob = jobCards[0];
@@ -64,7 +58,7 @@ const JobCardTable: React.FC<{
 				? ((variance / firstJob.EstimatedCost) * 100).toFixed(2)
 				: "0.00";
 
-		// Group job cards by Year, Document Profile, Document No., and Date
+		// Group job cards
 		const groupedJobCards = jobCards.reduce((acc, job, index) => {
 			const key = `${job.LogYear}-${job.DocumentProfile}-${job.DocumentNo}-${
 				job.AccDate || "-"
@@ -92,33 +86,19 @@ const JobCardTable: React.FC<{
 			{lab: 0, mat: 0, other: 0, total: 0}
 		);
 
-		// Adjust column widths based on orientation
-		const columnWidths =
-			orientation === "portrait"
-				? {
-						year: "w-[7%]",
-						month: "w-[7%]",
-						docProfile: "w-[14%]",
-						docNo: "w-[14%]",
-						date: "w-[9%]",
-						seqNo: "w-[9%]",
-						lab: "w-[10%]",
-						mat: "w-[10%]",
-						other: "w-[10%]",
-						total: "w-[10%]",
-				  }
-				: {
-						year: "w-[6%]",
-						month: "w-[6%]",
-						docProfile: "w-[16%]",
-						docNo: "w-[16%]",
-						date: "w-[9%]",
-						seqNo: "w-[7%]",
-						lab: "w-[10%]",
-						mat: "w-[10%]",
-						other: "w-[10%]",
-						total: "w-[10%]",
-				  };
+		// Landscape column widths
+		const columnWidths = {
+			year: "w-[6%]",
+			month: "w-[6%]",
+			docProfile: "w-[16%]",
+			docNo: "w-[16%]",
+			date: "w-[9%]",
+			seqNo: "w-[7%]",
+			lab: "w-[10%]",
+			mat: "w-[10%]",
+			other: "w-[10%]",
+			total: "w-[10%]",
+		};
 
 		let tableRowsHTML = "";
 		sortedGroups.forEach((group, groupIndex) => {
@@ -208,7 +188,7 @@ const JobCardTable: React.FC<{
 		// Totals row
 		tableRowsHTML += `
       <tr class="bg-gray-200 font-bold">
-        <td colspan="6" class="p-1 border border-gray-300 text-right">Total</td>
+        <td colspan="6" class="p-1 border border-gray-300 text-right ">Total</td>
         <td class="p-1 border border-gray-300 text-right font-mono">${formatNumber(
 				totals.lab
 			)}</td>
@@ -229,7 +209,7 @@ const JobCardTable: React.FC<{
   <head>
     <style>
       @media print {
-        @page { size: A4 ${orientation}; margin: 20mm 15mm 25mm 15mm; }
+        @page { margin: 20mm 15mm 25mm 15mm; }
         body { margin: 0; font-family: Arial, sans-serif; }
         .print-container { width: 100%; margin: 0; padding: 0; }
         .print-header { margin-bottom: 2.5rem; margin-top: 3rem; margin-left: 2rem; font-size: 1.125rem; text-align: center; }
@@ -243,7 +223,7 @@ const JobCardTable: React.FC<{
         .print-currency { text-align: right; font-size: 0.875rem; font-weight: 600; color: #4B5563; margin-bottom: 1.25rem; margin-right: 2rem; }
         table.print-table { border-collapse: collapse; width: 100%; margin-left: 0; margin-right: 3rem; }
         table.print-table th, table.print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; }
-        table.print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
+        table.print-table th { background: linear-gradient(to right, #7A0000, #A52A2A);  text-align: center; }
         table.print-table td { text-align: right; }
         table.print-table tr.bg-white { background-color: #fff; }
         table.print-table tr.bg-gray-50 { background-color: #F9FAFB; }
@@ -325,7 +305,6 @@ const JobCardTable: React.FC<{
 </html>
     `;
 
-		// Create iframe for printing
 		if (iframeRef.current) {
 			const iframeDoc =
 				iframeRef.current.contentDocument ||
@@ -339,28 +318,16 @@ const JobCardTable: React.FC<{
 		}
 	};
 
-	// Handle print button click to show orientation modal
-	const handlePrintClick = () => {
-		setShowOrientationModal(true);
-	};
-
-	// Handle orientation selection
-	const handleOrientationSelect = (orientation: "portrait" | "landscape") => {
-		setSelectedOrientation(orientation);
-		setShowOrientationModal(false);
-		printPDF(jobCards, departmentName, orientation);
-	};
-
-	// CSV Download Functionality
+	// CSV Download
 	const handleDownloadCSV = () => {
 		if (jobCards.length === 0) return;
 
-		const firstJob = jobCards[0]; // Access first job for project number
+		const firstJob = jobCards[0];
 		const titleRows = [
-			`Job Card Report`, // Title
-			`Department: ${departmentName}`, // Department name
-			`Project No: ${firstJob.ProjectNo.trim()}`, // Project number
-			"", // Empty row for separation
+			`Job Card Report`,
+			`Department: ${departmentName}`,
+			`Project No: ${firstJob.ProjectNo.trim()}`,
+			"",
 		];
 
 		const headers = [
@@ -393,48 +360,23 @@ const JobCardTable: React.FC<{
 					`"${job.DocumentNo.trim()}"`,
 					job.AccDate ? new Date(job.AccDate).toLocaleDateString() : "-",
 					job.SequenceNo,
-					`"${lab.toLocaleString("en-US", {
-						minimumFractionDigits: 2,
-						maximumFractionDigits: 2,
-					})}"`,
-					`"${mat.toLocaleString("en-US", {
-						minimumFractionDigits: 2,
-						maximumFractionDigits: 2,
-					})}"`,
-					`"${other.toLocaleString("en-US", {
-						minimumFractionDigits: 2,
-						maximumFractionDigits: 2,
-					})}"`,
-					`"${total.toLocaleString("en-US", {
-						minimumFractionDigits: 2,
-						maximumFractionDigits: 2,
-					})}"`,
+					`"${formatNumber(lab)}"`,
+					`"${formatNumber(mat)}"`,
+					`"${formatNumber(other)}"`,
+					`"${formatNumber(total)}"`,
 				].join(",");
 			}),
-
 			[
-				"", // Empty cells for Year
-				"", // Empty cells for Month
-				"", // Empty cells for Document Profile
-				"", // Empty cells for Document No.
-				"", // Empty cells for Date
-				"Total", // Label for totals row
-				`"${totals.lab.toLocaleString("en-US", {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2,
-				})}"`, // LAB total
-				`"${totals.mat.toLocaleString("en-US", {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2,
-				})}"`, // MAT total
-				`"${totals.other.toLocaleString("en-US", {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2,
-				})}"`, // OTHER total
-				`"${totals.total.toLocaleString("en-US", {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2,
-				})}"`, // Total of totals
+				"",
+				"",
+				"",
+				"",
+				"",
+				"Total",
+				`"${formatNumber(totals.lab)}"`,
+				`"${formatNumber(totals.mat)}"`,
+				`"${formatNumber(totals.other)}"`,
+				`"${formatNumber(totals.total)}"`,
 			].join(","),
 		].join("\n");
 
@@ -471,7 +413,7 @@ const JobCardTable: React.FC<{
 			<div className="text-center py-6 sm:py-8 md:py-12 lg:py-16 xl:py-20">
 				<div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 md:p-10">
 					<div className="text-gray-400 mb-4 md:mb-6">
-						No job card available.
+						No Data Available.
 					</div>
 				</div>
 			</div>
@@ -479,14 +421,12 @@ const JobCardTable: React.FC<{
 	}
 
 	const firstJob = jobCards[0];
-
 	const variance = firstJob.EstimatedCost - firstJob.CommitedCost;
 	const variancePercent =
 		firstJob.EstimatedCost !== 0
 			? ((variance / firstJob.EstimatedCost) * 100).toFixed(2)
 			: "0.00";
 
-	// Group job cards by Year, Document Profile, Document No., and Date
 	const groupedJobCards = jobCards.reduce((acc, job, index) => {
 		const key = `${job.LogYear}-${job.DocumentProfile}-${job.DocumentNo}-${
 			job.AccDate || "-"
@@ -519,77 +459,32 @@ const JobCardTable: React.FC<{
 			<style>{`
         @media print {
           @page {
-            size: A4;
+            size: A4 landscape;
             margin: 20mm 15mm 25mm 15mm;
           }
-          body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-          }
-          .print-container {
-            width: 100%;
-            margin: 0;
-            padding: 0;
-          }
-          .print-header {
-            margin-bottom: 2.5rem;
-            margin-top: 3rem;
-            margin-left: 2rem;
-            font-size: 1.125rem;
-            font-weight: bold;
-            text-align: center;
-          }
-          .print-table {
-            border-collapse: collapse;
-            width: 100%;
-          }
-          .print-table th,
-          .print-table td {
-            border: 1px solid #D1D5DB;
-            padding: 0.25rem;
-            font-size: 0.75rem;
-          }
-          .print-table th {
-            background: linear-gradient(to right, #7A0000, #A52A2A);
-            color: white;
-            text-align: center;
-          }
-          .print-table tr {
-            page-break-inside: avoid;
-          }
-          thead {
-            display: table-header-group;
-          }
-          tfoot {
-            display: table-footer-group;
-          }
-          tbody {
-            display: table-row-group;
-          }
-          .print-totals {
-            font-weight: bold;
-            background-color: #E5E7EB;
-          }
+          body { margin: 0; font-family: Arial, sans-serif; }
+          .print-container { width: 100%; margin: 0; padding: 0; }
+          .print-header { margin-bottom: 2.5rem; margin-top: 3rem; margin-left: 2rem; font-size: 1.125rem; font-weight: bold; text-align: center; }
+          .print-table { border-collapse: collapse; width: 100%; }
+          .print-table th, .print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; }
+          .print-table th { background: linear-gradient(to right, #7A0000, #A52A2A);  text-align: center; }
+          .print-table tr { page-break-inside: avoid; }
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
+          tbody { display: table-row-group; }
+          .print-totals { font-weight: bold; background-color: #E5E7EB; }
           @page {
-            @bottom-left {
-              content: "Printed on: ${new Date().toLocaleString("en-US", {
-						timeZone: "Asia/Colombo",
-					})}";
-              font-size: 0.75rem;
-              color: gray;
-            }
-            @bottom-right {
-              content: "Page " counter(page) " of " counter(pages);
-              font-size: 0.75rem;
-              color: gray;
-            }
+            @bottom-left { content: "Printed on: ${new Date().toLocaleString(
+					"en-US",
+					{timeZone: "Asia/Colombo"}
+				)}"; font-size: 0.75rem; color: gray; }
+            @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
           }
         }
       `}</style>
-
-			<div className="absolute inset-0 bg-white/90 print:hidden"></div>
-			<div className="relative bg-white w-full max-w-[95vw] sm:max-w-4xl md:max-w-6xl lg:max-w-7xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden print:relative print:w-full print:max-w-none print:rounded-none print:shadow-none print:border-none print:overflow-visible print-container mt-40 ml-60">
-				<div className="p-2 md:p-2 mt-5 max-h-[80vh] overflow-y-auto print:p-0 print:max-h-none print:overflow-visible print:mt-10 print:ml-12">
+		<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/90 print:static print:inset-auto print:p-0 print:bg-white">
+			<div className="relative bg-white w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw] max-w-7xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mt-20 md:mt-32 lg:mt-40 lg:ml-64 mx-auto print:relative print:w-full print:max-w-none print:rounded-none print:shadow-none print:border-none print:overflow-visible">
+				<div className="p-2 md:p-2 max-h-[80vh] overflow-y-auto print:p-0 print:max-h-none print:overflow-visible print:mt-10 print:ml-12">
 					<div className="flex justify-end gap-3 mb-6 md:mb-8 print:hidden">
 						<button
 							onClick={handleDownloadCSV}
@@ -598,10 +493,10 @@ const JobCardTable: React.FC<{
 							<Download className="w-4 h-4" /> CSV
 						</button>
 						<button
-							onClick={handlePrintClick}
+							onClick={() => printPDF(jobCards, departmentName)}
 							className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
 						>
-							<Printer className="w-4 h-4" /> Print
+							<Printer className="w-4 h-4" /> PDF
 						</button>
 						<button
 							onClick={onClose}
@@ -610,6 +505,7 @@ const JobCardTable: React.FC<{
 							<X className="w-4 h-4" /> Close
 						</button>
 					</div>
+					
 					<h2
 						className={`text-lg md:text-xl font-bold text-center md:mb-6 ${maroon}`}
 					>
@@ -729,7 +625,6 @@ const JobCardTable: React.FC<{
 												? job.TrxAmt
 												: 0;
 										const total = lab + mat + other;
-
 										const isFirstInGroup = jobIndex === 0;
 										const isLastInGroup =
 											jobIndex === sortedJobs.length - 1;
@@ -778,28 +673,16 @@ const JobCardTable: React.FC<{
 														{job.SequenceNo}
 													</td>
 													<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono text-xs">
-														{lab.toLocaleString("en-US", {
-															minimumFractionDigits: 2,
-															maximumFractionDigits: 2,
-														})}
+														{formatNumber(lab)}
 													</td>
 													<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono text-xs">
-														{mat.toLocaleString("en-US", {
-															minimumFractionDigits: 2,
-															maximumFractionDigits: 2,
-														})}
+														{formatNumber(mat)}
 													</td>
 													<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono text-xs">
-														{other.toLocaleString("en-US", {
-															minimumFractionDigits: 2,
-															maximumFractionDigits: 2,
-														})}
+														{formatNumber(other)}
 													</td>
 													<td className="px-2 py-1.5 text-right font-mono text-xs">
-														{total.toLocaleString("en-US", {
-															minimumFractionDigits: 2,
-															maximumFractionDigits: 2,
-														})}
+														{formatNumber(total)}
 													</td>
 												</tr>
 												{isLastInGroup &&
@@ -823,28 +706,16 @@ const JobCardTable: React.FC<{
 										Total
 									</td>
 									<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono">
-										{totals.lab.toLocaleString("en-US", {
-											minimumFractionDigits: 2,
-											maximumFractionDigits: 2,
-										})}
+										{formatNumber(totals.lab)}
 									</td>
 									<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono">
-										{totals.mat.toLocaleString("en-US", {
-											minimumFractionDigits: 2,
-											maximumFractionDigits: 2,
-										})}
+										{formatNumber(totals.mat)}
 									</td>
 									<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono">
-										{totals.other.toLocaleString("en-US", {
-											minimumFractionDigits: 2,
-											maximumFractionDigits: 2,
-										})}
+										{formatNumber(totals.other)}
 									</td>
 									<td className="px-2 py-1.5 text-right font-mono">
-										{totals.total.toLocaleString("en-US", {
-											minimumFractionDigits: 2,
-											maximumFractionDigits: 2,
-										})}
+										{formatNumber(totals.total)}
 									</td>
 								</tr>
 							</tbody>
@@ -858,37 +729,9 @@ const JobCardTable: React.FC<{
 					</div>
 				</div>
 				<iframe ref={iframeRef} className="hidden" />
-				{showOrientationModal && (
-					<div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50">
-						<div className="bg-white rounded-lg p-6 w-full max-w-md">
-							<h3 className="text-lg font-semibold mb-4">
-								Select Print Orientation
-							</h3>
-							<div className="flex justify-between mb-4">
-								<button
-									onClick={() => handleOrientationSelect("portrait")}
-									className="px-4 py-2 bg-[#7A0000] text-white rounded-md hover:bg-[#A52A2A] transition"
-								>
-									Portrait
-								</button>
-								<button
-									onClick={() => handleOrientationSelect("landscape")}
-									className="px-4 py-2 bg-[#7A0000] text-white rounded-md hover:bg-[#A52A2A] transition"
-								>
-									Landscape
-								</button>
-							</div>
-							<button
-								onClick={() => setShowOrientationModal(false)}
-								className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition"
-							>
-								Cancel
-							</button>
-						</div>
-					</div>
-				)}
 			</div>
 		</div>
+	</div>
 	);
 };
 
@@ -916,7 +759,6 @@ const JobCardInfo: React.FC = () => {
 	const maroon = "text-[#7A0000]";
 	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
-	// Fetch Departments Data
 	useEffect(() => {
 		const fetchDepartments = async () => {
 			if (!epfNo) {
@@ -944,7 +786,6 @@ const JobCardInfo: React.FC = () => {
 						`HTTP error! status: ${res.status}, message: ${errorText}`
 					);
 				}
-
 				const contentType = res.headers.get("content-type");
 				if (!contentType || !contentType.includes("application/json")) {
 					const text = await res.text();
@@ -955,7 +796,6 @@ const JobCardInfo: React.FC = () => {
 						)}`
 					);
 				}
-
 				const parsed = await res.json();
 				let rawData = [];
 				if (Array.isArray(parsed)) rawData = parsed;
@@ -993,7 +833,6 @@ const JobCardInfo: React.FC = () => {
 		fetchDepartments();
 	}, [epfNo]);
 
-	// Filter Departments Based on Search Inputs
 	useEffect(() => {
 		const f = data.filter(
 			(d) =>
@@ -1006,7 +845,6 @@ const JobCardInfo: React.FC = () => {
 		setPage(1);
 	}, [searchId, searchName, data]);
 
-	// Fetch Job Cards for Selected Department
 	const handleDepartmentSelect = async (department: Department) => {
 		if (!projectNo.trim()) {
 			toast.error("Please enter a valid project number.");
@@ -1039,7 +877,6 @@ const JobCardInfo: React.FC = () => {
 					`HTTP error! status: ${response.status}, message: ${errorText}`
 				);
 			}
-
 			const contentType = response.headers.get("content-type");
 			if (!contentType || !contentType.includes("application/json")) {
 				const text = await response.text();
@@ -1050,7 +887,6 @@ const JobCardInfo: React.FC = () => {
 					)}`
 				);
 			}
-
 			const result = await response.json();
 			let data: JobcardModel[] = [];
 			if (Array.isArray(result)) data = result;
@@ -1059,7 +895,6 @@ const JobCardInfo: React.FC = () => {
 				data = result.result;
 			else data = [];
 
-			console.log("Job Cards Fetched:", data);
 			setJobCards(data);
 			if (data.length === 0) {
 				toast.warn(
@@ -1081,7 +916,6 @@ const JobCardInfo: React.FC = () => {
 		}
 	};
 
-	// Clear Search Filters
 	const clearFilters = () => {
 		setSearchId("");
 		setSearchName("");
@@ -1092,7 +926,6 @@ const JobCardInfo: React.FC = () => {
 		page * pageSize
 	);
 
-	// Main UI Rendering
 	return (
 		<div
 			className="max-w-[95%] mx-auto p-2 md:p-4 bg-white rounded-xl shadow border border-gray-200 text-sm md:text-base font-sans relative ml-16 mt-8"

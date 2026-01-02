@@ -446,12 +446,14 @@ const ProvinceExpenditure: React.FC = () => {
 		const {grouped, areas} = groupDataByArea();
 		const totals = calculateTotals();
 
+		// Format number for CSV (no thousands separator, 2 decimals)
 		const formatNum = (num: number) => {
 			if (num === undefined || num === null || isNaN(num)) return "0.00";
 			if (num === 0) return "0.00";
 			return num.toFixed(2);
 		};
 
+		// Escape CSV field
 		const escape = (field: string | number): string => {
 			const str = String(field || "");
 			if (str.includes(",") || str.includes('"') || str.includes("\n")) {
@@ -460,7 +462,34 @@ const ProvinceExpenditure: React.FC = () => {
 			return str;
 		};
 
-		const csvRows = [
+		// Get category name function
+		const getCategoryName = (categoryCode: string): string => {
+			const categoryMap: Record<string, string> = {
+				TURNOVER: "TURNOVER",
+				"INTEREST INCOME": "INTEREST INCOME",
+				"OVERHEAD RECOVERIES": "OVERHEAD RECOVERIES",
+				"PROFIT/ LOSS ON DISPOSAL OF PPE": "PROFIT/LOSS ON DISPOSAL OF PPE",
+				"MICSELANIOUS INCOME": "MISCELLANEOUS INCOME",
+				"PERSONNEL EXPENSES": "PERSONNEL EXPENSES",
+				"MATERIAL COST": "MATERIAL COST",
+				"ACCOMMODATION EXPENSES": "ACCOMMODATION EXPENSES",
+				"TRANSPORT & COMMUNICATION EXPENSES":
+					"TRANSPORT & COMMUNICATION EXPENSES",
+				"ADMINISTRATIVE EXPENSES": "ADMINISTRATIVE EXPENSES",
+				DEPRECIATION: "DEPRECIATION",
+				"REPAIR & MAINTENANCE": "REPAIR & MAINTENANCE",
+				"UTILITY EXPENSES": "UTILITY EXPENSES",
+				"INSURANCE EXPENSES": "INSURANCE EXPENSES",
+				"PROFESSIONAL FEES": "PROFESSIONAL FEES",
+				"OTHER EXPENSES": "OTHER EXPENSES",
+				"FINANCE COST": "FINANCE COST",
+				"TAX EXPENSES": "TAX EXPENSES",
+			};
+			return categoryMap[categoryCode] || categoryCode;
+		};
+
+		const csvRows: string[][] = [
+			// Header section
 			[`Consolidated Income & Expenditure Provincial Statement`],
 			[`Period Ended: ${getMonthName(selectedMonth)} ${selectedYear}`],
 			[
@@ -468,10 +497,14 @@ const ProvinceExpenditure: React.FC = () => {
 			],
 			[`Generated: ${new Date().toLocaleString()}`],
 			[],
+
+			// Column headers with Category and Sub Category
 			[
 				"Account Code",
+				"Category",
+				"Sub Category",
 				"Description",
-				...areas.map((area) => `Area ${area}`),
+				...areas.map((area) => ` ${area}`),
 				"Company Total",
 			],
 		];
@@ -479,32 +512,55 @@ const ProvinceExpenditure: React.FC = () => {
 		const incomeKeys = Object.keys(grouped).filter(
 			(key) => grouped[key][0].CatFlag === "I"
 		);
-		if (incomeKeys.length > 0) {
-			csvRows.push([]);
-			csvRows.push(["INCOME"]);
 
-			incomeKeys.forEach((key) => {
+		// INCOME SECTION
+		if (incomeKeys.length > 0) {
+			csvRows.push(["", "", "", "", ...Array(areas.length + 1).fill("")]);
+
+			// Group income by category
+			const groupedIncome = incomeKeys.reduce((groups, key) => {
 				const items = grouped[key];
 				const firstItem = items[0];
-				const row = [
-					firstItem.Account.trim(),
-					escape(firstItem.CatName.trim()),
-				];
+				const category = firstItem.CatCode?.trim() || "UNCATEGORIZED";
+				if (!groups[category]) {
+					groups[category] = [];
+				}
+				groups[category].push({key, items, firstItem});
+				return groups;
+			}, {} as Record<string, Array<{key: string; items: IncomeExpenditureData[]; firstItem: IncomeExpenditureData}>>);
 
-				areas.forEach((area) => {
-					const areaItem = items.find((item) => item.AreaNum === area);
-					row.push(formatNum(areaItem?.Actual || 0));
+			// Add each category and its accounts
+			Object.entries(groupedIncome).forEach(([category, categoryItems]) => {
+				// Individual account rows
+				categoryItems.forEach(({items, firstItem}) => {
+					const row: string[] = [
+						firstItem.Account.trim(), // Account Code
+						"INCOME", // Category
+						getCategoryName(category), // Sub Category
+						escape(firstItem.CatName.trim()), // Description
+					];
+
+					// Add area columns
+					areas.forEach((area) => {
+						const areaItem = items.find((item) => item.AreaNum === area);
+						row.push(formatNum(areaItem?.Actual || 0));
+					});
+
+					// Add company total
+					const total = items.reduce((sum, item) => sum + item.Actual, 0);
+					row.push(formatNum(total));
+
+					csvRows.push(row);
 				});
-
-				const total = items.reduce((sum, item) => sum + item.Actual, 0);
-				row.push(formatNum(total));
-				csvRows.push(row);
 			});
 
+			// INCOME TOTAL
 			csvRows.push([]);
 			const totalIncomeRow = [
-				"",
 				"TOTAL INCOME",
+				"",
+				"",
+				"",
 				...areas.map((area) => formatNum(totals.incomeTotalsByArea[area])),
 				formatNum(totals.totalIncomeGrand),
 			];
@@ -515,32 +571,62 @@ const ProvinceExpenditure: React.FC = () => {
 			(key) =>
 				grouped[key][0].CatFlag === "E" || grouped[key][0].CatFlag === "X"
 		);
-		if (expenditureKeys.length > 0) {
-			csvRows.push([]);
-			csvRows.push(["EXPENDITURES"]);
 
-			expenditureKeys.forEach((key) => {
+		// EXPENDITURES SECTION
+		if (expenditureKeys.length > 0) {
+			csvRows.push(["", "", "", "", ...Array(areas.length + 1).fill("")]);
+
+			// Group expenditures by category
+			const groupedExpenditure = expenditureKeys.reduce((groups, key) => {
 				const items = grouped[key];
 				const firstItem = items[0];
-				const row = [
-					firstItem.Account.trim(),
-					escape(firstItem.CatName.trim()),
-				];
+				const category = firstItem.CatCode?.trim() || "UNCATEGORIZED";
+				if (!groups[category]) {
+					groups[category] = [];
+				}
+				groups[category].push({key, items, firstItem});
+				return groups;
+			}, {} as Record<string, Array<{key: string; items: IncomeExpenditureData[]; firstItem: IncomeExpenditureData}>>);
 
-				areas.forEach((area) => {
-					const areaItem = items.find((item) => item.AreaNum === area);
-					row.push(formatNum(areaItem?.Actual || 0));
-				});
+			// Add each category and its accounts
+			Object.entries(groupedExpenditure).forEach(
+				([category, categoryItems]) => {
+					// Individual account rows
+					categoryItems.forEach(({items, firstItem}) => {
+						const row: string[] = [
+							firstItem.Account.trim(), // Account Code
+							"EXPENDITURES", // Category
+							getCategoryName(category), // Sub Category
+							escape(firstItem.CatName.trim()), // Description
+						];
 
-				const total = items.reduce((sum, item) => sum + item.Actual, 0);
-				row.push(formatNum(total));
-				csvRows.push(row);
-			});
+						// Add area columns
+						areas.forEach((area) => {
+							const areaItem = items.find(
+								(item) => item.AreaNum === area
+							);
+							row.push(formatNum(areaItem?.Actual || 0));
+						});
 
+						// Add company total
+						const total = items.reduce(
+							(sum, item) => sum + item.Actual,
+							0
+						);
+						row.push(formatNum(total));
+
+						csvRows.push(row);
+					});
+				}
+			);
+
+			// EXPENDITURES TOTAL
 			csvRows.push([]);
 			const totalExpenditureRow = [
+				"TOTAL EXPENDITURES",
 				"",
-				"TOTAL EXPENDITURE",
+				"",
+				"",
 				...areas.map((area) =>
 					formatNum(totals.expenditureTotalsByArea[area])
 				),
@@ -549,24 +635,46 @@ const ProvinceExpenditure: React.FC = () => {
 			csvRows.push(totalExpenditureRow);
 		}
 
+		// NET TOTAL
 		csvRows.push([]);
 		const netTotalRow = [
-			"",
 			"NET TOTAL",
+			"",
+			"",
+			"",
 			...areas.map((area) => formatNum(totals.netTotalsByArea[area])),
 			formatNum(totals.netTotalGrand),
 		];
 		csvRows.push(netTotalRow);
 
+		// SUMMARY SECTION
 		csvRows.push([]);
 		csvRows.push(["SUMMARY"]);
-		csvRows.push(["Total Income", formatNum(totals.totalIncomeGrand)]);
 		csvRows.push([
+			"INCOME",
+			"Total Income",
+	
+			formatNum(totals.totalIncomeGrand),
+		]);
+		csvRows.push([
+			"EXPENDITURES",
 			"Total Expenditure",
+			
 			formatNum(totals.totalExpenditureGrand),
 		]);
-		csvRows.push(["Net Total", formatNum(totals.netTotalGrand)]);
-		csvRows.push(["Number of Areas", areas.length.toString()]);
+		csvRows.push([
+			"NET TOTAL",
+			"Net Total",
+			
+			formatNum(totals.netTotalGrand),
+		]);
+		csvRows.push([
+			"",
+			`Number of Areas: ${areas.length}`,
+			
+			...Array(areas.length).fill(""),
+			"",
+		]);
 		csvRows.push([]);
 		csvRows.push([`CEB@${new Date().getFullYear()}`]);
 
@@ -592,6 +700,30 @@ const ProvinceExpenditure: React.FC = () => {
 		const printWindow = window.open("", "_blank");
 		if (!printWindow) return;
 
+		// Calculate dynamic font sizing based on number of areas
+		const totalColumns = 2 + areas.length + 1; // Account + Description + Areas + Total
+		const baseFontSize = 10;
+		const maxColumnsPerPage = 8; // Adjust this based on your preference
+
+		let fontSize = baseFontSize;
+		let tableFontSize = baseFontSize;
+		let paddingSize = "4px";
+
+		if (totalColumns > maxColumnsPerPage) {
+			// Scale down font size for more columns
+			const scaleFactor = maxColumnsPerPage / totalColumns;
+			fontSize = Math.max(6, baseFontSize * scaleFactor * 0.8); // Minimum 6px
+			tableFontSize = Math.max(5, baseFontSize * scaleFactor * 0.7);
+			paddingSize = "2px";
+
+			// Further reduce if still too many columns
+			if (totalColumns > 12) {
+				fontSize = Math.max(5, fontSize * 0.8);
+				tableFontSize = Math.max(4, tableFontSize * 0.8);
+				paddingSize = "1px";
+			}
+		}
+
 		let tableRowsHTML = "";
 
 		const incomeKeys = Object.keys(grouped).filter(
@@ -605,9 +737,7 @@ const ProvinceExpenditure: React.FC = () => {
 		if (incomeKeys.length > 0) {
 			tableRowsHTML += `
         <tr class="category-header">
-          <td colspan="${
-					3 + areas.length
-				}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">INCOME</td>
+          <td colspan="${totalColumns}" style="text-align: left; font-weight: bold; background-color: #f5f5f5; color: #7A0000; padding: ${paddingSize}; border: 1px solid #ddd; font-size: ${fontSize}px;">INCOME</td>
         </tr>
       `;
 
@@ -616,14 +746,14 @@ const ProvinceExpenditure: React.FC = () => {
 				const firstItem = items[0];
 				tableRowsHTML += `
           <tr>
-            <td style="padding: 4px; border: 1px solid #ddd; font-family: monospace; font-size: 10px;">${firstItem.Account.trim()}</td>
-            <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px;">${firstItem.CatName.trim()}</td>
+            <td style="padding: ${paddingSize}; border: 1px solid #ddd; font-family: monospace; font-size: ${tableFontSize}px;">${firstItem.Account.trim()}</td>
+            <td style="padding: ${paddingSize}; border: 1px solid #ddd; font-size: ${tableFontSize}px;">${firstItem.CatName.trim()}</td>
         `;
 
 				areas.forEach((area) => {
 					const areaItem = items.find((item) => item.AreaNum === area);
 					tableRowsHTML += `
-            <td style="padding: 4px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-size: 10px;">
+            <td style="padding: ${paddingSize}; border: 1px solid #ddd; text-align: right; font-family: monospace; font-size: ${tableFontSize}px;">
               ${formatNumber(areaItem?.Actual || 0)}
             </td>
           `;
@@ -631,7 +761,7 @@ const ProvinceExpenditure: React.FC = () => {
 
 				const total = items.reduce((sum, item) => sum + item.Actual, 0);
 				tableRowsHTML += `
-            <td style="padding: 4px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: 10px;">
+            <td style="padding: ${paddingSize}; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px;">
               ${formatNumber(total)}
             </td>
           </tr>
@@ -640,18 +770,18 @@ const ProvinceExpenditure: React.FC = () => {
 
 			tableRowsHTML += `
         <tr style="background-color: #f0f0f0; font-weight: bold;">
-          <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px;"></td>
-          <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px; font-weight: bold;">TOTAL INCOME</td>
+          <td style="padding: ${paddingSize}; border: 1px solid #ddd; font-size: ${tableFontSize}px;"></td>
+          <td style="padding: ${paddingSize}; border: 1px solid #ddd; font-size: ${tableFontSize}px; font-weight: bold;">TOTAL INCOME</td>
       `;
 			areas.forEach((area) => {
 				tableRowsHTML += `
-          <td style="padding: 4px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: 10px;">
+          <td style="padding: ${paddingSize}; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px;">
             ${formatNumber(totals.incomeTotalsByArea[area])}
           </td>
         `;
 			});
 			tableRowsHTML += `
-          <td style="padding: 4px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: 10px;">
+          <td style="padding: ${paddingSize}; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px;">
             ${formatNumber(totals.totalIncomeGrand)}
           </td>
         </tr>
@@ -661,9 +791,7 @@ const ProvinceExpenditure: React.FC = () => {
 		if (expenditureKeys.length > 0) {
 			tableRowsHTML += `
         <tr class="category-header">
-          <td colspan="${
-					3 + areas.length
-				}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">EXPENDITURES</td>
+          <td colspan="${totalColumns}" style="text-align: left; font-weight: bold; background-color: #f5f5f5; color: #7A0000; padding: ${paddingSize}; border: 1px solid #ddd; font-size: ${fontSize}px;">EXPENDITURES</td>
         </tr>
       `;
 
@@ -672,14 +800,14 @@ const ProvinceExpenditure: React.FC = () => {
 				const firstItem = items[0];
 				tableRowsHTML += `
           <tr>
-            <td style="padding: 4px; border: 1px solid #ddd; font-family: monospace; font-size: 10px;">${firstItem.Account.trim()}</td>
-            <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px;">${firstItem.CatName.trim()}</td>
+            <td style="padding: ${paddingSize}; border: 1px solid #ddd; font-family: monospace; font-size: ${tableFontSize}px;">${firstItem.Account.trim()}</td>
+            <td style="padding: ${paddingSize}; border: 1px solid #ddd; font-size: ${tableFontSize}px;">${firstItem.CatName.trim()}</td>
         `;
 
 				areas.forEach((area) => {
 					const areaItem = items.find((item) => item.AreaNum === area);
 					tableRowsHTML += `
-            <td style="padding: 4px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-size: 10px;">
+            <td style="padding: ${paddingSize}; border: 1px solid #ddd; text-align: right; font-family: monospace; font-size: ${tableFontSize}px;">
               ${formatNumber(areaItem?.Actual || 0)}
             </td>
           `;
@@ -687,7 +815,7 @@ const ProvinceExpenditure: React.FC = () => {
 
 				const total = items.reduce((sum, item) => sum + item.Actual, 0);
 				tableRowsHTML += `
-            <td style="padding: 4px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: 10px;">
+            <td style="padding: ${paddingSize}; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px;">
               ${formatNumber(total)}
             </td>
           </tr>
@@ -696,18 +824,18 @@ const ProvinceExpenditure: React.FC = () => {
 
 			tableRowsHTML += `
         <tr style="background-color: #f0f0f0; font-weight: bold;">
-          <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px;"></td>
-          <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px; font-weight: bold;">TOTAL EXPENDITURE</td>
+          <td style="padding: ${paddingSize}; border: 1px solid #ddd; font-size: ${tableFontSize}px;"></td>
+          <td style="padding: ${paddingSize}; border: 1px solid #ddd; font-size: ${tableFontSize}px; font-weight: bold;">TOTAL EXPENDITURE</td>
       `;
 			areas.forEach((area) => {
 				tableRowsHTML += `
-          <td style="padding: 4px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: 10px;">
+          <td style="padding: ${paddingSize}; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px;">
             ${formatNumber(totals.expenditureTotalsByArea[area])}
           </td>
         `;
 			});
 			tableRowsHTML += `
-          <td style="padding: 4px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: 10px;">
+          <td style="padding: ${paddingSize}; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px;">
             ${formatNumber(totals.totalExpenditureGrand)}
           </td>
         </tr>
@@ -715,23 +843,30 @@ const ProvinceExpenditure: React.FC = () => {
 		}
 
 		tableRowsHTML += `
-      <tr style="background-color: #e0e0e0; font-weight: bold; border-top: 2px solid #7A0000;">
-        <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px;"></td>
-        <td style="padding: 4px; border: 1px solid #ddd; font-size: 10px; font-weight: bold;">NET TOTAL</td>
+      <tr style="background-color: #e0e0e0; font-weight: bold; border-top: 2px solid #ddd;">
+        <td style="padding: ${paddingSize}; border: 1px solid #ddd; font-size: ${tableFontSize}px;"></td>
+        <td style="padding: ${paddingSize}; border: 1px solid #ddd; font-size: ${tableFontSize}px; font-weight: bold;">NET TOTAL</td>
     `;
 		areas.forEach((area) => {
 			tableRowsHTML += `
-        <td style="padding: 4px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: 10px;">
+        <td style="padding: ${paddingSize}; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px;">
           ${formatNumber(totals.netTotalsByArea[area])}
         </td>
       `;
 		});
 		tableRowsHTML += `
-        <td style="padding: 4px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: 10px;">
+        <td style="padding: ${paddingSize}; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; font-size: ${tableFontSize}px;">
           ${formatNumber(totals.netTotalGrand)}
         </td>
       </tr>
     `;
+
+		// Dynamic column widths calculation
+		const accountWidth = 80;
+		const descriptionWidth = 200;
+		const totalWidth = 80;
+		const remainingWidth = 800 - accountWidth - descriptionWidth - totalWidth;
+		const areaColumnWidth = Math.floor(remainingWidth / areas.length);
 
 		const htmlContent = `
       <!DOCTYPE html>
@@ -743,67 +878,99 @@ const ProvinceExpenditure: React.FC = () => {
         <style>
           body {
             font-family: Arial, sans-serif;
-            margin: 15px;
-            font-size: 10px;
+            margin: 10px;
+            font-size: ${fontSize}px;
             color: #333;
+            line-height: 1.2;
           }
           .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             border-bottom: 2px solid #7A0000;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
           }
           .header h1 {
             color: #7A0000;
-            font-size: 14px;
-            margin: 0;
+            font-size: ${Math.max(12, fontSize + 2)}px;
+            margin: 0 0 5px 0;
             font-weight: bold;
           }
-          
           .header h2 {
             color: #7A0000;
-            font-size: 12px;
-            margin: 5px 0;
+            font-size: ${Math.max(10, fontSize)}px;
+            margin: 3px 0;
+            font-weight: bold;
           }
-          
+          .header-info {
+            font-size: ${Math.max(8, fontSize - 1)}px;
+            color: #666;
+            margin-top: 5px;
+          }
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
-            font-size: 9px;
+            margin-bottom: 15px;
+            font-size: ${tableFontSize}px;
+            table-layout: fixed;
           }
           th {
             background-color: #7A0000;
-            color: white;
             font-weight: bold;
             text-align: center;
-            padding: 6px 4px;
-            border: 1px solid #7A0000;
-            font-size: 9px;
+            padding: ${paddingSize};
+            border: 1px solid #ddd;
+            font-size: ${tableFontSize}px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
           td {
-            padding: 3px 4px;
+            padding: ${paddingSize};
             border: 1px solid #ddd;
-            font-size: 9px;
+            font-size: ${tableFontSize}px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
+          .account-col { width: ${accountWidth}px; }
+          .description-col { width: ${descriptionWidth}px; }
+          .area-col { width: ${areaColumnWidth}px; }
+          .total-col { width: ${totalWidth}px; }
           .footer {
-            margin-top: 20px;
+            margin-top: 25px;
             text-align: center;
-            font-size: 8px;
-            color: #666;
+            font-size: ${Math.max(7, tableFontSize - 1)}px;
           }
           @media print {
-            body { margin: 0; font-size: 8px; }
-            table { font-size: 8px; }
-            th, td { padding: 2px; }
+            body { 
+              margin: 0.5cm; 
+              font-size: ${tableFontSize}px;
+            }
+            table { 
+              font-size: ${tableFontSize}px; 
+              page-break-inside: auto;
+            }
+            th, td { 
+              padding: ${paddingSize}; 
+              font-size: ${tableFontSize}px;
+            }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            .header { page-break-inside: avoid; }
             @page {
-                @bottom-left { content: "Printed on: ${new Date().toLocaleString(
-							"en-US",
-							{
-								timeZone: "Asia/Colombo",
-							}
-						)}"; font-size: 0.75rem; color: gray; }
-                @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 0.75rem; color: gray; }
+              size: A4 landscape;
+              margin: 0.5cm;
+              @bottom-left { 
+                content: "Printed on: ${new Date().toLocaleString("en-US", {
+							timeZone: "Asia/Colombo",
+						})}"; 
+                font-size: ${Math.max(6, tableFontSize - 2)}px; 
+                color: gray; 
+              }
+              @bottom-right { 
+                content: "Page " counter(page) " of " counter(pages); 
+                font-size: ${Math.max(6, tableFontSize - 2)}px; 
+                color: gray; 
+              }
             }
           }
         </style>
@@ -819,17 +986,15 @@ const ProvinceExpenditure: React.FC = () => {
         <table>
           <thead>
             <tr>
-              <th style="width: 10%;">Account</th>
-              <th style="width: 25%;">Description</th>
+              <th class="account-col">Account</th>
+              <th class="description-col">Description</th>
               ${areas
 						.map(
 							(area) =>
-								`<th style="width: ${Math.floor(
-									60 / areas.length
-								)}%;">Area ${area}</th>`
+								`<th class="area-col" title="Area ${area}">${area}</th>`
 						)
 						.join("")}
-              <th style="width: 10%;">Total</th>
+              <th class="total-col">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -838,7 +1003,7 @@ const ProvinceExpenditure: React.FC = () => {
         </table>
         <div class="footer">
           <p>Prepared By: _________________ | Checked By: _________________ | Accountant: _________________</p>
-          <p>Date: ${new Date().toLocaleDateString()}</p>
+          
         </div>
       </body>
       </html>
@@ -849,6 +1014,7 @@ const ProvinceExpenditure: React.FC = () => {
 
 		printWindow.onload = () => {
 			printWindow.print();
+			// Keep window open for review
 			printWindow.close();
 		};
 	};
@@ -929,7 +1095,7 @@ const ProvinceExpenditure: React.FC = () => {
 								</div>
 
 								<h3 className="text-lg font-medium text-gray-700 mb-2">
-									No Financial Data Available
+									No Data Available
 								</h3>
 								<p className="text-gray-500 text-center max-w-md">
 									We couldn't find any province income or expenditure
@@ -988,7 +1154,7 @@ const ProvinceExpenditure: React.FC = () => {
 														key={area}
 														className="px-2 py-1 text-right min-w-[100px]"
 													>
-														Area {area}
+														{area}
 													</th>
 												))}
 												<th className="px-2 py-1 text-right font-bold min-w-[100px]">

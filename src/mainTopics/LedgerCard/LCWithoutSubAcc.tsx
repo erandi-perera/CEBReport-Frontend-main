@@ -1,5 +1,5 @@
-import React, {useState, useRef, JSX} from "react";
-import {Eye, X, Download, Printer, RotateCcw} from "lucide-react";
+import React, {useState, useRef, useEffect, JSX} from "react";
+import {Eye, X, Download, Printer, RotateCcw, ChevronDown} from "lucide-react";
 import {toast} from "react-toastify";
 
 interface LedgerCardItem {
@@ -27,7 +27,6 @@ interface LedgerCardItem {
 const formatNumber = (num: number | string | null | undefined): string => {
 	const n = num === null || num === undefined ? NaN : Number(num);
 	if (isNaN(n)) return "0.00";
-	
 
 	const abs = Math.abs(n);
 	const formatted = abs.toLocaleString("en-US", {
@@ -38,11 +37,107 @@ const formatNumber = (num: number | string | null | undefined): string => {
 	return n < 0 ? `(${formatted})` : formatted;
 };
 
-const LedgerCardReport: React.FC = () => {
+/* ────── Reusable Dropdown with Portal-like positioning ────── */
+const CustomDropdown = <T,>({
+	label,
+	value,
+	options,
+	onSelect,
+	open,
+	setOpen,
+	displayFn,
+	className = "",
+}: {
+	label: string;
+	value: T | undefined;
+	options: T[];
+	onSelect: (val: T) => void;
+	open: boolean;
+	setOpen: (v: boolean) => void;
+	displayFn: (v: T) => string;
+	className?: string;
+}) => {
+	const btnRef = useRef<HTMLButtonElement>(null);
+	const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+
+	useEffect(() => {
+		if (open && btnRef.current) {
+			const rect = btnRef.current.getBoundingClientRect();
+			const viewportHeight = window.innerHeight;
+			const spaceBelow = viewportHeight - rect.bottom;
+			const dropdownHeight = Math.min(240, options.length * 40);
+
+			setDropdownStyle({
+				position: "fixed",
+				top:
+					spaceBelow >= dropdownHeight
+						? rect.bottom + 4
+						: rect.top - dropdownHeight - 4,
+				left: rect.left,
+				width: rect.width,
+				zIndex: 9999,
+			});
+		}
+	}, [open, options.length]);
+
+	return (
+		<>
+			<div className={className}>
+				<label
+					className={`block text-xs md:text-sm font-bold text-[#7A0000] mb-1`}
+				>
+					{label}
+				</label>
+				<button
+					ref={btnRef}
+					type="button"
+					onClick={() => setOpen(!open)}
+					className="w-full flex justify-between items-center pl-3 pr-2 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-xs md:text-sm text-gray-900 bg-white"
+				>
+					<span className={value === undefined ? "text-gray-400" : ""}>
+						{value !== undefined ? displayFn(value) : `Select ${label}`}
+					</span>
+					<ChevronDown
+						className={`w-4 h-4 text-gray-400 transition-transform ${
+							open ? "rotate-180" : ""
+						}`}
+					/>
+				</button>
+			</div>
+
+			{open && (
+				<div
+					className="bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+					style={dropdownStyle}
+				>
+					{options.map((opt) => (
+						<button
+							key={String(opt)}
+							type="button"
+							onClick={() => {
+								onSelect(opt);
+								setOpen(false);
+							}}
+							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+								value === opt
+									? "bg-[#7A0000] text-white"
+									: "text-gray-700"
+							}`}
+						>
+							{displayFn(opt)}
+						</button>
+					))}
+				</div>
+			)}
+		</>
+	);
+};
+
+const LCWithoutSubAcc: React.FC = () => {
 	const [ledgerCode, setLedgerCode] = useState("");
-	const [year, setYear] = useState(""); // No default current year
-	const [startMonth, setStartMonth] = useState(""); // No default
-	const [endMonth, setEndMonth] = useState(""); // No default
+	const [year, setYear] = useState<number | undefined>(undefined);
+	const [startMonth, setStartMonth] = useState<number | undefined>(undefined);
+	const [endMonth, setEndMonth] = useState<number | undefined>(undefined);
 	const [data, setData] = useState<LedgerCardItem[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -55,35 +150,93 @@ const LedgerCardReport: React.FC = () => {
 	>({});
 	const iframeRef = useRef<HTMLIFrameElement>(null);
 
+	// Dropdown states
+	const [yearOpen, setYearOpen] = useState(false);
+	const [startMonthOpen, setStartMonthOpen] = useState(false);
+	const [endMonthOpen, setEndMonthOpen] = useState(false);
+
+	// Close other dropdowns when one opens
+	const handleYearOpen = (val: boolean) => {
+		if (val) {
+			setStartMonthOpen(false);
+			setEndMonthOpen(false);
+		}
+		setYearOpen(val);
+	};
+
+	const handleStartMonthOpen = (val: boolean) => {
+		if (val) {
+			setYearOpen(false);
+			setEndMonthOpen(false);
+		}
+		setStartMonthOpen(val);
+	};
+
+	const handleEndMonthOpen = (val: boolean) => {
+		if (val) {
+			setYearOpen(false);
+			setStartMonthOpen(false);
+		}
+		setEndMonthOpen(val);
+	};
+
 	const maroon = "text-[#7A0000]";
 	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
 	const currentYear = new Date().getFullYear();
-	const minYear = currentYear - 20;
+	const years = Array.from({length: 21}, (_, i) => currentYear - i);
+	const months = Array.from({length: 12}, (_, i) => i + 1);
+
+	const getMonthName = (m: number) => {
+		const names = [
+			"January",
+			"February",
+			"March",
+			"April",
+			"May",
+			"June",
+			"July",
+			"August",
+			"September",
+			"October",
+			"November",
+			"December",
+		];
+		return `${m} - ${names[m - 1]}`;
+	};
+
+	// Close all dropdowns when clicking outside
+	useEffect(() => {
+		const handleOutsideClick = (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			if (
+				!target.closest("button") &&
+				!target.closest("[style*='position: fixed']")
+			) {
+				setYearOpen(false);
+				setStartMonthOpen(false);
+				setEndMonthOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handleOutsideClick);
+		return () =>
+			document.removeEventListener("mousedown", handleOutsideClick);
+	}, []);
 
 	const handleViewClick = async () => {
 		if (!ledgerCode.trim()) {
 			toast.error("Please enter Ledger Code.");
 			return;
 		}
-		if (!year || isNaN(+year)) {
-			toast.error("Please enter a valid year.");
+		if (!year) {
+			toast.error("Please select a Year.");
 			return;
 		}
 		if (!startMonth || !endMonth) {
 			toast.error("Please select both Start and End Month.");
 			return;
 		}
-		if (
-			+startMonth < 1 ||
-			+startMonth > 12 ||
-			+endMonth < 1 ||
-			+endMonth > 12
-		) {
-			toast.error("Months must be between 1 and 12.");
-			return;
-		}
-		if (+endMonth < +startMonth) {
+		if (endMonth < startMonth) {
 			toast.error("End Month cannot be before Start Month.");
 			return;
 		}
@@ -97,7 +250,9 @@ const LedgerCardReport: React.FC = () => {
 			const response = await fetch(
 				`/misapi/api/ledgercard/report/${encodeURIComponent(
 					ledgerCode.trim()
-				)}/${year}/${startMonth}/${endMonth}`,
+				)}/${year}/${startMonth.toString().padStart(2, "0")}/${endMonth
+					.toString()
+					.padStart(2, "0")}`,
 				{
 					method: "GET",
 					headers: {
@@ -140,10 +295,7 @@ const LedgerCardReport: React.FC = () => {
 				acc[subAc].dr += dr;
 				acc[subAc].cr += cr;
 				acc[subAc].runningTotal += dr - cr;
-				acc[subAc].entries.push({
-					...item,
-					runningTotal: acc[subAc].runningTotal,
-				});
+				acc[subAc].entries.push({...item});
 
 				return acc;
 			}, {} as Record<string, any>);
@@ -181,9 +333,9 @@ const LedgerCardReport: React.FC = () => {
 
 	const clearFilters = () => {
 		setLedgerCode("");
-		setYear("");
-		setStartMonth("");
-		setEndMonth("");
+		setYear(undefined);
+		setStartMonth(undefined);
+		setEndMonth(undefined);
 		setData([]);
 		setShowReport(false);
 	};
@@ -255,7 +407,7 @@ const LedgerCardReport: React.FC = () => {
           <td class="p-1 border border-gray-300 text-left text-xs">${
 					item.DocPf || ""
 				}</td>
-          <td class="p-1 border border-gray-300 text-left text-xs" style="word-wrap: break-word; word-break: break-word;">${
+          <td class="p-1 border border-gray-300 text-left text-xs" style="word-wrap: break-word;">${
 					item.DocNo || ""
 				}</td>
           <td class="p-1 border border-gray-300 text-left text-xs" style="word-wrap: break-word; word-break: break-word;">${
@@ -264,17 +416,17 @@ const LedgerCardReport: React.FC = () => {
           <td class="p-1 border border-gray-300 text-center text-xs">${
 					item.AcctDt ? new Date(item.AcctDt).toLocaleDateString() : ""
 				}</td>
-          <td class="p-1 border border-gray-300 text-left text-xs" style="word-wrap: break-word; word-break: break-word;">${
+          <td class="p-1 border border-gray-300 text-left text-xs">${
 					item.Ref1 || ""
 				}</td>
           <td class="p-1 border border-gray-300 text-left text-xs">${
 					item.ChqNo || ""
 				}</td>
           <td class="p-1 border border-gray-300 text-right font-mono text-xs">${formatNumber(
-					item.DrAmt
+					dr
 				)}</td>
           <td class="p-1 border border-gray-300 text-right font-mono text-xs">${formatNumber(
-					item.CrAmt
+					cr
 				)}</td>
           <td class="p-1 border border-gray-300 text-right font-mono text-xs">${formatNumber(
 					subAcRunning
@@ -355,10 +507,11 @@ const LedgerCardReport: React.FC = () => {
         </head>
         <body>
           <div class="print-header">
-            <h2>Ledger Card - Details ${startMonth.padStart(
-					2,
-					"0"
-				)}/${year} to ${endMonth.padStart(2, "0")}/${year}</h2>
+            <h2>Ledger Card - Details ${startMonth
+					?.toString()
+					.padStart(2, "0")}/${year} to ${endMonth
+			?.toString()
+			.padStart(2, "0")}/${year}</h2>
           </div>
           <div class="print-summary">
             <p><span class="font-bold">Cost Centre :</span> ${
@@ -390,7 +543,7 @@ const LedgerCardReport: React.FC = () => {
           </table>
           <p class="font-bold" style="margin: 10px 0;">
             Closing Balance: ${formatNumber(firstItem.GLClosingBalance)}
-          </p> 
+          </p>
           <div style="margin-top: 30px; display: flex; justify-content: space-between; padding: 0 20px; font-size: 10px;">
             <div>Prepared By: ____________________</div>
             <div>Checked By: ____________________</div>
@@ -460,8 +613,8 @@ const LedgerCardReport: React.FC = () => {
 
 		const csvContent = [
 			`Ledger Card - ${startMonth}/${year} to ${endMonth}/${year}`,
-			`GL Code: ${data[0].GlCd} - ${data[0].AcName}`,
-			`Cost Centre: ${data[0].CctName}`,
+			`GL Code: ${data[0].GlCd} - ${data[0].AcName || "N/A"}`,
+			`Cost Centre: ${data[0].CctName || "N/A"}`,
 			`"Opening Balance: ${formatNumber(data[0].GLOpeningBalance)}"`,
 			`Currency: LKR`,
 			"",
@@ -503,64 +656,35 @@ const LedgerCardReport: React.FC = () => {
 					/>
 				</div>
 
-				<div>
-					<label
-						className={`block text-xs md:text-sm font-bold ${maroon} mb-1`}
-					>
-						Year
-					</label>
-					<input
-						type="number"
-						value={year}
-						min={minYear}
-						max={currentYear}
-						onChange={(e) => setYear(e.target.value)}
-						placeholder="Enter Year"
-						className="w-full pl-3 pr-2 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-xs md:text-sm"
-					/>
-				</div>
+				<CustomDropdown
+					label="Year"
+					value={year}
+					options={years}
+					open={yearOpen}
+					setOpen={handleYearOpen}
+					onSelect={setYear}
+					displayFn={(y) => String(y)}
+				/>
 
-				<div>
-					<label
-						className={`block text-xs md:text-sm font-bold ${maroon} mb-1`}
-					>
-						Start Month
-					</label>
-					<select
-						value={startMonth}
-						onChange={(e) => setStartMonth(e.target.value)}
-						className="w-full pl-3 pr-2 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-xs md:text-sm"
-					>
-						<option value="">Select Start Month</option>
-						{Array.from({length: 12}, (_, i) => (
-							<option key={i + 1} value={i + 1}>
-								{i + 1} -{" "}
-								{new Date(0, i).toLocaleString("en", {month: "long"})}
-							</option>
-						))}
-					</select>
-				</div>
+				<CustomDropdown
+					label="Start Month"
+					value={startMonth}
+					options={months}
+					open={startMonthOpen}
+					setOpen={handleStartMonthOpen}
+					onSelect={setStartMonth}
+					displayFn={getMonthName}
+				/>
 
-				<div>
-					<label
-						className={`block text-xs md:text-sm font-bold ${maroon} mb-1`}
-					>
-						End Month
-					</label>
-					<select
-						value={endMonth}
-						onChange={(e) => setEndMonth(e.target.value)}
-						className="w-full pl-3 pr-2 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7A0000] text-xs md:text-sm"
-					>
-						<option value="">Select End Month</option>
-						{Array.from({length: 12}, (_, i) => (
-							<option key={i + 1} value={i + 1}>
-								{i + 1} -{" "}
-								{new Date(0, i).toLocaleString("en", {month: "long"})}
-							</option>
-						))}
-					</select>
-				</div>
+				<CustomDropdown
+					label="End Month"
+					value={endMonth}
+					options={months}
+					open={endMonthOpen}
+					setOpen={handleEndMonthOpen}
+					onSelect={setEndMonth}
+					displayFn={getMonthName}
+				/>
 			</div>
 
 			<div className="flex flex-wrap gap-2 mb-4 justify-end">
@@ -596,7 +720,18 @@ const LedgerCardReport: React.FC = () => {
 
 			{showReport && data.length > 0 && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/90 print:static print:inset-auto print:p-0 print:bg-white">
-					<div className="relative bg-white w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw] max-w-7xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mt-20 md:mt-32 lg:mt-40 lg:ml-64 mx-auto print:relative print:w-full print:max-w-none print:rounded-none print:shadow-none print:border-none print:overflow-visible">
+					<div
+						className="
+              relative bg-white
+              w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw]
+              max-w-7xl
+              rounded-2xl shadow-2xl border border-gray-200 overflow-hidden
+              mt-20 md:mt-32 lg:mt-40 lg:ml-64
+              mx-auto
+              print:relative print:w-full print:max-w-none print:rounded-none
+              print:shadow-none print:border-none print:overflow-visible print-container
+            "
+					>
 						<div className="p-2 md:p-2 max-h-[80vh] overflow-y-auto print:p-0 print:max-h-none print:overflow-visible print:mt-10 print:ml-12">
 							<div className="flex justify-end gap-3 mb-6 md:mb-8 print:hidden">
 								<button
@@ -619,7 +754,6 @@ const LedgerCardReport: React.FC = () => {
 								</button>
 							</div>
 
-							{/* Report Content */}
 							<h2
 								className={`text-xl font-bold text-center mb-4 ${maroon}`}
 							>
@@ -627,11 +761,11 @@ const LedgerCardReport: React.FC = () => {
 								{year}
 							</h2>
 
-							<div className="grid grid-cols-1 md:grid-cols-2 text-sm mb-2">
+							<div className="grid grid-cols-1 md:grid-cols-2 text-sm mb-4">
 								<div>
 									<p>
 										<span className="font-bold">Cost Center :</span>{" "}
-										{data[0].CctName}
+										{data[0].CctName || "N/A"}
 									</p>
 									<p>
 										<span className="font-bold">
@@ -646,30 +780,18 @@ const LedgerCardReport: React.FC = () => {
 							</div>
 
 							<div className="overflow-x-auto border rounded-lg">
-								<table className="w-full text-xs border-collapse table-fixed min-w-[800px]">
+								<table className="w-full text-xs border-collapse table-fixed min-w-[1000px]">
 									<thead className={`${maroonGrad} text-white`}>
 										<tr>
-											<th className="px-2 py-1.5 w-[10%]">
-												Document No
-											</th>
-											<th className="px-2 py-1.5 w-[20%]">
-												Remarks
-											</th>
-											<th className="px-2 py-1.5 w-[10%]">
-												Acct. Date
-											</th>
-											<th className="px-2 py-1.5 w-[15%]">
+											<th className="px-2 py-1.5">Document No</th>
+											<th className="px-2 py-1.5">Remarks</th>
+											<th className="px-2 py-1.5">Acct. Date</th>
+											<th className="px-2 py-1.5">
 												Reference 1 / Cheque No
 											</th>
-											<th className="px-2 py-1.5 w-[12%]">
-												Dr Amount
-											</th>
-											<th className="px-2 py-1.5 w-[12%]">
-												Cr Amount
-											</th>
-											<th className="px-2 py-1.5 w-[13%]">
-												Running Total
-											</th>
+											<th className="px-2 py-1.5">Dr Amount</th>
+											<th className="px-2 py-1.5">Cr Amount</th>
+											<th className="px-2 py-1.5">Running Total</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -686,16 +808,15 @@ const LedgerCardReport: React.FC = () => {
 												const cr = item.CrAmt || 0;
 
 												if (isNewSubAc) {
-													if (currentSubAc) {
+													if (currentSubAc)
 														rows.push(
 															<tr key={`spacer-${currentSubAc}`}>
 																<td
 																	colSpan={7}
-																	className="h-6"
+																	className="h-4"
 																/>
 															</tr>
 														);
-													}
 													currentSubAc = item.SubAc || "";
 													opening =
 														subAccountTotals[currentSubAc]
@@ -716,8 +837,10 @@ const LedgerCardReport: React.FC = () => {
 																	colSpan={7}
 																	className="px-2 py-1"
 																>
-																	Sub Account: {item.AcName1} |
-																	Opening Balance:{" "}
+																	Sub Account:{" "}
+																	{item.AcName1 ||
+																		currentSubAc}{" "}
+																	| Opening Balance:{" "}
 																	{formatNumber(opening)}
 																</td>
 															</tr>
@@ -840,4 +963,4 @@ const LedgerCardReport: React.FC = () => {
 	);
 };
 
-export default LedgerCardReport;
+export default LCWithoutSubAcc;

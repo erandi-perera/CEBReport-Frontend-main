@@ -1,41 +1,40 @@
 import {useState, useEffect} from "react";
 import {data as sidebarData} from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
-import CostCenterIncomeExpenditure from "../mainTopics/IncomeExpenditure/CostCenterIncomeExpenditure";
-import ProvinceExpenditure from "../mainTopics/IncomeExpenditure/ProvinceExpenditure";
-import RegionExpenditure from "../mainTopics/IncomeExpenditure/RegionExpenditure";
+import CashBookDetailsReport from "../mainTopics/CashBook/CashBookDetailsReport";
+import CashBookCCReport from "../mainTopics/CashBook/CashBookCCReport";
+import DocumentInquiry from "../mainTopics/CashBook/DocumentInquiry";
 
 type Subtopic = {
 	id: number;
 	name: string;
 };
 
-const IncomeExpenditure = () => {
+const CashBookDetails = () => {
 	const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
 	const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
 	useEffect(() => {
-		// Get Income Expenditure topic's subtopics directly from sidebarData
-		const topic = sidebarData.find(
-			(topic) => topic.name === "Income & Expenditure"
+		const cashBookTopic = sidebarData.find(
+			(topic) => topic.name === "Cash Book"
 		);
-		if (topic) {
-			setSubtopics(topic.subtopics);
+		if (cashBookTopic) {
+			setSubtopics(cashBookTopic.subtopics);
 		}
 	}, []);
 
 	const toggleCard = (id: number) => {
-		setExpandedCard(expandedCard === id ? null : id);
+		setExpandedCard((prev) => (prev === id ? null : id));
 	};
 
 	const renderSubtopicContent = (subtopicName: string) => {
 		switch (subtopicName) {
-			case "Cost Center Wise Income & Expenditure":
-				return <CostCenterIncomeExpenditure />;
-			case "Province Wise Income & Expenditure":
-				return <ProvinceExpenditure />;
-			case "Region Wise Income & Expenditure":
-				return <RegionExpenditure />;
+			case "Selected Payee Within Date Range":
+				return <CashBookDetailsReport />;
+			case "Cost Center Wise Selected Payee Within Date Range":
+				return <CashBookCCReport />;
+			case "Cost Center Wise Document Inquiry Cash Book With Cheque Details":
+				return <DocumentInquiry />;
 			default:
 				return (
 					<div className="text-red-500 text-xs">
@@ -46,7 +45,7 @@ const IncomeExpenditure = () => {
 	};
 
 	return (
-		<div className="flex flex-col gap-4 pt-5">
+		<div className="flex flex-col gap-4 pt-4 px-10">
 			{subtopics.map((subtopic) => (
 				<SubtopicCard
 					key={subtopic.id}
@@ -62,4 +61,4 @@ const IncomeExpenditure = () => {
 	);
 };
 
-export default IncomeExpenditure;
+export default CashBookDetails;

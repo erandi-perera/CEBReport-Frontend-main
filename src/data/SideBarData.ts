@@ -1,15 +1,19 @@
-import { MdPayment } from "react-icons/md";
-import { RiBankLine } from "react-icons/ri";
-import { FaBoxes } from "react-icons/fa";
-import { BsFolder2Open } from "react-icons/bs";
-import { MdAssignmentTurnedIn } from "react-icons/md";
-import { GiSolarPower } from "react-icons/gi";
-import { FaBalanceScale } from "react-icons/fa";
-import { FiBriefcase } from "react-icons/fi";
+import {MdPayment} from "react-icons/md";
+import {RiBankLine} from "react-icons/ri";
+import {FaBoxes} from "react-icons/fa";
+import {BsFolder2Open} from "react-icons/bs";
+import {MdAssignmentTurnedIn} from "react-icons/md";
+import {GiSolarPower} from "react-icons/gi";
+import {FaBalanceScale} from "react-icons/fa";
+import {FiBriefcase} from "react-icons/fi";
 import {FaBookOpen} from "react-icons/fa";
 import {MdBuild} from "react-icons/md";
 import {FaArrowDownShortWide} from "react-icons/fa6";
 import {MdInventory2} from "react-icons/md";
+import {FaMoneyCheckAlt} from "react-icons/fa";
+import {TbReportAnalytics} from "react-icons/tb";
+
+
 
 export const data = [
   {
@@ -135,13 +139,13 @@ export const data = [
     ],
     path: "/report/pucsl-liss",
   },
-  {
-    id: 8,
-    name: "Inventory",
-    icon: MdInventory2,
-    subtopics: [{ id: 59, name: "Material Details" },
-                  { id: 101, name: "Cost Center wise Quantity on Hand" },
-
+	{
+		id: 8,
+		name: "Inventory",
+		icon: MdInventory2,
+		subtopics: [
+			{id: 59, name: "Material Details"},
+			{id: 101, name: "Cost Center wise Quantity on Hand"},
 			{id: 100, name: "Average Consumptions"},
 		],
 		path: "/report/inventory",
@@ -160,12 +164,12 @@ export const data = [
 	},
 	{
 		id: 10,
-		name: "Income Expenditure",
+		name: "Income & Expenditure",
 		icon: FaArrowDownShortWide,
 		subtopics: [
-			{id: 90, name: "Cost Center Wise Income Expenditure"},
-			{id: 91, name: "Province Wise Income Expenditure"},
-			{id: 92, name: "Region Wise Income Expenditure"},
+			{id: 90, name: "Cost Center Wise Income & Expenditure"},
+			{id: 91, name: "Province Wise Income & Expenditure"},
+			{id: 92, name: "Region Wise Income & Expenditure"},
 		],
 		path: "/report/IncomeExpenditure",
 	},
@@ -190,7 +194,10 @@ export const data = [
 		id: 12,
 		name: "Jobs",
 		icon: FiBriefcase,
-		subtopics: [{id: 111, name: "Job Card Details"}],
+		subtopics: [
+			{id: 111, name: "Job Card Details"},
+			{id: 119, name: "Job Card -  Material Details"},
+		],
 
 		path: "/report/jobs",
 	},
@@ -199,8 +206,59 @@ export const data = [
 		id: 13,
 		name: "Ledger Cards",
 		icon: FaBookOpen,
-		subtopics: [{id: 112, name: "Ledger Card Details"}],
+		subtopics: [
+			{id: 112, name: "Ledger Card with Subaccounts"},
+			{id: 113, name: "Ledger Card without Subaccounts"},
+			{id: 114, name: "Ledger Card  Subaccounts Total"},
+			{
+				id: 115,
+				name: "Sub Accounts Transactions for Account Code within Selected Company",
+			},
+		],
 
 		path: "/report/LedgerCards",
+	},
+
+	{
+		id: 14,
+		name: "Cash Book",
+		icon: FaMoneyCheckAlt,
+		subtopics: [
+			{id: 116, name: "Selected Payee Within Date Range"},
+			{id: 117, name: "Cost Center Wise Selected Payee Within Date Range"},
+			{
+				id: 118,
+				name: "Cost Center Wise Document Inquiry Cash Book With Cheque Details",
+			},
+		],
+
+		path: "/report/CashBook",
+	},
+
+	{
+		id: 15,
+		name: "PIV",
+		icon: TbReportAnalytics,
+		subtopics: [
+			{id: 119, name: "Branch/Province wise PIV Collections Paid to Bank"},
+			{
+				id: 120,
+				name: "Branch/Province wise PIV Collections by Provincial POS relevant to the Province",
+			},
+			{
+				id: 121,
+				name: "Branch/Province wise PIV Collections Paid to Provincial POS",
+			},
+			{
+				id: 122,
+				name: "PIV Collections by Provincial POS relevant to Other Cost Centers",
+			},
+			{
+				id: 123,
+				name: "PIV Collections by Other Cost Centers relevant to the Province",
+			},
+		],
+
+		path: "/report/PIV",
 	},
 ];

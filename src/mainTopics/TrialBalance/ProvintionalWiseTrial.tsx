@@ -464,200 +464,151 @@ const ProvintionalWiseTrial: React.FC = () => {
 		</div>
 	);
 
+		const escapeCSVField = (field: string | number): string => {
+			const stringField = String(field);
+			// If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+			if (
+				stringField.includes(",") ||
+				stringField.includes('"') ||
+				stringField.includes("\n")
+			) {
+				return '"' + stringField.replace(/"/g, '""') + '"';
+			}
+			return stringField;
+		};
+
 	// CSV export function
 	const downloadAsCSV = () => {
 		if (!trialBalanceData || trialBalanceData.length === 0) return;
 
 		const {costCenters, grouped} = getConsolidatedData();
-		calculateCategoryTotals();
+		const {categoryTotals} = calculateCategoryTotals();
 
-		// Helper function to format numbers for CSV
-		const formatNumberCSV = (num: number): string => {
-			if (num === undefined || num === null || isNaN(num)) return "0.00";
-			const numValue = typeof num === "string" ? parseFloat(num) : num;
-			return numValue.toFixed(2);
+		const rows: string[] = [];
+
+		// Report Header
+		rows.push(`"Monthly Trial Balance Report"`);
+		rows.push(
+			`"Company: ${
+				selectedCompany?.compId
+			} - ${selectedCompany?.CompName?.toUpperCase()}"`
+		);
+		rows.push(
+			`"Period: ${getMonthName(
+				selectedMonth
+			).toUpperCase()} ${selectedYear}"`
+		);
+		rows.push(
+			`"Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}"`
+		);
+		rows.push("");
+
+		// Table Header - Account Code first!
+		const header = [
+			"Account Code",
+			"Category",
+			"Account Name",
+			...costCenters,
+			"Total",
+		];
+		rows.push(header.map(escapeCSVField).join(","));
+
+		const emptyRow = Array(header.length).fill('""').join(",");
+
+		// Helper to add a row
+		const addRow = (
+			accCode: string,
+			category: string,
+			accName: string,
+			values: number[],
+			total: number
+		) => {
+			const row = [
+				`"${accCode}"`,
+				`"${category}"`,
+				`"${accName}"`,
+				...values.map((v) => escapeCSVField(formatNumber(v))),
+				escapeCSVField(formatNumber(total)),
+			];
+			rows.push(row.join(","));
 		};
 
-		// Sort grouped data by category in correct order
-		const sortedEntries = Object.values(grouped).sort((a, b) => {
-			const categoryOrder: {[key: string]: number} = {
-				Assets: 1,
-				Expenditure: 2,
-				Liabilities: 3,
-				Revenue: 4,
-				Other: 5,
-			};
-			const aCat = getCategory(a.AccountCode, a.TitleFlag);
-			const bCat = getCategory(b.AccountCode, b.TitleFlag);
-			return (categoryOrder[aCat] || 6) - (categoryOrder[bCat] || 6);
-		});
+		// Category order
+		const categories = [
+			"Assets",
+			"Expenditure",
+			"Liabilities",
+			"Revenue",
+			"Other",
+		] as const;
 
-		// HEADER SECTION
-		const csvRows = [
-			[
-				`COMPANY-WISE TRIAL BALANCE - ${getMonthName(
-					selectedMonth
-				).toUpperCase()} ${selectedYear}`,
-			],
-			[
-				`Company : ${
-					selectedCompany?.compId
-				} / ${selectedCompany?.CompName?.toUpperCase()}`,
-			],
-			[],
-		];
-
-		// Create dynamic column headers
-		const headers = ["Account Code", "Account Name", ...costCenters, "Total"];
-		csvRows.push(headers);
-
-		// DATA ROWS with category grouping
-		let currentCategory = "";
-		const categorySums: Record<
-			string,
-			{costCenters: Record<string, number>; total: number}
-		> = {};
-
-		// Initialize category sums
-		["Assets", "Expenditure", "Liabilities", "Revenue", "Other"].forEach(
-			(cat) => {
-				categorySums[cat] = {costCenters: {}, total: 0};
-				costCenters.forEach((cc) => {
-					categorySums[cat].costCenters[cc] = 0;
-				});
-			}
-		);
-
-		sortedEntries.forEach((row, index) => {
-			const rowCategory = getCategory(row.AccountCode, row.TitleFlag);
-
-			// Add category header if category changes
-			if (rowCategory !== currentCategory) {
-				currentCategory = rowCategory;
-				csvRows.push([]); // Empty row for spacing
-				csvRows.push([`=== ${rowCategory.toUpperCase()} ===`]);
-			}
-
-			// Calculate row total
-			const rowTotal = costCenters.reduce(
-				(sum, cc) => sum + (row.balances[cc] || 0),
-				0
+		categories.forEach((category) => {
+			const categoryRows = Object.values(grouped).filter(
+				(row) => getCategory(row.AccountCode, row.TitleFlag) === category
 			);
 
-			// Add to category sums
-			costCenters.forEach((cc) => {
-				categorySums[rowCategory].costCenters[cc] += row.balances[cc] || 0;
+			if (categoryRows.length === 0) return;
+
+			// Add all account lines for this category
+			categoryRows.forEach((row) => {
+				const values = costCenters.map((cc) => row.balances[cc] || 0);
+				const total = values.reduce((a, b) => a + b, 0);
+				addRow(
+					row.AccountCode,
+					category.toUpperCase(),
+					row.AccountName,
+					values,
+					total
+				);
 			});
-			categorySums[rowCategory].total += rowTotal;
 
-			// Add data row
-			const dataRow = [
-				row.AccountCode,
-				`${row.AccountName.replace(/"/g, '""')}`,
-				...costCenters.map((cc) => formatNumberCSV(row.balances[cc] || 0)),
-				formatNumberCSV(rowTotal),
-			];
-			csvRows.push(dataRow);
-
-			// Check if this is the last row of current category
-			const nextIndex = index + 1;
-			const isLastInCategory =
-				nextIndex >= sortedEntries.length ||
-				getCategory(
-					sortedEntries[nextIndex].AccountCode,
-					sortedEntries[nextIndex].TitleFlag
-				) !== currentCategory;
-
-			// Add category total if this is the last row of the category
-			if (isLastInCategory) {
-				const categoryTotalRow = [
-					"",
-					`TOTAL ${rowCategory.toUpperCase()}`,
-					...costCenters.map((cc) =>
-						formatNumberCSV(categorySums[rowCategory].costCenters[cc])
-					),
-					formatNumberCSV(categorySums[rowCategory].total),
-				];
-				csvRows.push(categoryTotalRow);
-				csvRows.push([]);
-			}
-		});
-
-		// GRAND TOTALS SECTION
-		const grandTotalByCostCenter: Record<string, number> = {};
-		costCenters.forEach((cc) => {
-			grandTotalByCostCenter[cc] = Object.values(categorySums).reduce(
-				(sum, category) => sum + (category.costCenters[cc] || 0),
-				0
+			// Category Total
+			const catValues = costCenters.map(
+				(cc) => categoryTotals[category][cc] || 0
 			);
-		});
-		const overallGrandTotal = Object.values(categorySums).reduce(
-			(sum, category) => sum + (category.total || 0),
-			0
-		);
-
-		// Add grand total section
-		csvRows.push(
-			[],
-			["GRAND TOTAL"],
-			[
+			const catTotal = catValues.reduce((a, b) => a + b, 0);
+			addRow(
+				`TOTAL ${category.toUpperCase()}`,
+				category.toUpperCase(),
 				"",
-				"GRAND TOTAL",
-				...costCenters.map((cc) =>
-					formatNumberCSV(grandTotalByCostCenter[cc] || 0)
-				),
-				formatNumberCSV(overallGrandTotal),
-			]
+				catValues,
+				catTotal
+			);
+
+			rows.push(emptyRow); // Empty row after each category total
+		});
+
+		// Grand Total
+		const grandTotalValues = costCenters.map((cc) =>
+			categories.reduce(
+				(sum, cat) => sum + (categoryTotals[cat][cc] || 0),
+				0
+			)
 		);
+		const grandTotal = grandTotalValues.reduce((a, b) => a + b, 0);
 
-		// SUMMARY SECTION
-		csvRows.push(
-			[],
-			["SUMMARY"],
-			...Object.entries(categorySums).map(([category, sums]) => [
-				`Total ${category}`,
-				formatNumberCSV(sums.total),
-			]),
-			[],
-			[`Generated: ${new Date().toLocaleString()}`],
-			[`CEB@${new Date().getFullYear()}`]
-		);
+		addRow("GRAND TOTAL", "GRAND TOTAL", "", grandTotalValues, grandTotal);
+		rows.push(emptyRow);
 
-		// Convert to CSV format with proper escaping
-		const csvContent = csvRows
-			.map((row) => {
-				return row
-					.map((cell) => {
-						const cellStr = String(cell || "");
-						if (
-							cellStr.includes(",") ||
-							cellStr.includes('"') ||
-							cellStr.includes("\n")
-						) {
-							return `"${cellStr.replace(/"/g, '""')}"`;
-						}
-						return cellStr;
-					})
-					.join(",");
-			})
-			.join("\n");
+		// Footer
+		rows.push("");
+		rows.push('"Report generated by CEB Financial System"');
+		rows.push('"For inquiries, contact Finance Department"');
 
-		// Create and download the file
+		// Download CSV
+		const csvContent = rows.join("\n");
 		const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement("a");
 		link.href = url;
-		link.download = `CompanyWiseTrialBalance_${
-			selectedCompany?.compId
-		}_${getMonthName(selectedMonth)}_${selectedYear}.csv`;
-		link.style.display = "none";
-
+		link.download = `TrialBalance_${selectedCompany?.compId}_${getMonthName(
+			selectedMonth
+		)}_${selectedYear}.csv`;
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);
 		URL.revokeObjectURL(url);
 	};
-
 	// Print PDF function
 	const printPDF = () => {
 		if (!trialBalanceData || trialBalanceData.length === 0) return;
@@ -681,28 +632,28 @@ const ProvintionalWiseTrial: React.FC = () => {
 						switch (cat) {
 							case "Assets":
 								return {
-									icon: "🏦",
-									desc: "ASSETS - What the company owns",
+									icon: "",
+									desc: "ASSETS",
 								};
 							case "Expenditure":
 								return {
-									icon: "💸",
-									desc: "EXPENDITURE - What the company spends",
+									icon: "",
+									desc: "EXPENDITURE",
 								};
 							case "Liabilities":
 								return {
 									icon: "📋",
-									desc: "LIABILITIES - What the company owes",
+									desc: "LIABILITIES",
 								};
 							case "Revenue":
 								return {
 									icon: "💰",
-									desc: "REVENUE - What the company earns",
+									desc: "REVENUE",
 								};
 							default:
 								return {
 									icon: "📊",
-									desc: "OTHER - Miscellaneous accounts",
+									desc: "OTHER",
 								};
 						}
 					};
@@ -783,18 +734,18 @@ const ProvintionalWiseTrial: React.FC = () => {
 		);
 
 		tableRowsHTML += `
-      <tr style="background-color: #7A0000; color: white; font-weight: bold;">
-        <td colspan="2" style="padding: 8px; border: 1px solid #7A0000;">GRAND TOTAL</td>
+      <tr style="background-color: #7A0000;  font-weight: bold;">
+        <td colspan="2" style="padding: 8px; border: 1px solid #ddd;">GRAND TOTAL</td>
         ${costCenters
 				.map(
 					(cc) => `
-          <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-family: monospace;">
             ${formatNumber(grandTotalByCostCenter[cc] || 0)}
           </td>
         `
 				)
 				.join("")}
-        <td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-family: monospace;">
           ${formatNumber(overallGrandTotal)}
         </td>
       </tr>
@@ -838,11 +789,10 @@ const ProvintionalWiseTrial: React.FC = () => {
           }
           th {
             background-color: #7A0000;
-            color: white;
             font-weight: bold;
             text-align: center;
             padding: 8px;
-            border: 1px solid #7A0000;
+            border: 1px solid #ddd;
           }
           td {
             padding: 6px;
@@ -883,9 +833,9 @@ const ProvintionalWiseTrial: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>MONTHLY TRIAL BALANCE - ${getMonthName(
+          <h1>Monthly Trial Balance - ${getMonthName(
 					selectedMonth
-				).toUpperCase()} ${selectedYear}</h1>
+				)} ${selectedYear}</h1>
           <h2>Company: ${selectedCompany?.compId} - ${
 			selectedCompany?.CompName
 		}</h2>
@@ -1125,8 +1075,7 @@ const ProvintionalWiseTrial: React.FC = () => {
 					<div className="p-5 border-b">
 						<div className="space-y-1">
 							<h2 className="text-base font-bold text-gray-800">
-								MONTHLY TRIAL BALANCE -{" "}
-								{getMonthName(selectedMonth).toUpperCase()}{" "}
+								Monthly Trial Balance - {getMonthName(selectedMonth)}{" "}
 								{selectedYear}
 							</h2>
 							<h3 className={`text-sm ${maroon}`}>

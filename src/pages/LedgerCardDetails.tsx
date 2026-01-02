@@ -1,11 +1,14 @@
 import {useState, useEffect} from "react";
 import {data as sidebarData} from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
-import LedgerCardInfo from "../mainTopics/LedgerCard/LedgerCardReport";
+import LedgerCardReport from "../mainTopics/LedgerCard/LedgerCardReport";
+import LCWithoutSubAcc from "../mainTopics/LedgerCard/LCWithoutSubAcc";
+import LedgerCardSubAccountTotal from "../mainTopics/LedgerCard/LedgerCardSubAccountTotal";
+import DivisionalLedgerCard from "../mainTopics/LedgerCard/DivisionalLedgerCard";
 
 type Subtopic = {
-    id: number;
-    name: string;
+	id: number;
+	name: string;
 };
 
 const LedgerCardDetails = () => {
@@ -13,7 +16,9 @@ const LedgerCardDetails = () => {
 	const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
 	useEffect(() => {
-		const analysisTopic = sidebarData.find((topic) => topic.name === "Ledger Cards");
+		const analysisTopic = sidebarData.find(
+			(topic) => topic.name === "Ledger Cards"
+		);
 		if (analysisTopic) {
 			setSubtopics(analysisTopic.subtopics);
 		}
@@ -29,8 +34,14 @@ const LedgerCardDetails = () => {
 
 	const renderSubtopicContent = (subtopicName: string) => {
 		switch (subtopicName) {
-			case "Ledger Card Details":
-				return <LedgerCardInfo />;
+			case "Ledger Card with Subaccounts":
+				return <LedgerCardReport />;
+			case "Ledger Card without Subaccounts":
+				return <LCWithoutSubAcc />;
+			case "Ledger Card  Subaccounts Total":
+				return <LedgerCardSubAccountTotal />;
+			case "Sub Accounts Transactions for Account Code within Selected Company":
+				return <DivisionalLedgerCard />;
 
 			default:
 				return (

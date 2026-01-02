@@ -1,8 +1,7 @@
-
-import React, { useEffect, useState, Fragment, useMemo } from "react";
-import { Search, RotateCcw, Eye, Download, Printer } from "lucide-react";
-import { FaChevronDown } from "react-icons/fa";
-import { useUser } from "../../contexts/UserContext";
+import React, {useEffect, useState, Fragment, useMemo} from "react";
+import {Search, RotateCcw, Eye, Download, Printer} from "lucide-react";
+import {FaChevronDown} from "react-icons/fa";
+import {useUser} from "../../contexts/UserContext";
 
 interface Company {
 	compId: string;
@@ -23,7 +22,7 @@ interface IncomeExpenditureData {
 
 const RegionExpenditure: React.FC = () => {
 	// Get user from context
-	const { user } = useUser();
+	const {user} = useUser();
 
 	// Main state
 	const [companies, setCompanies] = useState<Company[]>([]);
@@ -42,7 +41,9 @@ const RegionExpenditure: React.FC = () => {
 
 	// Income/Expenditure modal state
 	const [incomeExpModalOpen, setIncomeExpModalOpen] = useState(false);
-	const [incomeExpData, setIncomeExpData] = useState<IncomeExpenditureData[]>([]);
+	const [incomeExpData, setIncomeExpData] = useState<IncomeExpenditureData[]>(
+		[]
+	);
 	const [incomeExpLoading, setIncomeExpLoading] = useState(false);
 	const [incomeExpError, setIncomeExpError] = useState<string | null>(null);
 
@@ -61,28 +62,38 @@ const RegionExpenditure: React.FC = () => {
 	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
 	// Available years and months
-	const years = Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - i);
-	const months = Array.from({ length: 13 }, (_, i) => i + 1); // 1-13 for 13th period
+	const years = Array.from(
+		{length: 21},
+		(_, i) => new Date().getFullYear() - i
+	);
+	const months = Array.from({length: 13}, (_, i) => i + 1); // 1-13 for 13th period
 
 	// Dropdown state
 	const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
 	const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
 
 	// Paginated companies
-	const paginatedCompanies = filteredCompanies.slice((page - 1) * pageSize, page * pageSize);
+	const paginatedCompanies = filteredCompanies.slice(
+		(page - 1) * pageSize,
+		page * pageSize
+	);
 
 	// Close dropdowns when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			const target = event.target as HTMLElement;
-			if (!target.closest(".year-dropdown") && !target.closest(".month-dropdown")) {
+			if (
+				!target.closest(".year-dropdown") &&
+				!target.closest(".month-dropdown")
+			) {
 				setYearDropdownOpen(false);
 				setMonthDropdownOpen(false);
 			}
 		};
 
 		document.addEventListener("mousedown", handleClickOutside);
-		return () => document.removeEventListener("mousedown", handleClickOutside);
+		return () =>
+			document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
 	// Fetch companies
@@ -97,14 +108,19 @@ const RegionExpenditure: React.FC = () => {
 
 			setLoading(true);
 			try {
-				const res = await fetch(`/misapi/api/incomeexpenditure/Usercompanies/${epfNo}/70`);
+				const res = await fetch(
+					`/misapi/api/incomeexpenditure/Usercompanies/${epfNo}/70`
+				);
 				if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
 				const contentType = res.headers.get("content-type");
 				if (!contentType || !contentType.includes("application/json")) {
 					const text = await res.text();
 					throw new Error(
-						`Expected JSON but got ${contentType}. Response: ${text.substring(0, 100)}`
+						`Expected JSON but got ${contentType}. Response: ${text.substring(
+							0,
+							100
+						)}`
 					);
 				}
 
@@ -145,8 +161,10 @@ const RegionExpenditure: React.FC = () => {
 	useEffect(() => {
 		const filtered = companies.filter(
 			(c) =>
-				(!searchId || c.compId.toLowerCase().includes(searchId.toLowerCase())) &&
-				(!searchName || c.CompName.toLowerCase().includes(searchName.toLowerCase()))
+				(!searchId ||
+					c.compId.toLowerCase().includes(searchId.toLowerCase())) &&
+				(!searchName ||
+					c.CompName.toLowerCase().includes(searchName.toLowerCase()))
 		);
 		setFilteredCompanies(filtered);
 		setPage(1);
@@ -155,7 +173,8 @@ const RegionExpenditure: React.FC = () => {
 	// Fetch income & expenditure data
 	const fetchIncomeExpenditureData = async (company?: Company) => {
 		const targetCompany = company || selectedCompany;
-		if (!targetCompany || selectedYear === null || selectedMonth === null) return;
+		if (!targetCompany || selectedYear === null || selectedMonth === null)
+			return;
 
 		setIncomeExpLoading(true);
 		setIncomeExpError(null);
@@ -164,7 +183,7 @@ const RegionExpenditure: React.FC = () => {
 
 			const response = await fetch(apiUrl, {
 				credentials: "include",
-				headers: { Accept: "application/json" },
+				headers: {Accept: "application/json"},
 			});
 
 			if (!response.ok) {
@@ -175,7 +194,10 @@ const RegionExpenditure: React.FC = () => {
 			if (!contentType || !contentType.includes("application/json")) {
 				const text = await response.text();
 				throw new Error(
-					`Expected JSON but got ${contentType}. Response: ${text.substring(0, 100)}`
+					`Expected JSON but got ${contentType}. Response: ${text.substring(
+						0,
+						100
+					)}`
 				);
 			}
 
@@ -258,7 +280,9 @@ const RegionExpenditure: React.FC = () => {
 	// Custom Dropdown Components
 	const YearDropdown = () => (
 		<div className="year-dropdown relative w-40">
-			<label className="block text-xs font-medium text-gray-700 mb-1">Year</label>
+			<label className="block text-xs font-medium text-gray-700 mb-1">
+				Year
+			</label>
 			<button
 				type="button"
 				onClick={() => {
@@ -286,7 +310,9 @@ const RegionExpenditure: React.FC = () => {
 								setYearDropdownOpen(false);
 							}}
 							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
-								selectedYear === year ? "bg-[#7A0000] text-white" : "text-gray-700"
+								selectedYear === year
+									? "bg-[#7A0000] text-white"
+									: "text-gray-700"
 							}`}
 						>
 							{year}
@@ -299,7 +325,9 @@ const RegionExpenditure: React.FC = () => {
 
 	const MonthDropdown = () => (
 		<div className="month-dropdown relative w-40">
-			<label className="block text-xs font-medium text-gray-700 mb-1">Month</label>
+			<label className="block text-xs font-medium text-gray-700 mb-1">
+				Month
+			</label>
 			<button
 				type="button"
 				onClick={() => {
@@ -327,7 +355,9 @@ const RegionExpenditure: React.FC = () => {
 								setMonthDropdownOpen(false);
 							}}
 							className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
-								selectedMonth === month ? "bg-[#7A0000] text-white" : "text-gray-700"
+								selectedMonth === month
+									? "bg-[#7A0000] text-white"
+									: "text-gray-700"
 							}`}
 						>
 							{getMonthName(month)}
@@ -359,7 +389,11 @@ const RegionExpenditure: React.FC = () => {
 	const escapeCSVField = (field: string | number): string => {
 		const stringField = String(field);
 		// If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
-		if (stringField.includes(",") || stringField.includes('"') || stringField.includes("\n")) {
+		if (
+			stringField.includes(",") ||
+			stringField.includes('"') ||
+			stringField.includes("\n")
+		) {
 			return '"' + stringField.replace(/"/g, '""') + '"';
 		}
 		return stringField;
@@ -369,241 +403,221 @@ const RegionExpenditure: React.FC = () => {
 	const downloadAsCSV = () => {
 		if (!incomeExpData || incomeExpData.length === 0) return;
 
-		// Transform data to Excel format
-		const transformDataToExcelFormat = () => {
-			const result: any = {
-				income: {},
-				expenditure: {},
-			};
+		// Transform data
+		const excelData = (() => {
+			const result: any = {income: {}, expenditure: {}};
 
 			incomeExpData.forEach((item) => {
-				const category = item.CatFlag === "I" ? "income" : "expenditure";
+				const section = item.CatFlag === "I" ? "income" : "expenditure";
 				const catCode = item.CatCode?.trim() || "UNCATEGORIZED";
 				const account = item.Account?.trim() || "";
 				const costCenter = item.CostCtr?.trim() || "DEFAULT";
 
-				if (!result[category][catCode]) {
-					result[category][catCode] = {
-						accounts: {},
-						description: catCode,
-					};
-				}
-
-				if (!result[category][catCode].accounts[account]) {
-					result[category][catCode].accounts[account] = {
+				if (!result[section][catCode])
+					result[section][catCode] = {accounts: {}};
+				if (!result[section][catCode].accounts[account]) {
+					result[section][catCode].accounts[account] = {
 						description: item.CatName?.trim() || "",
 						values: {},
 						total: 0,
 					};
 				}
-
-				result[category][catCode].accounts[account].values[costCenter] = item.Actual || 0;
-				result[category][catCode].accounts[account].total += item.Actual || 0;
+				result[section][catCode].accounts[account].values[costCenter] =
+					item.Actual || 0;
+				result[section][catCode].accounts[account].total +=
+					item.Actual || 0;
 			});
-
 			return result;
-		};
+		})();
 
-		const excelData = transformDataToExcelFormat();
-
-		// Get unique cost centers
 		const uniqueCostCenters = Array.from(
-			new Set(incomeExpData.map((item) => item.CostCtr?.trim()).filter(Boolean))
+			new Set(incomeExpData.map((i) => i.CostCtr?.trim()).filter(Boolean))
 		).sort();
 
-		// Create headers matching Excel structure
-		const headers = [
-			"",
-			"",
-			"ACCOUNTS",
-			"",
+		const rows: string[] = [];
+
+		// Report Header
+		rows.push(`"Income & Expenditure Report - Region Wise"`);
+		rows.push(
+			`"Company: ${selectedCompany?.CompName || "N/A"} (${
+				selectedCompany?.compId || "N/A"
+			})"`
+		);
+		rows.push(
+			`"Period: ${getMonthName(selectedMonth)} ${selectedYear || "N/A"}"`
+		);
+		rows.push(
+			`"Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}"`
+		);
+		rows.push("");
+
+		// Table Header (Account Code first!)
+		const header = [
+			"Account Code",
+			"Category",
+			"Sub Category",
 			...uniqueCostCenters,
 			"Company Total",
 		];
+		rows.push(header.map(escapeCSVField).join(","));
 
-		// Create data rows with proper CSV formatting
-		const dataRows = [];
+		const emptyRow = Array(header.length).fill('""').join(",");
 
-		// Process Income section
-		dataRows.push(["", "", "INCOME", "", ...Array(uniqueCostCenters.length + 1).fill("")]);
-
-		Object.entries(excelData.income).forEach(([catCode, categoryData]: [string, any]) => {
-			// Category header
-			dataRows.push(["", "", catCode, "", ...Array(uniqueCostCenters.length + 1).fill("")]);
-
-			// Account rows
-			Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
-				const row = [
-					"", // Empty column
-					escapeCSVField(accountCode),
-					escapeCSVField(accountData.description),
-					"", // Empty column
-				];
-
-				// Add values for each cost center
-				uniqueCostCenters.forEach((costCenter) => {
-					row.push(escapeCSVField(formatNumber(accountData.values[costCenter] || 0)));
-				});
-
-				// Add account total
-				row.push(escapeCSVField(formatNumber(accountData.total)));
-
-				dataRows.push(row);
-			});
-
-			// Category subtotal
-			const subtotalRow = [
-				"",
-				"",
-				`SUB TOTAL OF - ${catCode}`,
-				"",
-				...Array(uniqueCostCenters.length).fill(""),
-				escapeCSVField(
-					formatNumber(
-						Object.values(categoryData.accounts).reduce(
-							(sum: number, account: any) => sum + account.total,
-							0
-						)
-					)
-				),
+		// Helper to add a row
+		const addRow = (
+			accCode: string,
+			category: string,
+			subCat: string,
+			values: number[],
+			total: number
+		) => {
+			const row = [
+				`"${accCode}"`,
+				`"${category}"`,
+				`"${subCat}"`,
+				...values.map((v) => escapeCSVField(formatNumber(v))),
+				escapeCSVField(formatNumber(total)),
 			];
-			dataRows.push(subtotalRow);
-		});
+			rows.push(row.join(","));
+		};
 
-		// Income total
-		const incomeTotal = Object.values(excelData.income).reduce(
-			(sum: number, category: any) => {
-				return (
-					sum +
-					Object.values(category.accounts).reduce(
-						(accSum: number, account: any) => accSum + account.total,
-						0
-					)
+		// === INCOME SECTION ===
+		Object.entries(excelData.income).forEach(
+			([catCode, categoryData]: [string, any]) => {
+				// Individual account lines
+				Object.entries(categoryData.accounts).forEach(
+					([accountCode, accData]: [string, any]) => {
+						const values = uniqueCostCenters.map(
+							(cc) => accData.values[cc] || 0
+						);
+						addRow(
+							accountCode,
+							"INCOME",
+							accData.description,
+							values,
+							accData.total
+						);
+					}
 				);
-			},
-			0
+
+				// Sub-total for this category
+				const catTotal = Object.values(categoryData.accounts).reduce(
+					(s: number, a: any) => s + a.total,
+					0
+				);
+				addRow(
+					`SUB TOTAL OF - ${catCode}`,
+					"INCOME",
+					"",
+					uniqueCostCenters.map(() => 0),
+					catTotal
+				);
+
+				rows.push(emptyRow); // Empty row after sub-total
+			}
 		);
 
-		const incomeTotalRow = [
-			"",
-			"",
+		// Total Income
+		const totalIncome = Object.values(excelData.income).reduce(
+			(sum: number, cat: any) =>
+				sum +
+				Object.values(cat.accounts).reduce(
+					(s: number, a: any) => s + a.total,
+					0
+				),
+			0
+		);
+		addRow(
 			"Total :Income",
+			"INCOME",
 			"",
-			...Array(uniqueCostCenters.length).fill(""),
-			escapeCSVField(formatNumber(incomeTotal)),
-		];
-		dataRows.push(incomeTotalRow);
+			uniqueCostCenters.map(() => 0),
+			totalIncome
+		);
+		rows.push(emptyRow);
 
-		// Process Expenditure section
-		dataRows.push(["", "", "EXPENDITURE", "", ...Array(uniqueCostCenters.length + 1).fill("")]);
-
-		Object.entries(excelData.expenditure).forEach(([catCode, categoryData]: [string, any]) => {
-			// Category header
-			dataRows.push(["", "", catCode, "", ...Array(uniqueCostCenters.length + 1).fill("")]);
-
-			// Account rows
-			Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
-				const row = [
-					"", // Empty column
-					escapeCSVField(accountCode),
-					escapeCSVField(accountData.description),
-					"", // Empty column
-				];
-
-				// Add values for each cost center
-				uniqueCostCenters.forEach((costCenter) => {
-					row.push(escapeCSVField(formatNumber(accountData.values[costCenter] || 0)));
-				});
-
-				// Add account total
-				row.push(escapeCSVField(formatNumber(accountData.total)));
-
-				dataRows.push(row);
-			});
-
-			// Category subtotal
-			const subtotalRow = [
-				"",
-				"",
-				`SUB TOTAL OF - ${catCode}`,
-				"",
-				...Array(uniqueCostCenters.length).fill(""),
-				escapeCSVField(
-					formatNumber(
-						Object.values(categoryData.accounts).reduce(
-							(sum: number, account: any) => sum + account.total,
-							0
-						)
-					)
-				),
-			];
-			dataRows.push(subtotalRow);
-		});
-
-		// Expenditure total
-		const expenditureTotal = Object.values(excelData.expenditure).reduce(
-			(sum: number, category: any) => {
-				return (
-					sum +
-					Object.values(category.accounts).reduce(
-						(accSum: number, account: any) => accSum + account.total,
-						0
-					)
+		// === EXPENDITURE SECTION ===
+		Object.entries(excelData.expenditure).forEach(
+			([catCode, categoryData]: [string, any]) => {
+				Object.entries(categoryData.accounts).forEach(
+					([accountCode, accData]: [string, any]) => {
+						const values = uniqueCostCenters.map(
+							(cc) => accData.values[cc] || 0
+						);
+						addRow(
+							accountCode,
+							"EXPENDITURE",
+							accData.description,
+							values,
+							accData.total
+						);
+					}
 				);
-			},
-			0
+
+				const catTotal = Object.values(categoryData.accounts).reduce(
+					(s: number, a: any) => s + a.total,
+					0
+				);
+				addRow(
+					`SUB TOTAL OF - ${catCode}`,
+					"EXPENDITURE",
+					"",
+					uniqueCostCenters.map(() => 0),
+					catTotal
+				);
+
+				rows.push(emptyRow); // Empty row after sub-total
+			}
 		);
 
-		const expenditureTotalRow = [
-			"",
-			"",
+		// Total Expenditure
+		const totalExpenditure = Object.values(excelData.expenditure).reduce(
+			(sum: number, cat: any) =>
+				sum +
+				Object.values(cat.accounts).reduce(
+					(s: number, a: any) => s + a.total,
+					0
+				),
+			0
+		);
+		addRow(
 			"Total :Expenditure",
+			"EXPENDITURE",
 			"",
-			...Array(uniqueCostCenters.length).fill(""),
-			escapeCSVField(formatNumber(expenditureTotal)),
-		];
-		dataRows.push(expenditureTotalRow);
+			uniqueCostCenters.map(() => 0),
+			totalExpenditure
+		);
+		rows.push(emptyRow);
 
-		// Net total
-		const netTotal = incomeTotal - expenditureTotal;
-		const netTotalRow = [
-			"",
-			"",
+		// Net Result
+		const netTotal = totalIncome - totalExpenditure;
+		addRow(
 			"Income Over Expenditure",
+			"INCOME OVER EXPENDITURE",
 			"",
-			...Array(uniqueCostCenters.length).fill(""),
-			escapeCSVField(formatNumber(netTotal)),
-		];
-		dataRows.push(netTotalRow);
+			uniqueCostCenters.map(() => 0),
+			netTotal
+		);
 
-		// Create CSV content with proper topic section
-		const csvContent = [
-			// Topic section
-			`"Income & Expenditure Report - Region Wise"`,
-			`"Company: ${selectedCompany?.CompName || "N/A"} (${selectedCompany?.compId || "N/A"})"`,
-			`"Period: ${getMonthName(selectedMonth)} ${selectedYear || "N/A"}"`,
-			`"Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}"`,
-			"", // Empty line
-			// Data section
-			headers.join(","),
-			...dataRows.map((row) => row.join(",")),
-			"", // Empty line
-			`"Report generated by CEB Report System"`,
-			`"For technical support, contact IT Department"`,
-		].join("\n");
+		// Footer
+		rows.push("");
+		rows.push('"Report generated by CEB Report System"');
+		rows.push('"For technical support, contact IT Department"');
 
-		// Create download link
-		const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+		// Trigger download
+		const csvContent = rows.join("\n");
+		const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement("a");
 		link.href = url;
-		link.download = `RegionIncomeExpenditure_${selectedCompany?.compId}_${getMonthName(selectedMonth)}_${selectedYear || "N/A"}.csv`;
+		link.download = `RegionIncomeExpenditure_${
+			selectedCompany?.compId
+		}_${getMonthName(selectedMonth)}_${selectedYear}.csv`;
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);
 		URL.revokeObjectURL(url);
 	};
-
 	// Print PDF function
 	const printPDF = () => {
 		if (!incomeExpData || incomeExpData.length === 0) return;
@@ -639,8 +653,10 @@ const RegionExpenditure: React.FC = () => {
 					};
 				}
 
-				result[category][catCode].accounts[account].values[costCenter] = item.Actual || 0;
-				result[category][catCode].accounts[account].total += item.Actual || 0;
+				result[category][catCode].accounts[account].values[costCenter] =
+					item.Actual || 0;
+				result[category][catCode].accounts[account].total +=
+					item.Actual || 0;
 			});
 
 			return result;
@@ -650,7 +666,9 @@ const RegionExpenditure: React.FC = () => {
 
 		// Get unique cost centers
 		const uniqueCostCenters = Array.from(
-			new Set(incomeExpData.map((item) => item.CostCtr?.trim()).filter(Boolean))
+			new Set(
+				incomeExpData.map((item) => item.CostCtr?.trim()).filter(Boolean)
+			)
 		).sort();
 
 		// Generate table rows HTML
@@ -659,63 +677,71 @@ const RegionExpenditure: React.FC = () => {
 		// Income section
 		tableRowsHTML += `
       <tr class="category-header">
-        <td colspan="${uniqueCostCenters.length + 4}" style="text-align: center; font-weight: bold; background-color: #7A0000; color: white;">INCOME</td>
+        <td colspan="${
+				uniqueCostCenters.length + 4
+			}" style="text-align: center; font-weight: bold; color: #7A0000; ">INCOME</td>
       </tr>
     `;
 
-		Object.entries(excelData.income).forEach(([catCode, categoryData]: [string, any]) => {
-			// Category header
-			tableRowsHTML += `
+		Object.entries(excelData.income).forEach(
+			([catCode, categoryData]: [string, any]) => {
+				// Category header
+				tableRowsHTML += `
         <tr>
-          <td colspan="${uniqueCostCenters.length + 4}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f5f5f5;">${catCode}</td>
+          <td colspan="${
+					uniqueCostCenters.length + 4
+				}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f5f5f5;">${catCode}</td>
         </tr>
       `;
 
-			// Account rows
-			Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
-				tableRowsHTML += `
+				// Account rows
+				Object.entries(categoryData.accounts).forEach(
+					([accountCode, accountData]: [string, any]) => {
+						tableRowsHTML += `
           <tr>
             <td style="padding: 6px; border: 1px solid #ddd;"></td>
             <td style="padding: 6px; border: 1px solid #ddd; font-family: monospace;">${accountCode}</td>
             <td style="padding: 6px; border: 1px solid #ddd;">${accountData.description}</td>
         `;
 
-				// Add values for each cost center
-				uniqueCostCenters.forEach((costCenter) => {
-					tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
-						accountData.values[costCenter] || 0
-					)}</td>`;
-				});
+						// Add values for each cost center
+						uniqueCostCenters.forEach((costCenter) => {
+							tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
+								accountData.values[costCenter] || 0
+							)}</td>`;
+						});
 
-				// Add account total
-				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; background-color: #f9f9f9;">${formatNumber(
-					accountData.total
-				)}</td>`;
+						// Add account total
+						tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; background-color: #f9f9f9;">${formatNumber(
+							accountData.total
+						)}</td>`;
 
-				tableRowsHTML += `</tr>`;
-			});
+						tableRowsHTML += `</tr>`;
+					}
+				);
 
-			// Category subtotal
-			const categoryTotal = Object.values(categoryData.accounts).reduce(
-				(sum: number, account: any) => sum + account.total,
-				0
-			);
+				// Category subtotal
+				const categoryTotal = Object.values(categoryData.accounts).reduce(
+					(sum: number, account: any) => sum + account.total,
+					0
+				);
 
-			tableRowsHTML += `
+				tableRowsHTML += `
         <tr>
           <td colspan="3" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #e6f3ff;">SUB TOTAL OF - ${catCode}</td>
       `;
 
-			// Add empty cells for cost centers
-			uniqueCostCenters.forEach(() => {
-				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #e6f3ff;"></td>`;
-			});
+				// Add empty cells for cost centers
+				uniqueCostCenters.forEach(() => {
+					tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #e6f3ff;"></td>`;
+				});
 
-			tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #e6f3ff; font-weight: bold;">${formatNumber(
-				categoryTotal
-			)}</td>`;
-			tableRowsHTML += `</tr>`;
-		});
+				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #e6f3ff; font-weight: bold;">${formatNumber(
+					categoryTotal
+				)}</td>`;
+				tableRowsHTML += `</tr>`;
+			}
+		);
 
 		// Income total
 		const incomeTotal = Object.values(excelData.income).reduce(
@@ -733,7 +759,7 @@ const RegionExpenditure: React.FC = () => {
 
 		tableRowsHTML += `
       <tr class="category-total">
-        <td colspan="3" style="padding: 6px; border: 1px solid #ddd; background-color: #7A0000; color: white; font-weight: bold;">Total :Income</td>
+        <td colspan="3" style="padding: 6px; border: 1px solid #ddd; color: #7A0000;  font-weight: bold;">Total :Income</td>
     `;
 
 		// Add empty cells for cost centers
@@ -741,7 +767,7 @@ const RegionExpenditure: React.FC = () => {
 			tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #7A0000;"></td>`;
 		});
 
-		tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #7A0000; color: white; font-weight: bold;">${formatNumber(
+		tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #7A0000;  font-weight: bold; color:black;">${formatNumber(
 			incomeTotal
 		)}</td>`;
 		tableRowsHTML += `</tr>`;
@@ -749,63 +775,71 @@ const RegionExpenditure: React.FC = () => {
 		// Expenditure section
 		tableRowsHTML += `
       <tr class="category-header">
-        <td colspan="${uniqueCostCenters.length + 4}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">EXPENDITURE</td>
+        <td colspan="${
+				uniqueCostCenters.length + 4
+			}" style="text-align: center; font-weight: bold; background-color: #f5f5f5; color: #7A0000;">EXPENDITURE</td>
       </tr>
     `;
 
-		Object.entries(excelData.expenditure).forEach(([catCode, categoryData]: [string, any]) => {
-			// Category header
-			tableRowsHTML += `
+		Object.entries(excelData.expenditure).forEach(
+			([catCode, categoryData]: [string, any]) => {
+				// Category header
+				tableRowsHTML += `
         <tr>
-          <td colspan="${uniqueCostCenters.length + 4}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f5f5f5;">${catCode}</td>
+          <td colspan="${
+					uniqueCostCenters.length + 4
+				}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #f5f5f5;">${catCode}</td>
         </tr>
       `;
 
-			// Account rows
-			Object.entries(categoryData.accounts).forEach(([accountCode, accountData]: [string, any]) => {
-				tableRowsHTML += `
+				// Account rows
+				Object.entries(categoryData.accounts).forEach(
+					([accountCode, accountData]: [string, any]) => {
+						tableRowsHTML += `
           <tr>
             <td style="padding: 6px; border: 1px solid #ddd;"></td>
             <td style="padding: 6px; border: 1px solid #ddd; font-family: monospace;">${accountCode}</td>
             <td style="padding: 6px; border: 1px solid #ddd;">${accountData.description}</td>
         `;
 
-				// Add values for each cost center
-				uniqueCostCenters.forEach((costCenter) => {
-					tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
-						accountData.values[costCenter] || 0
-					)}</td>`;
-				});
+						// Add values for each cost center
+						uniqueCostCenters.forEach((costCenter) => {
+							tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace;">${formatNumber(
+								accountData.values[costCenter] || 0
+							)}</td>`;
+						});
 
-				// Add account total
-				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; background-color: #f9f9f9;">${formatNumber(
-					accountData.total
-				)}</td>`;
+						// Add account total
+						tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold; background-color: #f9f9f9;">${formatNumber(
+							accountData.total
+						)}</td>`;
 
-				tableRowsHTML += `</tr>`;
-			});
+						tableRowsHTML += `</tr>`;
+					}
+				);
 
-			// Category subtotal
-			const categoryTotal = Object.values(categoryData.accounts).reduce(
-				(sum: number, account: any) => sum + account.total,
-				0
-			);
+				// Category subtotal
+				const categoryTotal = Object.values(categoryData.accounts).reduce(
+					(sum: number, account: any) => sum + account.total,
+					0
+				);
 
-			tableRowsHTML += `
+				tableRowsHTML += `
         <tr>
           <td colspan="3" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; background-color: #e6f3ff;">SUB TOTAL OF - ${catCode}</td>
       `;
 
-			// Add empty cells for cost centers
-			uniqueCostCenters.forEach(() => {
-				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #e6f3ff;"></td>`;
-			});
+				// Add empty cells for cost centers
+				uniqueCostCenters.forEach(() => {
+					tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #e6f3ff;"></td>`;
+				});
 
-			tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #e6f3ff; font-weight: bold;">${formatNumber(
-				categoryTotal
-			)}</td>`;
-			tableRowsHTML += `</tr>`;
-		});
+				tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #e6f3ff; font-weight: bold;">${formatNumber(
+					categoryTotal
+				)}</td>`;
+				tableRowsHTML += `</tr>`;
+			}
+		);
 
 		// Expenditure total
 		const expenditureTotal = Object.values(excelData.expenditure).reduce(
@@ -823,15 +857,15 @@ const RegionExpenditure: React.FC = () => {
 
 		tableRowsHTML += `
       <tr class="category-total">
-        <td colspan="3" style="padding: 6px; border: 1px solid #ddd; background-color: #f5f5f5; font-weight: bold;">Total :Expenditure</td>
+        <td colspan="3" style="padding: 6px; border: 1px solid #ddd; color: #7A0000; font-weight: bold;">Total :Expenditure</td>
     `;
 
 		// Add empty cells for cost centers
 		uniqueCostCenters.forEach(() => {
-			tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; background-color: #f5f5f5;"></td>`;
+			tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd;"></td>`;
 		});
 
-		tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f5f5f5; font-weight: bold;">${formatNumber(
+		tableRowsHTML += `<td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-family: monospace; background-color: #f5f5f5; font-weight: bold; color:black;">${formatNumber(
 			expenditureTotal
 		)}</td>`;
 		tableRowsHTML += `</tr>`;
@@ -839,16 +873,16 @@ const RegionExpenditure: React.FC = () => {
 		// Net total
 		const netTotal = incomeTotal - expenditureTotal;
 		tableRowsHTML += `
-      <tr style="background-color: #7A0000; color: white; font-weight: bold;">
-        <td colspan="3" style="padding: 8px; border: 1px solid #7A0000;">Income Over Expenditure</td>
+      <tr style="color:#7A0000; color: white; font-weight: bold;">
+        <td colspan="3" style="padding: 8px; border: 1px solid #7A0000; color:#7A0000;">Income Over Expenditure</td>
     `;
 
 		// Add empty cells for cost centers
 		uniqueCostCenters.forEach(() => {
-			tableRowsHTML += `<td style="padding: 8px; border: 1px solid #7A0000;"></td>`;
+			tableRowsHTML += `<td style="padding: 8px; border: 1px solid #7A0000; color:#7A0000;"></td>`;
 		});
 
-		tableRowsHTML += `<td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace;">${formatNumber(
+		tableRowsHTML += `<td style="padding: 8px; border: 1px solid #7A0000; text-align: right; font-family: monospace; color:#7A0000;">${formatNumber(
 			netTotal
 		)}</td>`;
 		tableRowsHTML += `</tr>`;
@@ -954,10 +988,10 @@ const RegionExpenditure: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <h1>Consolidated Income & Expenditure Provincial Statement - Period Ended Of ${getMonthName(
+          <h1>Consolidated Income & Expenditure Regional Statement - Period Ended Of ${getMonthName(
 					selectedMonth
 				)} / ${selectedYear || "N/A"}</h1>
-          <h2>Province/Company: ${selectedCompany?.compId} / ${
+          <h2>Company: ${selectedCompany?.compId} / ${
 			selectedCompany?.CompName
 		}</h2>
         </div>
@@ -968,7 +1002,6 @@ const RegionExpenditure: React.FC = () => {
               <th style="width: 5%;"></th>
               <th style="width: 10%;"></th>
               <th style="width: 25%;">ACCOUNTS</th>
-              <th style="width: 10%;"></th>
               ${uniqueCostCenters
 						.map((cc) => `<th style="width: 8%;">${cc}</th>`)
 						.join("")}
@@ -1030,15 +1063,17 @@ const RegionExpenditure: React.FC = () => {
 				}
 
 				// Add value for this cost center
-				result[category][catCode].accounts[account].values[costCenter] = item.Actual || 0;
-				result[category][catCode].accounts[account].total += item.Actual || 0;
+				result[category][catCode].accounts[account].values[costCenter] =
+					item.Actual || 0;
+				result[category][catCode].accounts[account].total +=
+					item.Actual || 0;
 			});
 
 			return result;
 		};
 
 		const excelData = transformDataToExcelFormat();
-		const { incomeTotal, expenditureTotal, netTotal } = calculateTotals();
+		const {incomeTotal, expenditureTotal, netTotal} = calculateTotals();
 
 		// Get all unique cost centers for column headers
 		const uniqueCostCenters = useMemo(() => {
@@ -1058,13 +1093,12 @@ const RegionExpenditure: React.FC = () => {
 						<div className="flex justify-between items-start">
 							<div className="space-y-1">
 								<h2 className="text-base font-bold text-gray-800">
-									Consolidated Income & Expenditure Provincial
-									Statement - Period Ended Of{" "}
-									{getMonthName(selectedMonth)} /{" "}
+									Consolidated Income & Expenditure Regional Statement
+									- Period Ended Of {getMonthName(selectedMonth)} /{" "}
 									{selectedYear || "N/A"}
 								</h2>
 								<h3 className={`text-sm ${maroon}`}>
-									Province/Company: {selectedCompany.compId} /{" "}
+									Company: {selectedCompany.compId} /{" "}
 									{selectedCompany.CompName}
 								</h3>
 								<p className="text-xs text-gray-600">Currency: LKR</p>
@@ -1109,7 +1143,7 @@ const RegionExpenditure: React.FC = () => {
 								</div>
 
 								<h3 className="text-lg font-medium text-gray-700 mb-2">
-									No Financial Data Available
+									No Data Available
 								</h3>
 								<p className="text-gray-500 text-center max-w-md">
 									We couldn't find any consolidated income or
@@ -1766,11 +1800,15 @@ const RegionExpenditure: React.FC = () => {
 					<div className="overflow-x-auto rounded-lg border border-gray-200">
 						<div className="max-h-[50vh] overflow-y-auto">
 							<table className="w-full table-fixed text-left text-gray-700 text-sm">
-								<thead className={`${maroonGrad} text-white sticky top-0`}>
+								<thead
+									className={`${maroonGrad} text-white sticky top-0`}
+								>
 									<tr>
 										<th className="px-4 py-2 w-1/4">Company ID</th>
 										<th className="px-4 py-2 w-1/2">Company Name</th>
-										<th className="px-4 py-2 w-1/4 text-center">Action</th>
+										<th className="px-4 py-2 w-1/4 text-center">
+											Action
+										</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -1785,24 +1823,38 @@ const RegionExpenditure: React.FC = () => {
 													: ""
 											}`}
 										>
-											<td className="px-4 py-2 truncate font-mono">{company.compId}</td>
-											<td className="px-4 py-2 truncate">{company.CompName}</td>
+											<td className="px-4 py-2 truncate font-mono">
+												{company.compId}
+											</td>
+											<td className="px-4 py-2 truncate">
+												{company.CompName}
+											</td>
 											<td className="px-4 py-2 text-center">
 												<button
-													onClick={() => handleCompanySelect(company)}
-													disabled={selectedYear === null || selectedMonth === null}
+													onClick={() =>
+														handleCompanySelect(company)
+													}
+													disabled={
+														selectedYear === null ||
+														selectedMonth === null
+													}
 													className={`px-3 py-1 ${
-														selectedCompany?.compId === company.compId
+														selectedCompany?.compId ===
+														company.compId
 															? "bg-green-600 text-white"
 															: maroonGrad + " text-white"
 													} rounded-md text-xs font-medium hover:brightness-110 transition shadow ${
-														selectedYear === null || selectedMonth === null
+														selectedYear === null ||
+														selectedMonth === null
 															? "opacity-50 cursor-not-allowed"
 															: ""
 													}`}
 												>
 													<Eye className="inline-block mr-1 w-3 h-3" />
-													{selectedCompany?.compId === company.compId ? "Viewing" : "View"}
+													{selectedCompany?.compId ===
+													company.compId
+														? "Viewing"
+														: "View"}
 												</button>
 											</td>
 										</tr>
@@ -1822,13 +1874,21 @@ const RegionExpenditure: React.FC = () => {
 							Previous
 						</button>
 						<span className="text-xs text-gray-500">
-							Page {page} of {Math.ceil(filteredCompanies.length / pageSize)}
+							Page {page} of{" "}
+							{Math.ceil(filteredCompanies.length / pageSize)}
 						</span>
 						<button
 							onClick={() =>
-								setPage((p) => Math.min(Math.ceil(filteredCompanies.length / pageSize), p + 1))
+								setPage((p) =>
+									Math.min(
+										Math.ceil(filteredCompanies.length / pageSize),
+										p + 1
+									)
+								)
 							}
-							disabled={page >= Math.ceil(filteredCompanies.length / pageSize)}
+							disabled={
+								page >= Math.ceil(filteredCompanies.length / pageSize)
+							}
 							className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
 						>
 							Next

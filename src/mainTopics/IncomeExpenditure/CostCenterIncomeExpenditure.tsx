@@ -404,6 +404,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 	);
 
 	// UPDATED Download as CSV function to match CompletedCostCenterWise style
+	// UPDATED Download as CSV function with correct Category and Sub Category columns
 	const downloadAsCSV = () => {
 		if (!incomeExpData || incomeExpData.length === 0) return;
 
@@ -452,6 +453,24 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 			return str;
 		};
 
+		// Get category name function (same as in the component)
+		const getCategoryName = (categoryCode: string): string => {
+			const categoryMap: Record<string, string> = {
+				TURNOVER: "TURNOVER",
+				"INTEREST INCOME": "INTEREST INCOME",
+				"OVERHEAD RECOVERIES": "OVERHEAD RECOVERIES",
+				"PROFIT/ LOSS ON DISPOSAL OF PPE": "PROFIT/LOSS ON DISPOSAL OF PPE",
+				"MICSELANIOUS INCOME": "MISCELLANEOUS INCOME",
+				"PERSONNEL EXPENSES": "PERSONNEL EXPENSES",
+				"MATERIAL COST": "MATERIAL COST",
+				"ACCOMMODATION EXPENSES": "ACCOMMODATION EXPENSES",
+				"TRANSPORT & COMMUNICATION EXPENSES":
+					"TRANSPORT & COMMUNICATION EXPENSES",
+				"OTHER EXPENSES": "OTHER EXPENSES",
+			};
+			return categoryMap[categoryCode] || categoryCode;
+		};
+
 		const csvRows = [
 			// Header section
 			[`Income & Expenditure Report - Cost Center Wise`],
@@ -463,28 +482,35 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 			[`Period: ${getMonthName(selectedMonth)} ${selectedYear}`],
 			[`Generated: ${new Date().toLocaleString()}`],
 			[],
-			// Column headers
+
+			// Column headers with Category (INCOME/EXPENDITURES) and Sub Category
 			[
+				"Category",
+				"Sub Category",
 				"Account Code",
-				"Category Name",
+				"Description",
 				"Budget",
 				"Actual Cumulative Cost",
 				"Balance Budget (excess/shortfall)",
 			],
 
 			// Income section
-			["INCOME"],
+			["==INCOME=="],
 			...incomeData.map((item) => [
-				item.AcCd.trim(),
-				escape(item.CatName.trim()),
+				"INCOME", // Category: INCOME for all income items
+				escape(getCategoryName(item.CatCode.trim())), // Sub Category: TURNOVER, PERSONNEL EXPENSES, etc.
+				item.AcCd.trim(), // Account Code
+				escape(item.CatName.trim()), // Description
 				formatNum(item.TotalBudget),
 				formatNum(item.Clbal),
 				formatNum(item.Varience),
 			]),
 			[],
 			[
+				"TOTAL INCOME", // Sub Category
 				"",
-				"TOTAL INCOME",
+				"", // Account Code
+				"",
 				formatNum(totals.incomeBudget),
 				formatNum(totals.incomeCumulative),
 				formatNum(totals.incomeBalance),
@@ -492,18 +518,22 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 			[],
 
 			// Expenditure section
-			["EXPENDITURES"],
+			["==EXPENDITURES=="],
 			...expenditureData.map((item) => [
-				item.AcCd.trim(),
-				escape(item.CatName.trim()),
+				"EXPENDITURES", // Category: EXPENDITURES for all expenditure items
+				escape(getCategoryName(item.CatCode.trim())), // Sub Category: TURNOVER, PERSONNEL EXPENSES, etc.
+				item.AcCd.trim(), // Account Code
+				escape(item.CatName.trim()), // Description
 				formatNum(item.TotalBudget),
 				formatNum(item.Clbal),
 				formatNum(item.Varience),
 			]),
 			[],
 			[
+				"TOTAL EXPENDITURES", // Sub Category
+				"", // Account Code
 				"",
-				"TOTAL EXPENDITURES",
+				"",
 				formatNum(totals.expenditureBudget),
 				formatNum(totals.expenditureCumulative),
 				formatNum(totals.expenditureBalance),
@@ -512,8 +542,10 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 
 			// Net total
 			[
+				"NET TOTAL", // Category
+				"", // Account Code
 				"",
-				"NET TOTAL",
+				"",
 				formatNum(totals.incomeBudget + totals.expenditureBudget),
 				formatNum(totals.incomeCumulative + totals.expenditureCumulative),
 				formatNum(totals.incomeBalance + totals.expenditureBalance),
@@ -521,17 +553,50 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 			[],
 
 			// Summary section
-			["SUMMARY"],
-			["Total Income Budget", formatNum(totals.incomeBudget)],
-			["Total Income Cumulative", formatNum(totals.incomeCumulative)],
-			["Total Expenditure Budget", formatNum(totals.expenditureBudget)],
+			["==SUMMARY=="],
 			[
-				"Total Expenditure Cumulative",
-				formatNum(totals.expenditureCumulative),
+				"INCOME",
+				"Total Income Budget",
+				"",
+				"",
+				formatNum(totals.incomeBudget),
+				"",
+				"",
 			],
 			[
+				"INCOME",
+				"Total Income Cumulative",
+				"",
+				"",
+				formatNum(totals.incomeCumulative),
+				"",
+				"",
+			],
+			[
+				"EXPENDITURES",
+				"Total Expenditure Budget",
+				"",
+				"",
+				formatNum(totals.expenditureBudget),
+				"",
+				"",
+			],
+			[
+				"EXPENDITURES",
+				"Total Expenditure Cumulative",
+				"",
+				"",
+				formatNum(totals.expenditureCumulative),
+				"",
+				"",
+			],
+			[
+				"NET TOTAL",
 				"Net Total",
+				"",
+				"",
 				formatNum(totals.incomeCumulative + totals.expenditureCumulative),
+				"",
 			],
 
 			[],
@@ -855,11 +920,10 @@ const CostCenterIncomeExpenditure: React.FC = () => {
           
           th {
             background-color: #7A0000;
-            color: white;
             font-weight: bold;
             text-align: center;
             padding: 8px;
-            border: 1px solid #7A0000;
+            border: 1px solid #ddd;
           }
           
           td {
@@ -1023,7 +1087,7 @@ const CostCenterIncomeExpenditure: React.FC = () => {
 									</svg>
 								</div>
 								<h3 className="text-lg font-medium text-gray-700 mb-2">
-									No Financial Data Available
+									No Data Available
 								</h3>
 								<p className="text-gray-500 text-center max-w-md">
 									We couldn't find any income or expenditure records
