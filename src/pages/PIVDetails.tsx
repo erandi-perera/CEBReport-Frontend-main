@@ -11,6 +11,7 @@ import PIVCollectionsByPeoplesBank from "../mainTopics/PIV/PIVCollectionsByPeopl
 import PivBySLT from "../mainTopics/PIV/PIVCollectionsBySLT";
 import PivByBanks from "../mainTopics/PIV/PivByBanks";
 import PIVDetailsReport from "../mainTopics/PIV/PIVDetailsReport";
+import ProvinceWisePIVStampDuty from "../mainTopics/PIV/ProvinceWisePIVStampDuty";
 
 
 type Subtopic = {
@@ -59,6 +60,8 @@ const PIVDetails = () => {
 				return <PivBySLT />;
 			case "8. PIV Details Report (PIV Amount not tallied with Paid Amount)":
 				return <PIVDetailsReport />;
+			case "9. Province wise PIV Stamp Duty":
+				return <ProvinceWisePIVStampDuty />;
 
 			default:
 				return (
