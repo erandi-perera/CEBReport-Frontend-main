@@ -1,12 +1,8 @@
-// 04. PIV Collections by Provincial POS relevant to Other Cost Centers
-
-
-// File: ProvincePivOtherCC.tsx
+// File: BranchWisePivBoth.tsx
 import React, {useEffect, useState, useRef, useMemo} from "react";
 import {Search, RotateCcw, Eye, X, Download, Printer} from "lucide-react";
 import {useUser} from "../../contexts/UserContext";
 import {toast} from "react-toastify";
-import DateRangePicker from "../../components/utils/DateRangePicker";
 
 interface Company {
 	compId: string;
@@ -14,27 +10,32 @@ interface Company {
 }
 
 interface PIVItem {
-	Account: any;
-	Paid_Dept_Id: string;
-	Dept_Id: string;
-	Piv_No: string;
-	Piv_Date: string | null;
-	Paid_Date: string | null;
-	Payment_Mode: string;
-	Bank_Check_No: string;
-	Grand_Total: number;
-	Account_Code: string;
+	Issued_cost_center: string;
+	Piv_no: string;
+	Piv_date: string | null;
+	Paid_date: string | null;
+	Payment_mode: string;
+	Grand_total: number;
+	Account_code: string;
 	Amount: number;
-	CCT_NAME: string;
-	CCT_NAME1: string;
+	Bank_check_no: string;
+	Issued_cc_name: string;
+	Company_name: string;
 }
 
 const formatNumber = (num: number | null | undefined): string => {
 	if (num == null || isNaN(num)) return "0.00";
-	return new Intl.NumberFormat("en-US", {
+
+	const absNum = Math.abs(num);
+	const formatted = new Intl.NumberFormat("en-US", {
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2,
-	}).format(num);
+	}).format(absNum);
+
+	if (num < 0) {
+		return `(${formatted})`;
+	}
+	return formatted;
 };
 
 const formatDate = (dateStr: string | null): string => {
@@ -46,9 +47,23 @@ const formatDate = (dateStr: string | null): string => {
 	}
 };
 
+const csvEscape = (val: string | number | null | undefined): string => {
+	if (val == null) return '""';
+	const str = String(val);
+	if (/[,\n"']/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+	return str;
+};
 
+const today = new Date();
+const currentYear = today.getFullYear();
+const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
+const currentDay = String(today.getDate()).padStart(2, "0");
+const maxDate = `${currentYear}-${currentMonth}-${currentDay}`;
 
-const ProvincePivOtherCC: React.FC = () => {
+const minYear = currentYear - 20;
+const minDate = `${minYear}-${currentMonth}-${currentDay}`;
+
+const BranchWisePivBoth: React.FC = () => {
 	const {user} = useUser();
 	const epfNo = user?.Userno || "";
 	const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -71,52 +86,47 @@ const ProvincePivOtherCC: React.FC = () => {
 	const maroon = "text-[#7A0000]";
 	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
-	// Unique sorted account codes
+	// Unique sorted account codes for dynamic columns
 	const accountCodes = Array.from(
-		new Set(reportData.map((i) => i.Account_Code))
+		new Set(reportData.map((i) => i.Account_code))
 	).sort();
 
-	// Merge same PIV rows (different account codes)
+	// Merge rows with same PIV details (group by PIV + dates + mode etc.)
 	const mergedReportData = useMemo(() => {
 		const map = new Map<string, any>();
 
 		reportData.forEach((item) => {
-			const key = `${item.Piv_No}-${item.Piv_Date}-${item.Paid_Date}-${item.Payment_Mode}-${item.Bank_Check_No}-${item.Dept_Id}-${item.Paid_Dept_Id}-${item.CCT_NAME}-${item.Grand_Total}`;
+			const key = `${item.Piv_no}-${item.Piv_date}-${item.Paid_date}-${item.Payment_mode}-${item.Bank_check_no}-${item.Issued_cost_center}-${item.Grand_total}`;
 			if (!map.has(key)) {
 				map.set(key, {
 					...item,
-					amounts: {[item.Account_Code]: item.Amount},
+					amounts: {[item.Account_code]: item.Amount},
 				});
 			} else {
 				const existing = map.get(key);
-				existing.amounts[item.Account_Code] =
-					(existing.amounts[item.Account_Code] || 0) + item.Amount;
+				existing.amounts[item.Account_code] =
+					(existing.amounts[item.Account_code] || 0) + item.Amount;
 			}
 		});
 
 		return Array.from(map.values());
 	}, [reportData]);
 
-	// Natural sort for Paid Cost Center (470-A, 470-B, 471-A …)
+	// Group by Issued Cost Center (Branch)
 	const sortedGroupedData = useMemo(() => {
 		const groups: Record<string, any[]> = {};
 		mergedReportData.forEach((item: any) => {
-			const paidId = item.Paid_Dept_Id ?? "";
-			const paidName = item.CCT_NAME ?? item.CCT_NAME1 ?? "";
-			const key = `${paidId}|||${paidName}`;
+			const issuedId = item.Issued_cost_center ?? "";
+			const issuedName = item.Issued_cc_name ?? "";
+			const key = `${issuedId}|||${issuedName}`;
 			if (!groups[key]) groups[key] = [];
 			groups[key].push(item);
 		});
 
 		const sortedKeys = Object.keys(groups).sort((a, b) => {
-			const [aId, aName] = a.split("|||");
-			const [bId, bName] = b.split("|||");
-			const cmpId = aId.localeCompare(bId, undefined, {
-				numeric: true,
-				sensitivity: "base",
-			});
-			if (cmpId !== 0) return cmpId;
-			return aName.localeCompare(bName, undefined, {
+			const [aId] = a.split("|||");
+			const [bId] = b.split("|||");
+			return aId.localeCompare(bId, undefined, {
 				numeric: true,
 				sensitivity: "base",
 			});
@@ -125,26 +135,31 @@ const ProvincePivOtherCC: React.FC = () => {
 		const sorted: Record<string, any[]> = {};
 		sortedKeys.forEach((k) => {
 			sorted[k] = groups[k].slice().sort((x: any, y: any) => {
-				const dx = x.Piv_Date ? new Date(x.Piv_Date).getTime() : 0;
-				const dy = y.Piv_Date ? new Date(y.Piv_Date).getTime() : 0;
-				if (dx !== dy) return dx - dy;
-				return String(x.Piv_No ?? "").localeCompare(
-					String(y.Piv_No ?? ""),
-					undefined,
-					{numeric: true, sensitivity: "base"}
-				);
+				const pivX = String(x.Piv_no ?? "").trim();
+				const pivY = String(y.Piv_no ?? "").trim();
+
+				const numX = parseInt(pivX, 10);
+				const numY = parseInt(pivY, 10);
+
+				if (!isNaN(numX) && !isNaN(numY)) {
+					return numX - numY;
+				}
+				return pivX.localeCompare(pivY, undefined, {
+					numeric: true,
+					sensitivity: "base",
+				});
 			});
 		});
 
 		return sorted;
 	}, [mergedReportData]);
 
-	// Column totals (global - used only for Grand Total)
+	// Column totals (per account code)
 	const columnTotals = useMemo(() => {
 		const totals: Record<string, number> = {};
 		accountCodes.forEach((code) => {
 			totals[code] = reportData
-				.filter((i) => i.Account_Code === code)
+				.filter((i) => i.Account_code === code)
 				.reduce((sum, i) => sum + i.Amount, 0);
 		});
 		return totals;
@@ -187,6 +202,7 @@ const ProvincePivOtherCC: React.FC = () => {
 		fetchCompanies();
 	}, [epfNo]);
 
+	// Filter companies
 	useEffect(() => {
 		const f = companies.filter(
 			(c) =>
@@ -212,12 +228,10 @@ const ProvincePivOtherCC: React.FC = () => {
 		setShowReport(true);
 
 		try {
-			const url = `/misapi/api/provincepivothercc/get?compId=${
-				company.compId
-			}&fromDate=${fromDate.replace(/-/g, "")}&toDate=${toDate.replace(
+			const url = `/misapi/api/branchwisepivboth/get?compId=${company.compId.trim()}&fromDate=${fromDate.replace(
 				/-/g,
 				""
-			)}`;
+			)}&toDate=${toDate.replace(/-/g, "")}`;
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const data = await res.json();
@@ -239,45 +253,36 @@ const ProvincePivOtherCC: React.FC = () => {
 		setSelectedCompany(null);
 	};
 
-	// CSV Export – Fixed group totals
-	const csvEscape = (val: string | number | null | undefined): string => {
-		if (val == null) return '""';
-		const str = String(val);
-		if (/[,\n"']/.test(str)) return `"${str.replace(/"/g, '""')}"`;
-		return str;
-	};
-
+	// CSV Export
 	const handleDownloadCSV = () => {
 		if (reportData.length === 0 || !selectedCompany) return;
 
 		const headers = [
-			"Paid Cost Center",
-			"PIV No",
+			"Issued Cost Center",
 			"PIV Date",
 			"Paid Date",
 			"Payment Mode",
-			"Bank Reference No",
-			"Issued Cost Center",
+			"PIV Total",
+			"PIV No",
+			"Bank Check No",
 			...accountCodes,
 			"Total",
 		];
 
 		const csvRows: string[] = [
-			"PIV Collections by Provincial POS relevant to Other Cost Centers",
-			"Issued Cost Center -Other Cost Centers ",
-
-			`Paid Branch/Company: ${selectedCompany.compId} - ${selectedCompany.CompName}`,
-			`Period: ${fromDate} to ${toDate}`,
+			"Branch wise PIV Tabulation (Both Bank and POS) Report",
+			"Paid Cost Cener  : All ",
+			`Issued Branch/Company : ${selectedCompany.compId} - ${selectedCompany.CompName}`,
+			`Period: ${fromDate} To ${toDate}`,
 			"",
 			headers.map(csvEscape).join(","),
 		];
 
 		Object.keys(sortedGroupedData).forEach((key) => {
 			const items = sortedGroupedData[key];
-			const [paidId, paidName] = key.split("|||");
-			const fullPaidCostCenter = `${paidId} - ${paidName}`; // <-- This will be repeated
+			const [issuedId, issuedName] = key.split("|||");
+			const fullIssued = `${issuedId} - ${issuedName}`;
 
-			// Group totals (for the total row)
 			const groupColumnTotals = accountCodes.reduce((acc, code) => {
 				acc[code] = items.reduce(
 					(sum, item) => sum + (item.amounts[code] || 0),
@@ -285,22 +290,20 @@ const ProvincePivOtherCC: React.FC = () => {
 				);
 				return acc;
 			}, {} as Record<string, number>);
-
 			const groupRowTotal = Object.values(groupColumnTotals).reduce(
 				(a, b) => a + b,
 				0
 			);
 
-			// === Every data row now repeats the Paid Cost Center ===
 			items.forEach((item) => {
 				const row = [
-					fullPaidCostCenter, // ← REPEATED ON EVERY ROW
-					item.Piv_No || "",
-					formatDate(item.Piv_Date),
-					formatDate(item.Piv_Date ? item.Paid_Date : ""), // keep Paid_Date logic if needed
-					item.Payment_Mode || "",
-					`="${item.Bank_Check_No ?? ""}"`,
-					`="${item.Dept_Id ?? ""}"`,
+					fullIssued,
+					formatDate(item.Piv_date),
+					formatDate(item.Paid_date),
+					item.Payment_mode || "-",
+					formatNumber(item.Grand_total),
+					`="${item.Piv_no ?? ""}"`,
+					`="${item.Bank_check_no ?? ""}"`,
 					...accountCodes.map((code) =>
 						formatNumber(item.amounts[code] || 0)
 					),
@@ -309,9 +312,8 @@ const ProvincePivOtherCC: React.FC = () => {
 				csvRows.push(row.map(csvEscape).join(","));
 			});
 
-			// === Group Total Row (still shows Paid Cost Center) ===
-			const groupTotalRow = [
-				`Total of: ${fullPaidCostCenter}`,
+			const totalRow = [
+				`Total of : ${fullIssued}`,
 				"",
 				"",
 				"",
@@ -323,17 +325,12 @@ const ProvincePivOtherCC: React.FC = () => {
 				),
 				formatNumber(groupRowTotal),
 			];
-			csvRows.push(groupTotalRow.map(csvEscape).join(","));
-
-			csvRows.push(""); // blank line between groups
+			csvRows.push(totalRow.map((v) => `"${v}"`).join(","));
+			csvRows.push("");
 		});
 
-		// === Grand Total Row ===
-		const grandRowTotal = Object.values(columnTotals).reduce(
-			(a, b) => a + b,
-			0
-		);
-		const grandTotalRow = [
+		const grandTotal = Object.values(columnTotals).reduce((a, b) => a + b, 0);
+		const grandRow = [
 			"GRAND TOTAL",
 			"",
 			"",
@@ -341,12 +338,11 @@ const ProvincePivOtherCC: React.FC = () => {
 			"",
 			"",
 			"",
-			...accountCodes.map((code) => formatNumber(columnTotals[code] || 0)),
-			formatNumber(grandRowTotal),
+			...accountCodes.map((c) => formatNumber(columnTotals[c] || 0)),
+			formatNumber(grandTotal),
 		];
-		csvRows.push(grandTotalRow.map(csvEscape).join(","));
+		csvRows.push(grandRow.map((v) => `"${v}"`).join(","));
 
-		// === Download ===
 		const csvContent = csvRows.join("\n");
 		const blob = new Blob(["\uFEFF" + csvContent], {
 			type: "text/csv;charset=utf-8;",
@@ -354,155 +350,108 @@ const ProvincePivOtherCC: React.FC = () => {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement("a");
 		link.href = url;
-		link.download = `ProvincePIV_OtherCC_${selectedCompany.compId}_${fromDate}_to_${toDate}.csv`;
-		link.style.display = "none";
-		document.body.appendChild(link);
+		link.download = `BranchWisePivBoth_${selectedCompany.compId}_${fromDate}_to_${toDate}.csv`;
 		link.click();
-		document.body.removeChild(link);
 		URL.revokeObjectURL(url);
 	};
-	// Print PDF – Fixed group totals
+
+	// Print PDF
 	const printPDF = () => {
 		if (reportData.length === 0 || !iframeRef.current || !selectedCompany)
 			return;
 
 		const totalDynamicColumns = accountCodes.length;
-		const fixedColumns = 8; // Paid Cost Center, PIV No, Date, Paid Date, PIV Total, Mode, Bank Ref, Dept
-		const totalColumns = fixedColumns + totalDynamicColumns + 1; // +1 for final Total
+		const fixedColumns = 7;
+		const totalColumns = fixedColumns + totalDynamicColumns + 1;
 
-		// Smart scaling based on total columns
 		let fontSize = "10px";
-		let headerFontSize = "10px";
+		let headerFontSize = "11px";
 		let titleFontSize = "14px";
-		let padding = "4px";
-		let tightColWidth = "78px";
-		let numericColWidth = "92px";
-		let paidCostCenterWidth = "300px"; // WIDE column
+		let padding = "8px";
+		let tightColWidth = "80px";
+		let tightColWidthlong = "90px";
+		let numericColWidth = "80px";
+		let issuedCostCenterWidth = "200px";
 
 		if (totalColumns > 22) {
-			fontSize = "5px";
-			headerFontSize = "5px";
-			titleFontSize = "14px";
-			padding = "2px";
-			tightColWidth = "35px";
-			numericColWidth = "40px";
-			paidCostCenterWidth = "50px";
-		} else if (totalColumns > 18) {
-			fontSize = "7.5px";
-			headerFontSize = "7.5px";
-			titleFontSize = "14px";
-			padding = "2.5px";
-			tightColWidth = "65px";
-			numericColWidth = "75px";
-			paidCostCenterWidth = "150px";
-		} else if (totalColumns > 15) {
-			fontSize = "8px";
+			fontSize = "6px";
 			headerFontSize = "8px";
 			padding = "4px";
-			tightColWidth = "80px";
-			numericColWidth = "85px";
+			tightColWidth = "50px";
+			tightColWidthlong = "60px";
+			numericColWidth = "55px";
+			issuedCostCenterWidth = "100px";
+		} else if (totalColumns > 18) {
+			fontSize = "7.5px";
+			headerFontSize = "9px";
+			padding = "5px";
+			tightColWidth = "50px";
+			tightColWidthlong = "60px";
+			numericColWidth = "60px";
+			issuedCostCenterWidth = "180px";
 		}
 
 		const tableStyle = `
-    table { 
-      width: 100%; 
-      border-collapse: collapse; 
-      table-layout: fixed; /* Ensures <col> widths are respected */
-      font-size: ${fontSize};
-    }
-    th, td { 
-      border: 1px solid #aaa; 
-      padding: ${padding}; 
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      hyphens: auto;
-      vertical-align: top;
-    }
-    th { 
-      font-size: ${headerFontSize}; 
-      font-weight: bold;
-      position: sticky; 
-      top: 0; 
-      z-index: 10;
-      height: 30px !important;              
-      vertical-align: middle !important;
-    }
-    td { 
-      page-break-inside: avoid; 
-    }
-    .paid-cost-center {
-      background-color: #f3f4f6 !important;
-      text-align: left !important;
-    }
-    .numeric {
-      text-align: right !important;
-      font-weight: normal;
-    }
-    .numeric.font-bold {
-      font-weight: bold !important;
-    }
-    .tight {
-      text-align: center;
-    }
-  `;
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: ${fontSize}; }
+      th, td { border: 1px solid #aaa; padding: ${padding}; word-wrap: break-word; vertical-align: top; }
+      th { font-size: ${headerFontSize}; font-weight: bold; }
+      .issued-cost-center { background-color: #f3f4f6 !important; text-align: left !important; }
+      .numeric { text-align: right !important; }
+      .tight { text-align: center; }
+    `;
 
-		// Generate dynamic <col> definitions
 		const colGroupHTML = `
-    <colgroup>
-      <col style="width: ${paidCostCenterWidth}; min-width: ${paidCostCenterWidth};" /> <!-- Paid Cost Center WIDE -->
-      <col style="width: ${tightColWidth};" /> <!-- PIV No -->
-      <col style="width: ${tightColWidth};" /> <!-- PIV Date -->
-      <col style="width: ${tightColWidth};" /> <!-- Paid Date -->
-      <col style="width: ${numericColWidth};" /> <!-- PIV Total -->
-      <col style="width: ${tightColWidth};" /> <!-- Mode -->
-      <col style="width: ${tightColWidth};" /> <!-- Bank Ref -->
-      <col style="width: ${tightColWidth};" /> <!-- Dept -->
-      ${accountCodes
-			.map(() => `<col style="width: ${numericColWidth};" />`)
-			.join("")}
-      <col style="width: ${numericColWidth}; background-color: #ffebee;" /> <!-- Final Total -->
-    </colgroup>
-  `;
+      <colgroup>
+        <col style="width: ${issuedCostCenterWidth};" />
+        <col style="width: ${tightColWidth};" /> <!-- PIV Date -->
+        <col style="width: ${tightColWidth};" /> <!-- Paid Date -->
+        <col style="width: ${tightColWidth};" /> <!-- Payment Mode -->
+        <col style="width: ${tightColWidthlong};" /> <!-- PIV Total -->
+        <col style="width: ${tightColWidthlong};" /> <!-- PIV No -->
+        <col style="width: ${tightColWidthlong};" /> <!-- Bank Check No -->
+        ${accountCodes
+				.map(() => `<col style="width: ${numericColWidth};" />`)
+				.join("")}
+        <col style="width: ${numericColWidth}; background-color: #ffebee;" />
+      </colgroup>
+    `;
 
 		let bodyHTML = "";
-
 		Object.keys(sortedGroupedData).forEach((key) => {
 			const items = sortedGroupedData[key];
-			const [paidId, paidName] = key.split("|||");
+			const [issuedId, issuedName] = key.split("|||");
 
 			items.forEach((item, idx) => {
 				bodyHTML += `<tr class="${
 					idx % 2 === 0 ? "bg-white" : "bg-gray-50"
 				}">
-        ${
-				idx === 0
-					? `<td rowspan="${items.length + 1}" class="paid-cost-center">
-                ${escapeHtml(paidId)} - ${escapeHtml(paidName)}
-               </td>`
-					: ""
-			}
-        <td class="tight">${item.Piv_No || ""}</td>
-        <td class="tight">${formatDate(item.Piv_Date)}</td>
-        <td class="tight">${formatDate(item.Paid_Date)}</td>
-        <td class="numeric">${formatNumber(item.Grand_Total)}</td>
-        <td class="tight">${item.Payment_Mode || ""}</td>
-        <td class="tight">${item.Bank_Check_No || "-"}</td>
-        <td class="tight">${item.Dept_Id || ""}</td>
-        ${accountCodes
-				.map(
-					(code) =>
-						`<td class="numeric">${formatNumber(
-							item.amounts[code] || 0
-						)}</td>`
-				)
-				.join("")}
-        <td class="numeric ">${formatNumber(
-				rowTotal(item.amounts)
-			)}</td>
-      </tr>`;
+          ${
+					idx === 0
+						? `<td rowspan="${
+								items.length + 1
+						  }" class="issued-cost-center">${escapeHtml(
+								issuedId
+						  )} - ${escapeHtml(issuedName)}</td>`
+						: ""
+				}
+          <td class="tight">${formatDate(item.Piv_date)}</td>
+          <td class="tight">${formatDate(item.Paid_date)}</td>
+          <td class="tight">${escapeHtml(item.Payment_mode || "-")}</td>
+          <td class="numeric">${formatNumber(item.Grand_total)}</td>
+          <td class="tight">${escapeHtml(item.Piv_no || "")}</td>
+          <td class="tight">${escapeHtml(item.Bank_check_no || "-")}</td>
+          ${accountCodes
+					.map(
+						(code) =>
+							`<td class="numeric">${formatNumber(
+								item.amounts[code] || 0
+							)}</td>`
+					)
+					.join("")}
+          <td class="numeric">${formatNumber(rowTotal(item.amounts))}</td>
+        </tr>`;
 			});
 
-			// Group Totals Row
 			const groupColumnTotals = accountCodes.reduce((acc, code) => {
 				acc[code] = items.reduce(
 					(sum, item) => sum + (item.amounts[code] || 0),
@@ -510,149 +459,94 @@ const ProvincePivOtherCC: React.FC = () => {
 				);
 				return acc;
 			}, {} as Record<string, number>);
-
 			const groupRowTotal = Object.values(groupColumnTotals).reduce(
 				(a, b) => a + b,
 				0
 			);
 
 			bodyHTML += `
-      <tr style="background-color: #e0e0e0;  font-size: ${headerFontSize};">
-        <td colspan="7" style="text-align: left; padding-left: 8px;">
-          Total of: ${escapeHtml(paidId)} - ${escapeHtml(paidName)}
-        </td>
-        ${accountCodes
-				.map(
-					(code) =>
-						`<td class="numeric">${formatNumber(
-							groupColumnTotals[code] || 0
-						)}</td>`
-				)
-				.join("")}
-        <td class="numeric">${formatNumber(groupRowTotal)}</td>
-      </tr>
-      <tr><td colspan="${totalColumns}" style="height: 12px; background: white;"></td></tr>`;
+        <tr style="background-color: #e0e0e0;">
+          <td colspan="6" style="text-align: left; padding-left: 8px;">Total of : ${escapeHtml(
+					issuedId
+				)} - ${escapeHtml(issuedName)}</td>
+          ${accountCodes
+					.map(
+						(code) =>
+							`<td class="numeric">${formatNumber(
+								groupColumnTotals[code] || 0
+							)}</td>`
+					)
+					.join("")}
+          <td class="numeric">${formatNumber(groupRowTotal)}</td>
+        </tr>
+        <tr><td colspan="${totalColumns}" style="height: 12px; background: white;"></td></tr>`;
 		});
 
-		// Grand Total Row
 		const grandRowTotal = Object.values(columnTotals).reduce(
 			(a, b) => a + b,
 			0
 		);
-
 		bodyHTML += `
-    <tr style="background-color: #bfdbfe;  font-size: ${headerFontSize};">
-      <td colspan="8" style="text-align: left; padding-left: 12px;">GRAND TOTAL</td>
-      ${accountCodes
-			.map(
-				(code) =>
-					`<td class="numeric" style="background-color:#bfdbfe; font-weight: bold;">${formatNumber(
-						columnTotals[code] || 0
-					)}</td>`
-			)
-			.join("")}
-      <td class="numeric" style="background-color:#bfdbfe;  font-weight: bold;">${formatNumber(
-			grandRowTotal
-		)}</td>
-    </tr>`;
+      <tr style="background-color: #bfdbfe; font-weight: bold;">
+        <td colspan="7" style="text-align: left; padding-left: 12px;">GRAND TOTAL</td>
+        ${accountCodes
+				.map(
+					(code) =>
+						`<td class="numeric font-bold">${formatNumber(
+							columnTotals[code] || 0
+						)}</td>`
+				)
+				.join("")}
+        <td class="numeric font-bold">${formatNumber(grandRowTotal)}</td>
+      </tr>`;
 
 		const headerHTML = `
-    <thead>
-      <tr style="font-weight: bold;">
-        <th>Paid Cost Center</th>
-        <th>PIV No</th>
-        <th>PIV Date</th>
-        <th>Paid Date</th>
-        <th>PIV Total</th>
-        <th>Payment Mode</th>
-        <th>Bank Ref No</th>
-        <th>Issued Cost Center</th>
-        ${accountCodes.map((c) => `<th>${escapeHtml(c)}</th>`).join("")}
-        <th>Total</th>
-      </tr>
-    </thead>`;
+      <thead>
+        <tr style="background-color: white;">
+          <th>Issued Cost Center</th>
+          <th>PIV Date</th>
+          <th>Paid Date</th>
+          <th>Payment Mode</th>
+          <th>PIV Total</th>
+          <th>PIV No</th>
+          <th>Bank Check No</th>
+          ${accountCodes.map((c) => `<th>${escapeHtml(c)}</th>`).join("")}
+          <th>Total</th>
+        </tr>
+      </thead>`;
 
 		const fullHTML = `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>PIV Report - ${selectedCompany.CompName}</title>
-  <style>
-    ${tableStyle}
-    body { 
-      font-family: Arial, Helvetica, sans-serif; 
-      margin: 8mm; 
-      print-color-adjust: exact;
-      -webkit-print-color-adjust: exact;
-    }
-    h3 { 
-      text-align: center; 
-      color: #7A0000; 
-      font-size: ${titleFontSize}; 
-      font-weight: bold;
-      margin: 0 0 4px 0;
-    }
-    .subtitle { 
-      font-size: 11px; 
-    }
-
-	.subtitle .left {
-	text-align: left;
-	}
-
-	.subtitle .right {
-	text-align: right;
-	margin-bottom: 4px;
-	}
-
-	.left .line {
-  margin-bottom: 3px; 
+<meta charset="utf-8">
+<title>Branch wise PIV Tabulation (Both Bank and POS)</title>
+<style>${tableStyle}
+body { font-family: Arial, sans-serif; margin: 8mm; print-color-adjust: exact; }
+h3 { text-align: center; color: #7A0000; font-size: ${titleFontSize}; font-weight: bold; margin: 0 0 4px 0; }
+.subtitle { font-size: 11px; }
+.subtitle .left { text-align: left; }
+.subtitle .right { text-align: right; margin-bottom: 4px; }
+.left .line { margin-bottom: 3px; }
+@page { size: A3 landscape; margin: 10mm; }
+@page { 
+  @bottom-left { content: "Printed on: ${new Date().toLocaleString()}"; font-size: 9px; color: #666; }
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 9px; color: #666; }
 }
-
-
-    @page { 
-      size: A3 landscape;
-      margin: 10mm;
-      @bottom-left { 
-        content: "Printed on: ${new Date().toLocaleString()}"; 
-        font-size: 9px; 
-        color: #666; 
-      }
-      @bottom-right { 
-        content: "Page " counter(page) " of " counter(pages); 
-        font-size: 9px; 
-        color: #666; 
-      }
-    }
-  </style>
+</style>
 </head>
 <body>
-  <h3>PIV Collections by Provincial POS relevant to Other Cost Centers</h3>
-  <div class="subtitle">
- <div class="left">
-  <div class="line">
-    <strong>Paid Branch/Company:</strong>
-    ${escapeHtml(selectedCompany.compId)} - ${escapeHtml(
-			selectedCompany.CompName
-		)}
+<h3>Branch wise PIV Tabulation (Both Bank and POS) Report</h3>
+<div class="subtitle">
+  <div class="left">
+   <div class="line"><strong>Paid Cost Cener: </strong> All</div>
+    <div class="line"><strong>Issued Branch/Company  :</strong> ${escapeHtml(
+			selectedCompany.compId
+		)} - ${escapeHtml(selectedCompany.CompName)}</div>
+    <div class="line"><strong>Period :</strong> ${fromDate} to ${toDate}</div>
   </div>
-
-  <div class="line">
-    <strong>Period:</strong> ${fromDate} to ${toDate}
-  </div>
+  <div class="right"><strong>Currency:</strong> LKR</div>
 </div>
-
-
-  <div class="right">
-    Currency: LKR
-  </div>
-</div>
-
-  <table>
-    ${colGroupHTML}
-    ${headerHTML}
-    <tbody>${bodyHTML}</tbody>
-  </table>
+<table>${colGroupHTML}${headerHTML}<tbody>${bodyHTML}</tbody></table>
 </body>
 </html>`;
 
@@ -661,30 +555,50 @@ const ProvincePivOtherCC: React.FC = () => {
 		doc.write(fullHTML);
 		doc.close();
 
-		setTimeout(() => {
-			iframeRef.current?.contentWindow?.focus();
-			iframeRef.current?.contentWindow?.print();
-		}, 1000);
+		setTimeout(() => iframeRef.current?.contentWindow?.print(), 1000);
 	};
 
-	// Optional helper to prevent XSS in HTML (good practice)
 	const escapeHtml = (text: string) => {
 		const div = document.createElement("div");
 		div.textContent = text;
 		return div.innerHTML;
 	};
+
 	return (
 		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm">
 			<h2 className={`text-xl font-bold mb-4 ${maroon}`}>
-				PIV Collections by Provincial POS relevant to Other Cost Centers
+				Branch wise PIV Tabulation (Both Bank and POS)
 			</h2>
 
-			<DateRangePicker
-				fromDate={fromDate}
-				toDate={toDate}
-				onFromChange={setFromDate}
-				onToChange={setToDate}
-			/>
+			{/* Date Pickers */}
+			<div className="flex justify-end gap-6 mb-4">
+				<div className="flex items-center gap-2">
+					<label className="text-xs font-bold text-[#7A0000]">
+						From Date:
+					</label>
+					<input
+						type="date"
+						value={fromDate}
+						onChange={(e) => setFromDate(e.target.value)}
+						min={minDate}
+						max={maxDate}
+						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+					/>
+				</div>
+				<div className="flex items-center gap-2">
+					<label className="text-xs font-bold text-[#7A0000]">
+						To Date:
+					</label>
+					<input
+						type="date"
+						value={toDate}
+						onChange={(e) => setToDate(e.target.value)}
+						min={minDate}
+						max={maxDate}
+						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+					/>
+				</div>
+			</div>
 
 			{/* Search */}
 			<div className="flex flex-wrap items-center gap-3 mb-4">
@@ -736,7 +650,6 @@ const ProvincePivOtherCC: React.FC = () => {
 			{!loading && filtered.length > 0 && (
 				<>
 					<div className="rounded-lg border border-gray-200 overflow-hidden">
-						{/* Fixed Header Table - exactly your original header */}
 						<table className="w-full text-left">
 							<thead className={`${maroonGrad} text-white`}>
 								<tr>
@@ -747,7 +660,6 @@ const ProvincePivOtherCC: React.FC = () => {
 							</thead>
 						</table>
 
-						{/* Scrollable Body - your original rows and styling preserved */}
 						<div className="max-h-[60vh] overflow-y-auto">
 							<table className="w-full text-left">
 								<tbody>
@@ -772,7 +684,6 @@ const ProvincePivOtherCC: React.FC = () => {
 						</div>
 					</div>
 
-					{/* Pagination controls - unchanged */}
 					<div className="flex justify-end items-center gap-3 mt-4">
 						<button
 							onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -831,20 +742,18 @@ const ProvincePivOtherCC: React.FC = () => {
 							<h2
 								className={`text-xl font-bold text-center mb-4 ${maroon}`}
 							>
-								PIV Collections by Provincial POS relevant to Other Cost
-								Centers
+								Branch wise PIV Tabulation (Both Bank and POS) Report
 							</h2>
 							<div className="flex justify-between text-sm mb-3">
 								<div>
-									<strong>Paid Branch/Company:</strong>{" "}
+									<strong>Paid Cost Cener: </strong> All <br />
+									<strong>Issued Branch/Company :</strong>{" "}
 									{selectedCompany?.compId} -{" "}
 									{selectedCompany?.CompName}
 									<br />
-									<strong>Issued Cost Center:</strong> Other Cost
-									Centers <br />
 									<strong>Period:</strong> {fromDate} to {toDate}
 								</div>
-								<div className="font-semibold self-end">
+								<div className="font-semibold text-gray-600 self-end">
 									Currency: LKR
 								</div>
 							</div>
@@ -864,22 +773,19 @@ const ProvincePivOtherCC: React.FC = () => {
 										<thead className={`${maroonGrad} text-white`}>
 											<tr>
 												<th className="px-2 py-1.5">
-													Paid Cost Center
+													Issued Cost Center
 												</th>
-												<th className="px-2 py-1.5">PIV No</th>
 												<th className="px-2 py-1.5">PIV Date</th>
 												<th className="px-2 py-1.5">Paid Date</th>
-												<th className="px-2 py-1.5 text-right font-bold">
-													PIV Total
-												</th>
 												<th className="px-2 py-1.5">
 													Payment Mode
 												</th>
-												<th className="px-2 py-1.5">
-													Bank Reference No
+												<th className="px-2 py-1.5 text-right font-bold">
+													PIV Total
 												</th>
+												<th className="px-2 py-1.5">PIV No</th>
 												<th className="px-2 py-1.5">
-													Issued Cost Center
+													Bank Check No
 												</th>
 												{accountCodes.map((acc) => (
 													<th
@@ -897,13 +803,14 @@ const ProvincePivOtherCC: React.FC = () => {
 										<tbody>
 											{Object.keys(sortedGroupedData).map((key) => {
 												const items = sortedGroupedData[key];
-												const [paidId, paidName] = key.split("|||");
+												const [issuedId, issuedName] =
+													key.split("|||");
 
 												return (
 													<React.Fragment key={key}>
 														{items.map((item, idx) => (
 															<tr
-																key={`${item.Piv_No}-${idx}`}
+																key={`${item.Piv_no}-${idx}`}
 																className={
 																	idx % 2 === 0
 																		? "bg-white"
@@ -915,31 +822,28 @@ const ProvincePivOtherCC: React.FC = () => {
 																		rowSpan={items.length + 1}
 																		className="px-2 py-1 font-medium bg-gray-100 align-top border border-gray-300"
 																	>
-																		{paidId} - {paidName}
+																		{issuedId} - {issuedName}
 																	</td>
 																)}
 																<td className="px-2 py-1 border border-gray-300">
-																	{item.Piv_No}
+																	{formatDate(item.Piv_date)}
 																</td>
 																<td className="px-2 py-1 border border-gray-300">
-																	{formatDate(item.Piv_Date)}
+																	{formatDate(item.Paid_date)}
 																</td>
 																<td className="px-2 py-1 border border-gray-300">
-																	{formatDate(item.Paid_Date)}
+																	{item.Payment_mode || "-"}
 																</td>
 																<td className="px-2 py-1 text-right font-bold border border-gray-300">
 																	{formatNumber(
-																		item.Grand_Total
+																		item.Grand_total
 																	)}
 																</td>
 																<td className="px-2 py-1 border border-gray-300">
-																	{item.Payment_Mode}
+																	{item.Piv_no}
 																</td>
 																<td className="px-2 py-1 border border-gray-300">
-																	{item.Bank_Check_No || "-"}
-																</td>
-																<td className="px-2 py-1 border border-gray-300">
-																	{item.Dept_Id}
+																	{item.Bank_check_no || "-"}
 																</td>
 																{accountCodes.map((code) => (
 																	<td
@@ -959,17 +863,16 @@ const ProvincePivOtherCC: React.FC = () => {
 															</tr>
 														))}
 
-														{/* Fixed Group Total Row */}
+														{/* Group Total */}
 														{(() => {
 															const groupColumnTotals =
 																accountCodes.reduce(
 																	(acc, code) => {
 																		acc[code] = items.reduce(
-																			(sum, item) =>
+																			(sum, it) =>
 																				sum +
-																				(item.amounts[
-																					code
-																				] || 0),
+																				(it.amounts[code] ||
+																					0),
 																			0
 																		);
 																		return acc;
@@ -984,17 +887,12 @@ const ProvincePivOtherCC: React.FC = () => {
 															return (
 																<tr className="bg-gray-200 font-bold">
 																	<td
-																		colSpan={4}
+																		colSpan={6}
 																		className="px-2 py-1 border border-gray-300"
 																	>
-																		Total of : {paidId} -{" "}
-																		{paidName}
+																		Total of : {issuedId} -{" "}
+																		{issuedName}
 																	</td>
-
-																	<td
-																		colSpan={3}
-																		className="border border-gray-300"
-																	></td>
 																	{accountCodes.map((code) => (
 																		<td
 																			key={code}
@@ -1019,7 +917,7 @@ const ProvincePivOtherCC: React.FC = () => {
 														<tr>
 															<td
 																colSpan={
-																	9 + accountCodes.length
+																	8 + accountCodes.length
 																}
 																className="h-4"
 															></td>
@@ -1028,10 +926,10 @@ const ProvincePivOtherCC: React.FC = () => {
 												);
 											})}
 
-											{/* Grand Total Row */}
+											{/* Grand Total */}
 											<tr className="bg-blue-200 font-bold text-sm">
 												<td
-													colSpan={8}
+													colSpan={7}
 													className="px-2 py-1 border border-white text-center"
 												>
 													GRAND TOTAL
@@ -1068,4 +966,4 @@ const ProvincePivOtherCC: React.FC = () => {
 	);
 };
 
-export default ProvincePivOtherCC;
+export default BranchWisePivBoth;

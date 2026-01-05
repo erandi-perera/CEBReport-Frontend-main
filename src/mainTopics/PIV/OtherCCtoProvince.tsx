@@ -5,6 +5,7 @@ import React, {useEffect, useState, useRef, useMemo} from "react";
 import {Search, RotateCcw, Eye, X, Download, Printer} from "lucide-react";
 import {useUser} from "../../contexts/UserContext";
 import {toast} from "react-toastify";
+import DateRangePicker from "../../components/utils/DateRangePicker";
 
 interface Company {
 	compId: string;
@@ -43,16 +44,18 @@ const formatDate = (dateStr: string | null): string => {
 	} catch {
 		return dateStr;
 	}
+
 };
 
-const today = new Date();
-const currentYear = today.getFullYear();
-const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
-const currentDay = String(today.getDate()).padStart(2, "0");
-const maxDate = `${currentYear}-${currentMonth}-${currentDay}`; // Today's date: YYYY-MM-DD
+const csvEscape = (val: string | number | null | undefined): string => {
+		if (val == null) return '""';
+		const str = String(val);
+		if (/[,\n"']/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+		return str;
+	};
 
-const minYear = currentYear - 20;
-const minDate = `${minYear}-${currentMonth}-${currentDay}`; // 20 years ago, same month/day
+
+
 
 const OtherCCtoProvince: React.FC = () => {
 	const {user} = useUser();
@@ -186,6 +189,7 @@ const OtherCCtoProvince: React.FC = () => {
 			setLoading(true);
 			try {
 				const res = await fetch(
+					
 					`/misapi/api/incomeexpenditure/Usercompanies/${epfNo}/60`
 				);
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -267,7 +271,7 @@ const OtherCCtoProvince: React.FC = () => {
 			"Issued Cost Center",
 			"PIV Date",
 			"Paid Date",
-			"PIV Total(Rs.)",
+			"PIV Total",
 			"PIV No",
 			"Bank Check No",
 			...accountCodes,
@@ -276,10 +280,11 @@ const OtherCCtoProvince: React.FC = () => {
 
 		const csvRows: string[] = [
 			"PIV Collections by Other Cost Centers relevant to the Province",
-			`Paid Cost Center : Any other POS Counter / Issued Branch : ${selectedCompany.compId} / ${selectedCompany.CompName}`,
-			`From ${fromDate} To ${toDate}`,
+			`Paid Cost Center : Any other POS Counter`,
+			`Issued Branch/Company: ${selectedCompany.compId} / ${selectedCompany.CompName}`,
+			`Period ${fromDate} To ${toDate}`,
 			"",
-			headers.map((h) => `"${h}"`).join(","),
+			headers.map(csvEscape).join(","),
 		];
 
 		Object.keys(sortedGroupedData).forEach((key) => {
@@ -302,18 +307,18 @@ const OtherCCtoProvince: React.FC = () => {
 			items.forEach((item) => {
 				const row = [
 					fullPaid,
-					item.Dept_Id || "",
+					`="${item.Dept_Id ?? ""}"`,
 					formatDate(item.Piv_Date),
 					formatDate(item.Paid_Date),
 					formatNumber(item.Grand_Total),
-					item.Piv_No || "",
-					item.Bank_Check_No || "-",
+					`="${item.Piv_No ?? ""}"`,
+					`="${item.Bank_Check_No ?? ""}"`,
 					...accountCodes.map((code) =>
 						formatNumber(item.amounts[code] || 0)
 					),
 					formatNumber(rowTotal(item.amounts)),
 				];
-				csvRows.push(row.map((v) => `"${v}"`).join(","));
+				csvRows.push(row.map(csvEscape).join(","));
 			});
 
 			const totalRow = [
@@ -394,10 +399,9 @@ const OtherCCtoProvince: React.FC = () => {
 		const tableStyle = `
       table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: ${fontSize}; }
       th, td { border: 1px solid #aaa; padding: ${padding}; word-wrap: break-word; vertical-align: top; }
-      th { font-size: ${headerFontSize}; background-color: #991b1b !important; color: white !important; font-weight: bold; }
-      .paid-cost-center { font-weight: bold; background-color: #f3f4f6 !important; text-align: left !important; }
+      th { font-size: ${headerFontSize}; font-weight: bold; }
+      .paid-cost-center {  background-color: #f3f4f6 !important; text-align: left !important; }
       .numeric { text-align: right !important; }
-      .numeric.font-bold { font-weight: bold !important; }
       .tight { text-align: center; }
     `;
 
@@ -438,7 +442,7 @@ const OtherCCtoProvince: React.FC = () => {
           <td class="tight">${item.Dept_Id || ""}</td>
           <td class="tight">${formatDate(item.Piv_Date)}</td>
           <td class="tight">${formatDate(item.Paid_Date)}</td>
-          <td class="numeric font-bold">${formatNumber(item.Grand_Total)}</td>
+          <td class="numeric">${formatNumber(item.Grand_Total)}</td>
           <td class="tight">${item.Piv_No || ""}</td>
           <td class="tight">${item.Bank_Check_No || "-"}</td>
           ${accountCodes
@@ -449,7 +453,7 @@ const OtherCCtoProvince: React.FC = () => {
 							)}</td>`
 					)
 					.join("")}
-          <td class="numeric font-bold">${formatNumber(
+          <td class="numeric">${formatNumber(
 					rowTotal(item.amounts)
 				)}</td>
         </tr>`;
@@ -468,19 +472,19 @@ const OtherCCtoProvince: React.FC = () => {
 			);
 
 			bodyHTML += `
-        <tr style="background-color: #e0e0e0; font-weight: bold;">
+        <tr style="background-color: #e0e0e0;">
           <td colspan="6" style="text-align: left; padding-left: 8px;">Total of : ${escapeHtml(
 					paidId
 				)} - ${escapeHtml(paidName)}</td>
           ${accountCodes
 					.map(
 						(code) =>
-							`<td class="numeric font-bold">${formatNumber(
+							`<td class="numeric">${formatNumber(
 								groupColumnTotals[code] || 0
 							)}</td>`
 					)
 					.join("")}
-          <td class="numeric font-bold">${formatNumber(groupRowTotal)}</td>
+          <td class="numeric">${formatNumber(groupRowTotal)}</td>
         </tr>
         <tr><td colspan="${totalColumns}" style="height: 12px; background: white;"></td></tr>`;
 		});
@@ -505,12 +509,12 @@ const OtherCCtoProvince: React.FC = () => {
 
 		const headerHTML = `
       <thead>
-        <tr style="background-color: #7A0000; color: white;">
+        <tr style="background-color: white; ">
           <th>Paid Cost Center</th>
           <th>Issued Cost Center</th>
           <th>PIV Date</th>
           <th>Paid Date</th>
-          <th>PIV Total(Rs.)</th>
+          <th>PIV Total</th>
           <th>PIV No</th>
           <th>Bank Check No</th>
           ${accountCodes.map((c) => `<th>${escapeHtml(c)}</th>`).join("")}
@@ -538,12 +542,22 @@ text-align: center;
  margin: 0 0 4px 0; 
  }
 
-.subtitle {
- text-align: center;
-  font-size: 11px;
-   margin-bottom: 14px; 
-   color: #333; 
-   }
+    .subtitle { 
+      font-size: 11px; 
+    }
+
+	.subtitle .left {
+	text-align: left;
+	}
+
+	.subtitle .right {
+	text-align: right;
+	margin-bottom: 4px;
+	}
+
+	.left .line {
+  margin-bottom: 3px; 
+}
 
 @page { 
 size: A3 landscape;
@@ -564,10 +578,25 @@ size: A3 landscape;
 </style>
 </head>
 <body>
-<h3>PIV Collections by Other Cost Centers relevant to the Province - From ${fromDate} To ${toDate}</h3>
-<div class="subtitle">Paid Cost Center : Any other POS Counter / Issued Branch : ${escapeHtml(
-			selectedCompany.compId
-		)} / ${escapeHtml(selectedCompany.CompName)}</div>
+<h3>PIV Collections by Other Cost Centers relevant to the Province</h3>
+<div class="subtitle">
+  <div class="left">
+    <div class="line">
+      <strong>Paid Cost Center:</strong>
+      Any other POS Counter </br> Issued Branch :
+      ${escapeHtml(selectedCompany.compId)} /
+      ${escapeHtml(selectedCompany.CompName)}
+    </div>
+
+    <div class="line">
+      <strong>Period:</strong> ${fromDate} to ${toDate}
+    </div>
+  </div>
+
+  <div class="right">
+    <strong>Currency:</strong> LKR
+  </div>
+</div>
 <table>${colGroupHTML}${headerHTML}<tbody>${bodyHTML}</tbody></table>
 </body>
 </html>`;
@@ -593,35 +622,12 @@ size: A3 landscape;
 			</h2>
 
 			{/* Date Pickers */}
-			<div className="flex justify-end gap-6 mb-4">
-				<div className="flex items-center gap-2">
-					<label className="text-xs font-bold text-[#7A0000]">
-						From Date:
-					</label>
-					<input
-						type="date"
-						value={fromDate}
-						onChange={(e) => setFromDate(e.target.value)}
-						min={minDate}
-						max={maxDate}
-						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-					/>
-				</div>
-				<div className="flex items-center gap-2">
-					<label className="text-xs font-bold text-[#7A0000]">
-						To Date:
-					</label>
-					<input
-						type="date"
-						value={toDate}
-						onChange={(e) => setToDate(e.target.value)}
-						min={minDate}
-						max={maxDate}
-						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-					/>
-				</div>
-			</div>
-
+			<DateRangePicker
+				fromDate={fromDate}
+				toDate={toDate}
+				onFromChange={setFromDate}
+				onToChange={setToDate}
+			/>
 			{/* Search */}
 			<div className="flex flex-wrap items-center gap-3 mb-4">
 				<div className="relative">
@@ -754,7 +760,7 @@ size: A3 landscape;
 									onClick={printPDF}
 									className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded hover:bg-green-50 text-xs"
 								>
-									<Printer className="w-4 h-4" /> Print
+									<Printer className="w-4 h-4" /> PDF
 								</button>
 								<button
 									onClick={closeReport}
@@ -770,14 +776,19 @@ size: A3 landscape;
 								PIV Collections by Other Cost Centers relevant to the
 								Province
 							</h2>
-							<div className="text-sm mb-3">
-								<strong>
-									Paid Cost Center : Any other POS Counter / Issued
-									Branch :{" "}
-								</strong>
-								{selectedCompany?.compId} / {selectedCompany?.CompName}
-								<br />
-								<strong>Period:</strong> {fromDate} to {toDate}
+							<div className="flex justify-between text-sm mb-3">
+								<div>
+									<strong>Paid Cost Center :</strong> Any other POS
+									Counter <br />
+									<strong>Issued Branch :</strong>{" "}
+									{selectedCompany?.compId} /{" "}
+									{selectedCompany?.CompName}
+									<br />
+									<strong>Period:</strong> {fromDate} to {toDate}
+								</div>
+								<div className="font-semibold text-gray-600 self-end">
+									Currency: LKR
+								</div>
 							</div>
 
 							{reportLoading ? (
@@ -803,7 +814,7 @@ size: A3 landscape;
 												<th className="px-2 py-1.5">PIV Date</th>
 												<th className="px-2 py-1.5">Paid Date</th>
 												<th className="px-2 py-1.5 text-right font-bold">
-													PIV Total(Rs.)
+													PIV Total
 												</th>
 												<th className="px-2 py-1.5">PIV No</th>
 												<th className="px-2 py-1.5">
