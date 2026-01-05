@@ -18,6 +18,7 @@ import JobCardDetails from "../pages/JobCardDetails";
 import LedgerCardDetails from "../pages/LedgerCardDetails";
 import CashBookDetails from "../pages/CashBookDetails";
 import PIVDetails from "../pages/PIVDetails";
+import SolarJobsDetails from "../pages/SolarJobsDetails";
 
 const ReportRoutes = () => (
 	<>
@@ -167,6 +168,14 @@ const ReportRoutes = () => (
 			element={
 				<Layout>
 					<PIVDetails />
+				</Layout>
+			}
+		/>
+		<Route
+			path="/report/SolarInformationJobs"
+			element={
+				<Layout>
+					<SolarJobsDetails />
 				</Layout>
 			}
 		/>

@@ -1267,7 +1267,7 @@ const ProvintionalWiseTrial: React.FC = () => {
 																		{categoryInfo.icon}
 																	</span>
 																	<span>
-																		TOTAL $
+																		TOTAL 
 																		{category.toUpperCase()}
 																	</span>
 																</div>
