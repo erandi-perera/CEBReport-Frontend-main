@@ -290,6 +290,10 @@ export const data = [
 				id: 128,
 				name: "8. PIV Details Report (PIV Amount not tallied with Paid Amount)",
 			},
+			{
+				id: 129,
+				name: "9. Province wise PIV Stamp Duty",
+			},
 		],
 		path: "/report/PIV",
 	},
