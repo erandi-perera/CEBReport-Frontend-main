@@ -104,7 +104,7 @@ export const data = [
 	},
 	{
 		id: 6,
-		name: "Solar Information",
+		name: "Solar Information – Billing",
 		icon: GiSolarPower,
 		subtopics: [
 			{id: 50, name: "Solar PV billing information"},
@@ -124,6 +124,17 @@ export const data = [
 			{id: 58, name: "Solar customer information"},
 		],
 		path: "/report/solar-information",
+	},
+
+	{
+		id: 17,
+		name: "Solar Information - Jobs",
+		icon: GiSolarPower,
+		subtopics: [
+			{id: 140, name: "Area-wise Solar Sent to Billing Details"},
+			{id: 141, name: "Solar Retail Rooftop Pending Jobs after PIV2 Paid"},
+		],
+		path: "/report/SolarInformationJobs",
 	},
 	{
 		id: 7,
@@ -279,19 +290,9 @@ export const data = [
 				id: 128,
 				name: "8. PIV Details Report (PIV Amount not tallied with Paid Amount)",
 			},
-
 		],
 		path: "/report/PIV",
 	},
 
-	{
-		id: 17,
-		name: "Solar Information (Jobs)",
-		icon: GiSolarPower,
-		subtopics: [
-			{id: 140, name: "Area-wise Solar Sent to Billing Details"},
-			{id: 141, name: "Solar Retail Rooftop Pending Jobs after PIV2 Paid"},
-		],
-		path: "/report/SolarInformationJobs",
-	},
+	// id = 17 is used above for Solar Information - Jobs
 ];

@@ -62,7 +62,7 @@ interface SummaryConnectionData {
     ErrorMessage?: string;
 }
 
-const SolarCapacityDetailsRetail: React.FC = () => {
+const SolarConnectionDetailsRetail: React.FC = () => {
     const maroon = "text-[#7A0000]";
     const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
@@ -670,7 +670,7 @@ const SolarCapacityDetailsRetail: React.FC = () => {
             const typeCode =
                 selectedCategory === "Entire CEB" ? "" : categoryValue;
 
-            const baseUrl = `/misapi/solarapi/solarConnectionDetails/retail/${reportType === "Detailed Report" ? "detailed" : "summary"
+            const baseUrl = `/solarapi/solarConnectionDetails/retail/${reportType === "Detailed Report" ? "detailed" : "summary"
                 }`;
 
             const params = new URLSearchParams({
@@ -959,16 +959,10 @@ const SolarCapacityDetailsRetail: React.FC = () => {
                                     {item.PreviousReadingDate}
                                 </td>
                                 <td className="border border-gray-300 px-2 py-1 text-right">
-                                    {item.PresentReadingImport.toLocaleString("en-US", {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                    })}
+                                    {item.PresentReadingImport.toLocaleString("en-US")}
                                 </td>
                                 <td className="border border-gray-300 px-2 py-1 text-right">
-                                    {item.PreviousReadingImport.toLocaleString("en-US", {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                    })}
+                                    {item.PreviousReadingImport.toLocaleString("en-US")}
                                 </td>
                                 <td className="border border-gray-300 px-2 py-1 text-right">
                                     {item.UnitsIn.toLocaleString("en-US", {
@@ -977,16 +971,10 @@ const SolarCapacityDetailsRetail: React.FC = () => {
                                     })}
                                 </td>
                                 <td className="border border-gray-300 px-2 py-1 text-right">
-                                    {item.PresentReadingExport.toLocaleString("en-US", {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                    })}
+                                    {item.PresentReadingExport.toLocaleString("en-US")}
                                 </td>
                                 <td className="border border-gray-300 px-2 py-1 text-right">
-                                    {item.PreviousReadingExport.toLocaleString("en-US", {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                    })}
+                                    {item.PreviousReadingExport.toLocaleString("en-US")}
                                 </td>
                                 <td className="border border-gray-300 px-2 py-1 text-right">
                                     {item.UnitsOut.toLocaleString("en-US", {
@@ -1273,9 +1261,6 @@ const SolarCapacityDetailsRetail: React.FC = () => {
                                     <option value="Net Accounting">Net Accounting</option>
                                     <option value="Net Plus">Net Plus</option>
                                     <option value="Net Plus Plus">Net Plus Plus</option>
-                                    <option value="Convert Net Metering to Net Accounting">
-                                        Convert Net Metering to Net Accounting
-                                    </option>
                                 </select>
                             </div>
 
@@ -1555,4 +1540,4 @@ const SolarCapacityDetailsRetail: React.FC = () => {
     );
 };
 
-export default SolarCapacityDetailsRetail;
+export default SolarConnectionDetailsRetail;

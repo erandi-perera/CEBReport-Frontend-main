@@ -16,7 +16,7 @@ const SolarJobsDetails = () => {
 
 	useEffect(() => {
 		const analysisTopic = sidebarData.find(
-			(topic) => topic.name === "Solar Information (Jobs)"
+			(topic) => topic.name === "Solar Information - Jobs"
 		);
 		if (analysisTopic) {
 			setSubtopics(analysisTopic.subtopics);
