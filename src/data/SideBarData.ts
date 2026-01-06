@@ -261,4 +261,22 @@ export const data = [
 
 		path: "/report/PIV",
 	},
+
+	{
+		id: 16,
+		name: "Physical Verification",
+		icon: TbReportAnalytics,
+		subtopics: [
+			{id: 130,
+			 name: "PHV Entry Form",
+
+			},	
+			{id: 131,
+			 name: "PHV Validation",
+
+			},	
+		],
+
+		path: "/report/PhysicalVerification",
+	},
 ];

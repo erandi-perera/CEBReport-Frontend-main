@@ -18,6 +18,9 @@ import JobCardDetails from "../pages/JobCardDetails";
 import LedgerCardDetails from "../pages/LedgerCardDetails";
 import CashBookDetails from "../pages/CashBookDetails";
 import PIVDetails from "../pages/PIVDetails";
+import PhysicalVerificationDetails from "../pages/PhysicalVerificationDetails";
+
+
 
 const ReportRoutes = () => (
 	<>
@@ -170,6 +173,17 @@ const ReportRoutes = () => (
 				</Layout>
 			}
 		/>
+
+		<Route
+			path="/report/PhysicalVerification"
+			element={
+				<Layout>
+					<PhysicalVerificationDetails />
+				</Layout>
+			}
+		/>
+
+		
 	</>
 );
 
