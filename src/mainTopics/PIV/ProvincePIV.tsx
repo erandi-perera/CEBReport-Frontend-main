@@ -5,6 +5,7 @@ import React, {useEffect, useState, useRef} from "react";
 import {Search, RotateCcw, Eye, X, Download, Printer} from "lucide-react";
 import {useUser} from "../../contexts/UserContext";
 import {toast} from "react-toastify";
+import DateRangePicker from "../../components/utils/DateRangePicker";
 
 interface Company {
 	compId: string;
@@ -18,7 +19,6 @@ interface PIVItem {
 	PivReceiptNo: string;
 	PivDate: string | null;
 	PaidDate: string | null;
-	ChequeNo: string;
 	GrandTotal: number;
 	AccountCode: string;
 	Amount: number;
@@ -54,13 +54,7 @@ const formatDate = (dateStr: string | null): string => {
 	}
 };
 
-const today = new Date();
-const currentYear = today.getFullYear();
-const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
-const currentDay = String(today.getDate()).padStart(2, "0");
-const maxDate = `${currentYear}-${currentMonth}-${currentDay}`;
-const minYear = currentYear - 20;
-const minDate = `${minYear}-${currentMonth}-${currentDay}`;
+
 
 const ProvincePIV: React.FC = () => {
 	const {user} = useUser();
@@ -106,7 +100,6 @@ const ProvincePIV: React.FC = () => {
 			// Fill missing common fields from any row
 			if (!first.PivDate) first.PivDate = row.PivDate;
 			if (!first.PaidDate) first.PaidDate = row.PaidDate;
-			if (!first.ChequeNo) first.ChequeNo = row.ChequeNo;
 			if (!first.BankCheckNo) first.BankCheckNo = row.BankCheckNo;
 			if (!first.CCT_NAME) first.CCT_NAME = row.CCT_NAME;
 			if (!first.PaymentMode) first.PaymentMode = row.PaymentMode;
@@ -196,10 +189,12 @@ const ProvincePIV: React.FC = () => {
 		setShowReport(true);
 
 		try {
-			const url = `/misapi/api/provincepivbank/get?compId=${company.compId}&fromDate=${fromDate.replace(
+			const url = `/misapi/api/provincepivbank/get?compId=${
+				company.compId
+			}&fromDate=${fromDate.replace(/-/g, "")}&toDate=${toDate.replace(
 				/-/g,
 				""
-			)}&toDate=${toDate.replace(/-/g, "")}`;
+			)}`;
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const data = await res.json();
@@ -226,13 +221,11 @@ const ProvincePIV: React.FC = () => {
 		if (reportData.length === 0) return;
 
 		const headers = [
-			"Cost Center",
+			"Issued Cost Center",
 			"CC Name",
 			"PIV No",
-			"Receipt No",
 			"PIV Date",
 			"Paid Date",
-			"Cheque No",
 			"Bank Chq No",
 			"Mode",
 			...accountCodes,
@@ -240,8 +233,9 @@ const ProvincePIV: React.FC = () => {
 		];
 
 		const rows: string[] = [
-			"Branch/Province wise PIV Collections Paid to Bank",
-			`Company: ${selectedCompany?.compId} - ${selectedCompany?.CompName}`,
+			"PIV Collections by Banks",
+			`Issued Company: ${selectedCompany?.compId} - ${selectedCompany?.CompName}`,
+			"Paid Cost Center: Bank",
 			`Period: ${fromDate} to ${toDate}`,
 			`Generated: ${new Date().toLocaleString()}`,
 			"",
@@ -262,10 +256,8 @@ const ProvincePIV: React.FC = () => {
 					csvEscape(cc),
 					csvEscape(ccName),
 					csvEscape(item.PivNo),
-					csvEscape(item.PivReceiptNo),
 					csvEscape(formatDate(item.PivDate)),
 					csvEscape(formatDate(item.PaidDate)),
-					csvEscape(item.ChequeNo || ""),
 					csvEscape(item.BankCheckNo || ""),
 					csvEscape(item.PaymentMode),
 					...accountCodes.map((acc) =>
@@ -292,7 +284,7 @@ const ProvincePIV: React.FC = () => {
 			rows.push(
 				[
 					csvEscape("TOTAL"),
-					csvEscape(`Cost Center: ${cc} - ${ccName}`),
+					csvEscape(`Issued Cost Center: ${cc} - ${ccName}`),
 					"",
 					"",
 					"",
@@ -389,7 +381,10 @@ const ProvincePIV: React.FC = () => {
 						   </td>`
 							: ""
 					}
-					<td class="border border-gray-300 p-1 text-2xs">${item.ChequeNo || "-"}</td>
+					<td class="border border-gray-300 p-1 text-2xs text-center">${formatDate(
+						item.PivDate
+					)}</td>
+					
 					<td class="border border-gray-300 p-1 text-2xs text-center">${formatDate(
 						item.PaidDate
 					)}</td>
@@ -397,8 +392,8 @@ const ProvincePIV: React.FC = () => {
 						pivTotal
 					)}</td>
 					<td class="border border-gray-300 p-1 text-2xs">${item.PivNo}</td>
+					<td class="border border-gray-300 p-1 text-2xs">${item.BankCheckNo || "-"}</td>
 					<td class="border border-gray-300 p-1 text-2xs">${item.PaymentMode}</td>
-					<td class="border border-gray-300 p-1 text-2xs">${item.PivReceiptNo}</td>
 					${accountCodes
 						.map(
 							(acc) =>
@@ -482,10 +477,15 @@ const ProvincePIV: React.FC = () => {
 <html><head><meta charset="utf-8">
 <style>
 	@media print {
-		@page { margin: 10mm; size: landscape; }
+		@page { margin: 10mm; size: A3 landscape; }
 		body { margin: 0; font-family: Arial, sans-serif; }
-		thead { display: table-header-group !important; }
-		tr { page-break-inside: avoid; }
+  table { page-break-inside: auto; border-collapse: collapse; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+  td, th { page-break-inside: avoid; page-break-after: auto; }
+  		thead { display: table-header-group !important; }
+		tr, th, td{ page-break-inside: avoid;
+		page-break-after: auto; }
+		tr:first-child { page-break-before: avoid !important; }
 	}
 	body { font-size: ${baseFontSize}; line-height: 1.3; }
 	.title { margin: 8px 0; text-align: center; font-weight: bold; color: #7A0000; font-size: 13px; }
@@ -498,24 +498,25 @@ const ProvincePIV: React.FC = () => {
 	}
 </style>
 </head><body>
-	<div class="title">Branch/Province wise PIV Collections Paid to Bank</div>
+	<div class="title">PIV Collections by Banks - From ${fromDate} to ${toDate}</div>
 	<div style="margin:4px 8px; font-size:8px; display:flex; justify-content:space-between;">
-		<div><strong>Company:</strong> ${selectedCompany.compId} - ${
+		<div><strong>Issued Company:</strong> ${selectedCompany.compId} - ${
 			selectedCompany.CompName
-		}<br><strong>Period:</strong> ${fromDate} to ${toDate}</div>
+		}
+		<br><strong>Paid Cost Center: </strong>Bank</div>
 		<div style="text-align:right"><strong>Currency: LKR</strong></div>
 	</div>
 
 	<table>
 		<thead>
 			<tr>
-				<th width="11%">Cost Center</th>
-				<th width="7%">Chq No</th>
-				<th width="6%">Date</th>
-				<th width="8%">Paid Amt</th>
+				<th width="11%">Issued Cost Center</th>
+				<th width="6%">Piv Date</th>
+				<th width="8%"> Paid Date </th>
+				<th width="8%"> Paid Amount </th>
 				<th width="8%">PIV No</th>
+				<th width="7%">Bank Chq No</th>
 				<th width="5%">Mode</th>
-				<th width="8%">Receipt</th>
 				${accountCodes.map((acc) => `<th width="4.8%">${acc}</th>`).join("")}
 				<th width="9%">Total</th>
 			</tr>
@@ -536,38 +537,16 @@ const ProvincePIV: React.FC = () => {
 	return (
 		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
 			<h2 className={`text-xl font-bold mb-4 ${maroon}`}>
-				Branch/Province wise PIV Collections Paid to Bank
+				PIV Collections by Banks
 			</h2>
 
 			{/* Date Pickers */}
-			<div className="flex justify-end gap-6 mb-4">
-				<div className="flex items-center gap-2">
-					<label className="text-xs font-bold text-[#7A0000]">
-						From Date:
-					</label>
-					<input
-						type="date"
-						value={fromDate}
-						onChange={(e) => setFromDate(e.target.value)}
-						min={minDate}
-						max={maxDate}
-						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-					/>
-				</div>
-				<div className="flex items-center gap-2">
-					<label className="text-xs font-bold text-[#7A0000]">
-						To Date:
-					</label>
-					<input
-						type="date"
-						value={toDate}
-						onChange={(e) => setToDate(e.target.value)}
-						min={minDate}
-						max={maxDate}
-						className="pl-3 pr-3 py-1.5 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-					/>
-				</div>
-			</div>
+			<DateRangePicker
+				fromDate={fromDate}
+				toDate={toDate}
+				onFromChange={setFromDate}
+				onToChange={setToDate}
+			/>
 
 			{/* Search */}
 			<div className="flex flex-wrap items-center gap-3 mb-4">
@@ -713,20 +692,23 @@ const ProvincePIV: React.FC = () => {
 							<h2
 								className={`text-xl font-bold text-center mb-2 ${maroon}`}
 							>
-								Branch/Province wise PIV Collections Paid to Bank
+								PIV Collections by Banks
 							</h2>
 							<div className="flex justify-between text-sm mb-3">
 								<div>
 									<p>
-										<strong>Company:</strong>{" "}
+										<strong>Issued Company:</strong>{" "}
 										{selectedCompany?.compId} -{" "}
 										{selectedCompany?.CompName}
+									</p>
+									<p>
+										<strong>Paid Cost Center: </strong> Bank
 									</p>
 									<p>
 										<strong>Period:</strong> {fromDate} to {toDate}
 									</p>
 								</div>
-								<div className="font-semibold text-gray-600">
+								<div className="font-semibold text-gray-600 self-end">
 									Currency: LKR
 								</div>
 							</div>
@@ -747,15 +729,19 @@ const ProvincePIV: React.FC = () => {
 									<table className="w-full text-xs min-w-max table-auto">
 										<thead className={`${maroonGrad} text-white`}>
 											<tr>
-												<th className="px-2 py-1.5">Cost Center</th>
-												<th className="px-2 py-1.5">Cheque No</th>
+												<th className="px-2 py-1.5">
+													Issued Cost Center
+												</th>
+												<th className="px-2 py-1.5">Piv Date</th>
 												<th className="px-2 py-1.5">Paid Date</th>
 												<th className="px-2 py-1.5 text-right font-bold">
 													Paid Amount
 												</th>
 												<th className="px-2 py-1.5">PIV No</th>
+												<th className="px-2 py-1.5">
+													Bank Cheque No
+												</th>
 												<th className="px-2 py-1.5">Mode</th>
-												<th className="px-2 py-1.5">Piv Code</th>
 												{accountCodes.map((acc) => (
 													<th
 														key={acc}
@@ -810,8 +796,11 @@ const ProvincePIV: React.FC = () => {
 																			</td>
 																		)}
 																		<td className="px-2 py-1 border border-gray-200">
-																			{item.ChequeNo || "-"}
+																			{formatDate(
+																				item.PivDate
+																			)}
 																		</td>
+
 																		<td className="px-2 py-1 border border-gray-200 text-center">
 																			{formatDate(
 																				item.PaidDate
@@ -826,11 +815,13 @@ const ProvincePIV: React.FC = () => {
 																			{item.PivNo}
 																		</td>
 																		<td className="px-2 py-1 border border-gray-200">
-																			{item.PaymentMode}
+																			{item.BankCheckNo ||
+																				"-"}
 																		</td>
 																		<td className="px-2 py-1 border border-gray-200">
-																			{item.PivReceiptNo}
+																			{item.PaymentMode}
 																		</td>
+
 																		{accountCodes.map(
 																			(acc) => (
 																				<td

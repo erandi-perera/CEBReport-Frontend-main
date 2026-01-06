@@ -13,8 +13,6 @@ import {MdInventory2} from "react-icons/md";
 import {FaMoneyCheckAlt} from "react-icons/fa";
 import {TbReportAnalytics} from "react-icons/tb";
 
-
-
 export const data = [
 	{
 		id: 1,
@@ -106,7 +104,7 @@ export const data = [
 	},
 	{
 		id: 6,
-		name: "Solar Information",
+		name: "Solar Information – Billing",
 		icon: GiSolarPower,
 		subtopics: [
 			{id: 50, name: "Solar PV billing information"},
@@ -126,6 +124,17 @@ export const data = [
 			{id: 58, name: "Solar customer information"},
 		],
 		path: "/report/solar-information",
+	},
+
+	{
+		id: 17,
+		name: "Solar Information - Jobs",
+		icon: GiSolarPower,
+		subtopics: [
+			{id: 140, name: "Area-wise Solar Sent to Billing Details"},
+			{id: 141, name: "Solar Retail Rooftop Pending Jobs after PIV2 Paid"},
+		],
+		path: "/report/SolarInformationJobs",
 	},
 	{
 		id: 7,
@@ -170,6 +179,7 @@ export const data = [
 			{id: 90, name: "Cost Center Wise Income & Expenditure"},
 			{id: 91, name: "Province Wise Income & Expenditure"},
 			{id: 92, name: "Region Wise Income & Expenditure"},
+			{id: 93, name: "Region Wise Income & Expenditure (Detailed)"},
 		],
 		path: "/report/IncomeExpenditure",
 	},
@@ -240,28 +250,55 @@ export const data = [
 		name: "PIV",
 		icon: TbReportAnalytics,
 		subtopics: [
-			{id: 119, name: "Branch/Province wise PIV Collections Paid to Bank"},
+			{
+				id: 119,
+				name: "1. Branch/Province wise PIV Collections Paid to Bank",
+			},
 			{
 				id: 120,
-				name: "Branch/Province wise PIV Collections by Provincial POS relevant to the Province",
+				name: "2. Branch/Province wise PIV Collections by Provincial POS relevant to the Province",
 			},
 			{
 				id: 121,
-				name: "Branch/Province wise PIV Collections Paid to Provincial POS",
+				name: "3. Branch/Province wise PIV Collections Paid to Provincial POS",
 			},
 			{
 				id: 122,
-				name: "PIV Collections by Provincial POS relevant to Other Cost Centers",
+				name: "4. PIV Collections by Provincial POS relevant to Other Cost Centers",
 			},
 			{
 				id: 123,
-				name: "PIV Collections by Other Cost Centers relevant to the Province",
+				name: "5. PIV Collections by Other Cost Centers relevant to the Province",
+			},
+			{
+				id: 124,
+				name: "6. Branch wise PIV Tabulation ( Both Bank and POS)",
+			},
+			{
+				id: 127,
+				name: "7. PIV Collections by Banks",
+			},
+			{
+				id: 125,
+				name: "7.1 PIV Collections by Peoples Banks",
+			},
+			{
+				id: 126,
+				name: "7.2 PIV Collections by IPG  (SLT) ",
+			},
+			{
+				id: 128,
+				name: "8. PIV Details Report (PIV Amount not tallied with Paid Amount)",
+			},
+			{
+				id: 129,
+				name: "9. Province wise PIV Stamp Duty",
 			},
 		],
-
 		path: "/report/PIV",
 	},
 
+<<<<<<< HEAD
 	{
 		id: 16,
 		name: "Physical Verification",
@@ -279,4 +316,7 @@ export const data = [
 
 		path: "/report/PhysicalVerification",
 	},
+=======
+	// id = 17 is used above for Solar Information - Jobs
+>>>>>>> f2ea6d5518ad750c216f24896789e2d385c61757
 ];

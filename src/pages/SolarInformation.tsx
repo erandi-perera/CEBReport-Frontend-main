@@ -8,8 +8,9 @@ import SolarPVBilling from "../mainTopics/SolarInformation/SolarPVBilling";
 import SolarPaymentRetail from "../mainTopics/SolarInformation/SolarPaymentRetail"
 import SolarPVCapacityInformation from "../mainTopics/SolarInformation/SolarPVCapacityInformation";
 import SolarPaymentBulk from "../mainTopics/SolarInformation/SolarPaymentBulk";
-import SolarCapacityDetailsRetail from "../mainTopics/SolarInformation/SolarCapacityDetailsRetail";
+import SolarConnectionDetailsRetail from "../mainTopics/SolarInformation/SolarConnectionDetailsRetail";
 import SolarConnectionDetailsBulk from "../mainTopics/SolarInformation/SolarConnectionDetailsBulk";
+import SolarCustomerInformation from "../mainTopics/SolarInformation/SolarCustomerInformation";
 
 
 type Subtopic = {
@@ -24,7 +25,7 @@ const SolarInformation = () => {
   useEffect(() => {
     // Get Solar Information topic's subtopics directly from sidebarData
     const solarTopic = sidebarData.find(
-      (topic) => topic.name === "Solar Information"
+      (topic) => topic.name === "Solar Information – Billing"
     );
     if (solarTopic) {
       setSubtopics(solarTopic.subtopics);
@@ -54,10 +55,11 @@ const SolarInformation = () => {
       case "Solar payment information – Bulk":
         return <SolarPaymentBulk />;
       case "Solar connection details (incl. Reading and usage) - retail":
-        return <SolarCapacityDetailsRetail />;
+        return <SolarConnectionDetailsRetail />;
       case "Solar connection details (incl. Reading and usage) - bulk":
         return <SolarConnectionDetailsBulk />;
       case "Solar customer information":
+        return <SolarCustomerInformation />;
 
       default:
         return (

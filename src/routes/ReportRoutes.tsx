@@ -18,9 +18,13 @@ import JobCardDetails from "../pages/JobCardDetails";
 import LedgerCardDetails from "../pages/LedgerCardDetails";
 import CashBookDetails from "../pages/CashBookDetails";
 import PIVDetails from "../pages/PIVDetails";
+<<<<<<< HEAD
 import PhysicalVerificationDetails from "../pages/PhysicalVerificationDetails";
 
 
+=======
+import SolarJobsDetails from "../pages/SolarJobsDetails";
+>>>>>>> f2ea6d5518ad750c216f24896789e2d385c61757
 
 const ReportRoutes = () => (
 	<>
@@ -173,6 +177,7 @@ const ReportRoutes = () => (
 				</Layout>
 			}
 		/>
+<<<<<<< HEAD
 
 		<Route
 			path="/report/PhysicalVerification"
@@ -184,6 +189,16 @@ const ReportRoutes = () => (
 		/>
 
 		
+=======
+		<Route
+			path="/report/SolarInformationJobs"
+			element={
+				<Layout>
+					<SolarJobsDetails />
+				</Layout>
+			}
+		/>
+>>>>>>> f2ea6d5518ad750c216f24896789e2d385c61757
 	</>
 );
 
