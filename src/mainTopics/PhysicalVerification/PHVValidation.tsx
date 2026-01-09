@@ -52,14 +52,6 @@ const PHVValidation: React.FC = () => {
   const maroon = "text-[#7A0000]";
   const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
-  const totals = reportData.reduce(
-    (acc, item) => ({
-      bookValue: acc.bookValue + item.Qty * item.Rate,
-      physicalValue: acc.physicalValue + item.CntedQty * item.Rate,
-      difference: acc.difference + (item.CntedQty - item.Qty) * item.Rate,
-    }),
-    { bookValue: 0, physicalValue: 0, difference: 0 }
-  );
 
 
   const currentYear = new Date().getFullYear();
@@ -148,18 +140,12 @@ const PHVValidation: React.FC = () => {
         item.UnitPrice || 0,
         item.QtyOnHand || 0,
         item.CntedQty || 0,
-        "",
+        item.Reason || "",
       ];
       csvRows.push(row.map((v) => `"${v}"`).join(","));
     });
 
-    // Totals
-    csvRows.push("");
-    csvRows.push(`Total Book Value,,,,,${formatNumber(totals.bookValue)}`);
-    csvRows.push(
-      `Total Physical Value,,,,,${formatNumber(totals.physicalValue)}`
-    );
-    csvRows.push(`Difference,,,,,${formatNumber(totals.difference)}`);
+
 
     const csvContent = csvRows.join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], {
@@ -198,26 +184,11 @@ const PHVValidation: React.FC = () => {
         <td class="right">${formatNumber(item.UnitPrice)}</td>
         <td class="right">${formatNumber(item.QtyOnHand)}</td>
         <td class="right">${formatNumber(item.CntedQty)}</td>
-        <td></td>
+        <td>${escapeHtml(item.Reason)}</td>
+
       </tr>`;
     });
 
-    // Total rows
-    bodyHTML += `<tr class="total-row">
-      <td colspan="5" class="right">Total Book Value</td>
-      <td class="right">${formatNumber(totals.bookValue)}</td>
-      <td colspan="3"></td>
-    </tr>`;
-    bodyHTML += `<tr class="total-row">
-      <td colspan="5" class="right">Total Physical Value</td>
-      <td class="right">${formatNumber(totals.physicalValue)}</td>
-      <td colspan="3"></td>
-    </tr>`;
-    bodyHTML += `<tr class="total-row">
-      <td colspan="5" class="right">Difference</td>
-      <td class="right">${formatNumber(totals.difference)}</td>
-      <td colspan="3"></td>
-    </tr>`;
 
     const fullHTML = `<!DOCTYPE html>
 <html>
@@ -248,14 +219,14 @@ h3 { text-align: center; margin: 0 0 15px 0; }
   <thead>
   <tr>
     <th style="width:5%">S/No</th>
-    <th style="width:10%">Code No</th>
+    <th style="width:6%">Code No</th>
     <th style="width:35%">Description</th>
     <th style="width:8%">Grade</th>
     <th style="width:6%">UOM</th>
-    <th style="width:10%">Std Price</th>
-    <th style="width:10%">Stock Book Qty</th>
-    <th style="width:10%">Physical</th>
-    <th style="width:6%">Reason</th>
+    <th style="width:9%">Std Price</th>
+    <th style="width:8%">Stock Book Qty</th>
+    <th style="width:8%">Physical</th>
+    <th style="width:12%">Reason</th>
   </tr>
   </thead>
   <tbody>${bodyHTML}</tbody>
@@ -398,43 +369,7 @@ h3 { text-align: center; margin: 0 0 15px 0; }
                   </td>
                 </tr>
               ))}
-              {/* Total Rows */}
-              <tr className="bg-gray-200 font-bold">
-                <td
-                  colSpan={5}
-                  className="border border-gray-400 px-3 py-2 text-right"
-                >
-                  Total Book Value
-                </td>
-                <td className="border border-gray-400 px-3 py-2 text-right">
-                  {formatNumber(totals.bookValue)}
-                </td>
-                <td colSpan={3}></td>
-              </tr>
-              <tr className="bg-gray-200 font-bold">
-                <td
-                  colSpan={5}
-                  className="border border-gray-400 px-3 py-2 text-right"
-                >
-                  Total Physical Value
-                </td>
-                <td className="border border-gray-400 px-3 py-2 text-right">
-                  {formatNumber(totals.physicalValue)}
-                </td>
-                <td colSpan={3}></td>
-              </tr>
-              <tr className="bg-gray-300 font-bold">
-                <td
-                  colSpan={5}
-                  className="border border-gray-400 px-3 py-2 text-right"
-                >
-                  Difference
-                </td>
-                <td className="border border-gray-400 px-3 py-2 text-right">
-                  {formatNumber(totals.difference)}
-                </td>
-                <td colSpan={3}></td>
-              </tr>
+
             </tbody>
           </table>
         </ReportViewer>

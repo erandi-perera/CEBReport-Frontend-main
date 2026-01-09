@@ -85,20 +85,32 @@ const PHVEntryForm: React.FC = () => {
     const repYear = "20" + docNo.split("/")[2];
     const totalCounted = reportData.reduce((sum, item) => sum + (item.CntedQty || 0), 0);
 
-    // Format: 1/8/2026 1:24:19 PM
     const now = new Date();
     const formattedDate = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
     const formattedTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
 
     const tableStyle = `
-    @page { margin: 10mm 8mm 10mm 8mm; size: A4 portrait; }
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; font-size: 8pt; line-height: 1.3; }
+@page {
+  margin: 10mm 8mm 10mm 8mm;
+  size: A4 portrait;
+
+  @bottom-left {
+    content: "Date & time of the Report Generated : ${formattedDate} ${formattedTime}";
+    font-size: 8pt;
+  }
+
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: 8pt;
+  }
+}    body { font-family: Arial, sans-serif; margin: 0; padding: 0; font-size: 8pt; line-height: 1.3; }
     table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-top: 6px; }
     th, td { border: 1px solid #000; padding: 4px; word-wrap: break-word; vertical-align: middle; }
     th { background-color: #ffffff; color: #000000; font-weight: bold; text-align: center; }
     .right { text-align: right; }
     .center { text-align: center; }
     .left { text-align: left; }
+ 
     h1 { font-size: 14pt; margin: 8px 0 4px 0; text-align: center; color: #7A0000; }
     h2 { font-size: 12pt; margin: 4px 0; text-align: center; color: #000000; }
     .header { font-size: 9pt; display: flex; justify-content: space-between; margin: 6px 0; }
@@ -230,7 +242,7 @@ const PHVEntryForm: React.FC = () => {
           <p style="margin: 5px 0;">Approved date : <span class="dotted" style="width: 200px;"></span></p>
 
           <p style="margin-top: 18px; font-size: 8pt;">
-            Note to Remarks : S : Slow Moving &nbsp;&nbsp; N : Non Moving &nbsp;&nbsp; D : Damage
+            Note to Remarks : S : Slow Moving &nbsp;&nbsp; N : Non Moving &nbsp;&nbsp; D : Damage;O - Obsolete  and Idle;
           </p>
           <p style="font-size: 8pt; text-align: right; margin-top: 4px;">Re-printed (Web Reporting)</p>
         </div>
@@ -238,10 +250,8 @@ const PHVEntryForm: React.FC = () => {
     </div>
 </div>
 
-<!-- Date & Time at the very bottom -->
-<div style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 8pt; padding: 10px 0;">
-  Date & time of the Report Generated : ${formattedDate} ${formattedTime}
-</div>
+
+
 
 </body>
 </html>`;
@@ -266,6 +276,10 @@ const PHVEntryForm: React.FC = () => {
       "Remarks",
     ];
 
+    const totalCountedQty = reportData.reduce(
+      (sum, item) => sum + (item.CntedQty ?? 0),
+      0
+    );
     const rows = reportData.map((item, index) => [
       index + 1,
 
@@ -277,6 +291,17 @@ const PHVEntryForm: React.FC = () => {
       item.UomCd ?? "",
       (item.UnitPrice ?? 0).toFixed(2),
       (item.CntedQty ?? 0).toFixed(2),
+      "",
+    ]);
+
+    rows.push([
+      "",                 
+      "",                 
+      "Total Counted Quantity",
+      "",                 
+      "",                 
+      "",                 
+      totalCountedQty.toFixed(2), 
       "",
     ]);
 
