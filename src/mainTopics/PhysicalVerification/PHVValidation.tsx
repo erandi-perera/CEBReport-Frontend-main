@@ -255,7 +255,7 @@ h3 { text-align: center; margin: 0 0 15px 0; }
           setSelectedYear={setSelectedYear}
           selectedMonth={selectedMonth}
           setSelectedMonth={setSelectedMonth}
-          className="gap-8" // optional: adjusts spacing between year and month
+          className="gap-8" 
         />
       </div>
 
