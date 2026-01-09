@@ -76,7 +76,7 @@ export const data = [
 			{id: 32, name: "Sales and collection"},
 			{id: 33, name: "Stamp duty for payment collections"},
 			{id: 34, name: "Monthly revenue collection of different channels"},
-			{id: 35, name: "Kiosk payment collection"},
+			{id: 35, name: "Kiosk 	payment collection"},
 			{id: 36, name: "Payment collection"},
 			{id: 37, name: "Suspense payment details"},
 			{id: 38, name: "Finalized account details"},
@@ -298,7 +298,7 @@ export const data = [
 		path: "/report/PIV",
 	},
 
-<<<<<<< HEAD
+
 	{
 		id: 16,
 		name: "Physical Verification",
@@ -311,12 +311,13 @@ export const data = [
 			{id: 131,
 			 name: "PHV Validation",
 
-			},	
+			},
+			
 		],
 
 		path: "/report/PhysicalVerification",
 	},
-=======
+
 	// id = 17 is used above for Solar Information - Jobs
->>>>>>> f2ea6d5518ad750c216f24896789e2d385c61757
+
 ];

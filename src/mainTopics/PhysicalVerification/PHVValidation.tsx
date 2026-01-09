@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useUser } from "../../contexts/UserContext";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+import { toast } from "react-toastify";
+import ReusableCompanyList from "../../components/utils/ReusableCompanyList";
+import ReportViewer from "../../components/utils/ReportViewer";
+import YearMonthDropdowns from "../../components/utils/YearMonthDropdowns";
 
 interface CostCentre {
   DeptId: string;
@@ -14,215 +15,109 @@ interface PHVValidationItem {
   MatNm: string;
   UomCd: string;
   GradeCd: string;
-  Qty: number; // Stock Book Quantity
-  Rate: number; // Standard Price
-  CntedQty: number; // Physical
-  Reason?: string; // Reason - empty
+  Qty: number;
+  Rate: number;
+  CntedQty: number;
+  Reason?: string;
   [key: string]: any;
 }
 
-function PHVValidationForm() {
+const formatNumber = (num: number | null | undefined): string => {
+  if (num == null) return "0.00";
+  return num.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const escapeHtml = (text: string | null | undefined): string => {
+  if (text == null) return "";
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+};
+
+const PHVValidation: React.FC = () => {
   const { user } = useUser();
   const epfNo = user?.Userno || "";
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const [costCentres, setCostCentres] = useState<CostCentre[]>([]);
-  const [deptId, setDeptId] = useState("");
-  const [repMonth, setRepMonth] = useState("");
-  const [repYear, setRepYear] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<PHVValidationItem[]>([]);
-  const [error, setError] = useState("");
+  const [selectedDept, setSelectedDept] = useState<CostCentre | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [reportData, setReportData] = useState<PHVValidationItem[]>([]);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
-  // Updated display names
-  const columnDisplayNames: Record<string, string> = {
-    MatCd: "Code No",
-    MatNm: "Description",
-    GradeCd: "Grade Code",
-    UomCd: "UOM",
-    Rate: "Standard Price",
-    Qty: "Stock Book Quantity",
-    CntedQty: "Physical",
-    Reason: "Reason",
-  };
+  const maroon = "text-[#7A0000]";
+  const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
-  // Months dropdown 
- const months = [
-  { value: "01", label: "January" },
-  { value: "02", label: "February" },
-  { value: "03", label: "March" },
-  { value: "04", label: "April" },
-  { value: "05", label: "May" },
-  { value: "06", label: "June" },
-  { value: "07", label: "July" },
-  { value: "08", label: "August" },
-  { value: "09", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
-];
+  const totals = reportData.reduce(
+    (acc, item) => ({
+      bookValue: acc.bookValue + item.Qty * item.Rate,
+      physicalValue: acc.physicalValue + item.CntedQty * item.Rate,
+      difference: acc.difference + (item.CntedQty - item.Qty) * item.Rate,
+    }),
+    { bookValue: 0, physicalValue: 0, difference: 0 }
+  );
 
 
   const currentYear = new Date().getFullYear();
 
-
-const years = Array.from({ length: 20 }, (_, i) =>
-  (currentYear - i).toString()
-);
-
-useEffect(() => {
-  setRepYear(currentYear.toString());
-}, []);
-
-  useEffect(() => {
-    if (!epfNo) return;
-
-    const loadCostCentres = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/misapi/api/incomeexpenditure/departments/${epfNo}`, {
-          headers: { "Content-Type": "application/json" },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const list = Array.isArray(json) ? json : json.data || [];
-        setCostCentres(list);
-      } catch (err: any) {
-        setError("Failed to load Cost Centres");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCostCentres();
-  }, [epfNo]);
-
-  const handleView = async () => {
-    setError("");
-    setResult([]);
-    if (!deptId) return setError("Please select Cost Centre");
-    if (!repMonth) return setError("Please select Month");
-    if (!repYear) return setError("Please select Year");
-
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `http://localhost:44381/api/physical-verification-validation?deptId=${encodeURIComponent(deptId)}&repYear=${encodeURIComponent(repYear)}&repMonth=${encodeURIComponent(repMonth)}`
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setResult(Array.isArray(json) ? json : json.data || []);
-    } catch (err: any) {
-      setError("Error fetching PHV Validation data: " + (err.message || err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReset = () => {
-    setDeptId("");
-    setRepMonth("");
-    setRepYear("");
-    setResult([]);
-    setError("");
-  };
-
-  // === EXPORT: PDF ===
-  const handleExportPDF = () => {
-    if (result.length === 0) {
-      setError("No data to export");
+  const handleViewReport = async (dept: { id: string; name: string }) => {
+    if (!selectedMonth || !selectedYear) {
+      toast.error("Please select both Month and Year");
       return;
     }
 
-    const doc = new jsPDF("p", "mm", "a4");
-    const pageWidth = doc.internal.pageSize.getWidth();
+    const typedDept: CostCentre = {
+      DeptId: dept.id,
+      DeptName: dept.name,
+    };
 
-    doc.setFontSize(16);
-    doc.text("CEYLON ELECTRICITY BOARD", pageWidth / 2, 15, { align: "center" });
-    doc.setFontSize(14);
-    doc.text(`ANNUAL VERIFICATION OF STORES ${repYear} (Validation)`, pageWidth / 2, 23, { align: "center" });
+    setSelectedDept(typedDept);
+    setReportLoading(true);
+    setReportData([]);
+    setShowReport(true);
 
-    doc.setFontSize(11);
-    doc.text(`Cost center : ${deptId}`, 14, 35);
+    try {
+      const res = await fetch(
+        `/LedgerCard/api/physical-verification-validation?deptId=${encodeURIComponent(
+          dept.id
+        )}&repYear=${encodeURIComponent(
+          selectedYear
+        )}&repMonth=${encodeURIComponent(selectedMonth)}`
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const items: PHVValidationItem[] = Array.isArray(json)
+        ? json
+        : json.data || [];
+      setReportData(items);
 
-    const exportHeaders = [
-      "Serial No",
-      "Code No",
-      "Description",
-      "Grade Code",
-      "UOM",
-      "Standard Price",
-      "Stock Book Quantity",
-      "Physical",
-      "Reason",
-    ];
-
-    const exportRows = result.map((item, index) => [
-      index + 1,
-      item.MatCd || "",
-      item.MatNm || "",
-      item.GradeCd || "",
-      item.UomCd || "",
-      (item.UnitPrice || 0).toLocaleString("en-US", { minimumFractionDigits: 2 }),
-      (item.QtyOnHand || 0).toLocaleString("en-US", { minimumFractionDigits: 2 }),
-      (item.CntedQty || 0).toLocaleString("en-US", { minimumFractionDigits: 2 }),
-      "", // Empty Reason
-    ]);
-
-    autoTable(doc, {
-      head: [exportHeaders],
-      body: exportRows,
-      startY: 45,
-      theme: "grid",
-      styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: [122, 0, 0], textColor: 255, fontStyle: "bold", halign: "center" },
-      columnStyles: {
-        0: { cellWidth: 18, halign: "center" },
-        1: { cellWidth: 28 },
-        2: { cellWidth: 60 },
-        3: { cellWidth: 22, halign: "center" },
-        4: { cellWidth: 16, halign: "center" },
-        5: { cellWidth: 28, halign: "right" },
-        6: { cellWidth: 28, halign: "right" },
-        7: { cellWidth: 28, halign: "right" },
-        8: { cellWidth: 30 },
-      },
-      margin: { left: 14, right: 14 },
-    });
-
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-
-    const now = new Date();
-    doc.setFontSize(9);
-    doc.text(`Date & time of the Report Generated : ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, 14, 285);
-
-    doc.save(`PHV_Validation_Report_${deptId}_${repYear}_${repMonth}.pdf`);
+      items.length === 0
+        ? toast.warn("No records found")
+        : toast.success("Report loaded successfully");
+    } catch (err: any) {
+      toast.error(
+        "Failed to load report: " + (err.message || "Unknown error")
+      );
+    } finally {
+      setReportLoading(false);
+    }
   };
 
-  //  EXCEL 
-  const handleExportExcel = () => {
-    if (result.length === 0) return;
-
-    const exportData = result.map((item, index) => ({
-      "Serial No": index + 1,
-      "Code No": item.MatCd || "",
-      "Description": item.MatNm || "",
-      "Grade Code": item.GradeCd || "",
-      "UOM": item.UomCd || "",
-      "Standard Price": item.UnitPrice || 0,
-      "Stock Book Quantity": item.QtyOnHand || 0,
-      "Physical": item.CntedQty ?? 0,
-      "Reason": "",
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "PHV Validation Data");
-    XLSX.writeFile(workbook, `PHV_Validation_Report_${deptId}_${repYear}_${repMonth}.xlsx`);
+  const closeReport = () => {
+    setShowReport(false);
+    setReportData([]);
+    setSelectedDept(null);
+    setSelectedMonth(null);
+    setSelectedYear(currentYear);
   };
 
-  // CSV 
-  const handleExportCSV = () => {
-    if (result.length === 0) return;
+  const handleDownloadCSV = () => {
+    if (reportData.length === 0 || !selectedDept) return;
+
 
     const headers = [
       "Serial No",
@@ -235,228 +130,317 @@ useEffect(() => {
       "Physical",
       "Reason",
     ];
-    const rows = result.map((item, index) => [
-      index + 1,
-      item.MatCd || "",
-      item.MatNm || "",
-      item.GradeCd || "",
-      item.UomCd || "",
-      item.UnitPrice || 0,
-      item.QtyOnHand || 0,
-      item.CntedQty ?? 0,
+
+    const csvRows: string[] = [
+      `"ANNUAL VERIFICATION OF STORES ${selectedYear ?? currentYear} (Validation)"`,
+      `Cost Centre: ${selectedDept.DeptId} - ${selectedDept.DeptName}`,
       "",
-    ]);
+      headers.join(","),
+    ];
 
-    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    reportData.forEach((item, idx) => {
+      const row = [
+        idx + 1,
+        item.MatCd || "",
+        item.MatNm || "",
+        item.GradeCd || "",
+        item.UomCd || "",
+        item.UnitPrice || 0,
+        item.QtyOnHand || 0,
+        item.CntedQty || 0,
+        "",
+      ];
+      csvRows.push(row.map((v) => `"${v}"`).join(","));
+    });
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    // Totals
+    csvRows.push("");
+    csvRows.push(`Total Book Value,,,,,${formatNumber(totals.bookValue)}`);
+    csvRows.push(
+      `Total Physical Value,,,,,${formatNumber(totals.physicalValue)}`
+    );
+    csvRows.push(`Difference,,,,,${formatNumber(totals.difference)}`);
+
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `PHV_Validation_Report_${deptId}_${repYear}_${repMonth}.csv`;
+    link.download = `PHV_Validation_${selectedDept.DeptId}_${selectedYear ?? currentYear}_${selectedMonth != null ? String(selectedMonth).padStart(2, "0") : ""}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
+  const printPDF = () => {
+    if (reportData.length === 0 || !iframeRef.current || !selectedDept)
+      return;
+
+
+    const tableStyle = `
+      table { width: 100%; border-collapse: collapse; font-size: 10px; }
+      th, td { border: 1px solid #999; padding: 6px; word-wrap: break-word; }
+      th { background-color: #ffffff;; color:#000000;; font-weight: bold; text-align: center; }
+      .right { text-align: right; }
+      .center { text-align: center; }
+      .total-row { background-color: #f0f0f0; font-weight: bold; }
+    `;
+
+    let bodyHTML = "";
+    reportData.forEach((item, idx) => {
+      bodyHTML += `<tr>
+        <td class="center">${idx + 1}</td>
+        <td>${escapeHtml(item.MatCd)}</td>
+        <td>${escapeHtml(item.MatNm)}</td>
+        <td class="center">${escapeHtml(item.GradeCd)}</td>
+        <td class="center">${escapeHtml(item.UomCd)}</td>
+        <td class="right">${formatNumber(item.UnitPrice)}</td>
+        <td class="right">${formatNumber(item.QtyOnHand)}</td>
+        <td class="right">${formatNumber(item.CntedQty)}</td>
+        <td></td>
+      </tr>`;
+    });
+
+    // Total rows
+    bodyHTML += `<tr class="total-row">
+      <td colspan="5" class="right">Total Book Value</td>
+      <td class="right">${formatNumber(totals.bookValue)}</td>
+      <td colspan="3"></td>
+    </tr>`;
+    bodyHTML += `<tr class="total-row">
+      <td colspan="5" class="right">Total Physical Value</td>
+      <td class="right">${formatNumber(totals.physicalValue)}</td>
+      <td colspan="3"></td>
+    </tr>`;
+    bodyHTML += `<tr class="total-row">
+      <td colspan="5" class="right">Difference</td>
+      <td class="right">${formatNumber(totals.difference)}</td>
+      <td colspan="3"></td>
+    </tr>`;
+
+    const fullHTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PHV Validation Report</title>
+<style>${tableStyle}
+body { font-family: Arial, sans-serif; margin: 15mm; }
+h2 { text-align: center; color: #7A0000; margin-bottom: 5px; }
+h3 { text-align: center; margin: 0 0 15px 0; }
+.subtitles { margin-bottom: 10px; font-size: 11px; display: flex; justify-content: space-between; }
+@page { margin: 15mm; size: A4 landscape;
+  @bottom-left { content: "Printed on: ${new Date().toLocaleString()}"; font-size: 9px; }
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 9px; }
+}
+</style>
+</head>
+<body>
+<h2>CEYLON ELECTRICITY BOARD</h2>
+<h3>ANNUAL VERIFICATION OF STORES ${selectedYear ?? currentYear} (Validation)</h3>
+<div class="subtitles">
+  <div>Cost Centre: ${escapeHtml(selectedDept.DeptId)} - ${escapeHtml(
+      selectedDept.DeptName
+    )}</div>
+</div>
+
+<table>
+  <thead>
+  <tr>
+    <th style="width:5%">S/No</th>
+    <th style="width:10%">Code No</th>
+    <th style="width:35%">Description</th>
+    <th style="width:8%">Grade</th>
+    <th style="width:6%">UOM</th>
+    <th style="width:10%">Std Price</th>
+    <th style="width:10%">Stock Book Qty</th>
+    <th style="width:10%">Physical</th>
+    <th style="width:6%">Reason</th>
+  </tr>
+  </thead>
+  <tbody>${bodyHTML}</tbody>
+</table>
+</body>
+</html>`;
+
+    const doc = iframeRef.current!.contentDocument!;
+    doc.open();
+    doc.write(fullHTML);
+    doc.close();
+    setTimeout(() => iframeRef.current?.contentWindow?.print(), 800);
+  };
+
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <div
-        style={{
-          backgroundColor: "#fff",
-          borderRadius: "12px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          padding: "30px",
-          maxWidth: "1000px",
-          margin: "0 auto",
-        }}
-      >
-        <h2 style={{ color: "#7A0000", textAlign: "center", marginBottom: "30px", fontSize: "24px" }}>
-          PHV Validation Form
-        </h2>
+    <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm">
+      <iframe ref={iframeRef} style={{ display: "none" }} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: "15px", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <label style={{ fontWeight: "bold", minWidth: "110px" }}>Cost Centre:</label>
-            <select
-              value={deptId}
-              onChange={(e) => setDeptId(e.target.value)}
-              style={{
-                padding: "8px 12px",
-                border: "1px solid #ccc",
-                borderRadius: "6px",
-                width: "220px",
-                fontSize: "14px",
-              }}
-            >
-              <option value="">Select One</option>
-              {costCentres.map((cc) => (
-                <option key={cc.DeptId} value={cc.DeptId}>
-                  {cc.DeptId} - {cc.DeptName}
-                </option>
-              ))}
-            </select>
-          </div>
+      <h2 className={`text-xl font-bold mb-6 ${maroon}`}>
+        PHV Validation Form
+      </h2>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <label style={{ fontWeight: "bold", minWidth: "100px" }}>Month:</label>
-            <select
-              value={repMonth}
-              onChange={(e) => setRepMonth(e.target.value)}
-              style={{
-                padding: "8px 12px",
-                border: "1px solid #ccc",
-                borderRadius: "6px",
-                width: "150px",
-                fontSize: "14px",
-              }}
-            >
-              <option value="">Select Month</option>
-              {months.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <label style={{ fontWeight: "bold", minWidth: "100px" }}>Year:</label>
-            <select
-              value={repYear}
-              onChange={(e) => setRepYear(e.target.value)}
-              style={{
-                padding: "8px 12px",
-                border: "1px solid #ccc",
-                borderRadius: "6px",
-                width: "150px",
-                fontSize: "14px",
-              }}
-            >
-              <option value="">Select Year</option>
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={handleView}
-            disabled={loading}
-            style={{
-              backgroundColor: "#7A0000",
-              color: "white",
-              border: "none",
-              padding: "10px 20px",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            {loading ? "Loading..." : "View"}
-          </button>
-
-          <button
-            onClick={handleReset}
-            style={{
-              backgroundColor: "#f0f0f0",
-              color: "#333",
-              border: "1px solid #ccc",
-              padding: "10px 20px",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            Reset
-          </button>
-        </div>
-
-        {result.length > 0 && (
-          <div style={{ marginTop: "20px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
-            <button onClick={handleExportPDF} style={{ backgroundColor: "#7A0000", color: "white", border: "none", padding: "10px 18px", borderRadius: "6px", cursor: "pointer" }}>
-              Export PDF
-            </button>
-            <button onClick={handleExportExcel} style={{ backgroundColor: "#1e6b3a", color: "white", border: "none", padding: "10px 18px", borderRadius: "6px", cursor: "pointer" }}>
-              Export Excel
-            </button>
-            <button onClick={handleExportCSV} style={{ backgroundColor: "#2c5234", color: "white", border: "none", padding: "10px 18px", borderRadius: "6px", cursor: "pointer" }}>
-              Export CSV
-            </button>
-          </div>
-        )}
-
-        {error && <div style={{ marginTop: "15px", color: "red", fontWeight: "bold" }}>{error}</div>}
-        {loading && <div style={{ marginTop: "15px", color: "#7A0000" }}>Loading data...</div>}
-
-        {result.length > 0 && (
-          <div style={{ marginTop: "30px" }}>
-            <div
-              style={{
-                maxHeight: "500px",
-                overflowX: "auto",
-                overflowY: "visible",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-              }}
-            >
-
-              <table
-                style={{
-                  width: "100%",
-                  minWidth: "800px",
-                  borderCollapse: "collapse",
-                  fontSize: "13px",
-                }}
-              >
-                <thead>
-                  <tr style={{ backgroundColor: "#7A0000", color: "white", position: "sticky", top: 0, zIndex: 1 }}>
-                    {Object.keys(result[0]).map((key) => (
-                      <th
-                        key={key}
-                        style={{
-                          padding: "12px 10px",
-                          border: "1px solid #ddd",
-                          textAlign: typeof result[0][key] === "number" ? "right" : "left",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {columnDisplayNames[key] || key}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.map((item, idx) => (
-                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? "#f9f9f9" : "#fff" }}>
-                      {Object.keys(item).map((key) => (
-                        <td
-                          key={key}
-                          style={{
-                            padding: "10px",
-                            border: "1px solid #ddd",
-                            textAlign: typeof item[key] === "number" ? "right" : "left",
-                          }}
-                        >
-                          {typeof item[key] === "number"
-                            ? item[key].toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })
-                            : item[key] ?? ""}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+      <div className="flex justify-end mb-4">
+        <YearMonthDropdowns
+          selectedYear={selectedYear}
+          setSelectedYear={setSelectedYear}
+          selectedMonth={selectedMonth}
+          setSelectedMonth={setSelectedMonth}
+          className="gap-8" // optional: adjusts spacing between year and month
+        />
       </div>
+
+      <div className="mt-8">
+        <ReusableCompanyList
+          fetchItems={useCallback(async () => {
+            if (!epfNo) {
+              toast.error("No EPF number available.");
+              return [];
+            }
+            try {
+              const res = await fetch(
+                `/misapi/api/incomeexpenditure/departments/${epfNo}`
+              );
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const json = await res.json();
+              const raw = Array.isArray(json) ? json : json.data || [];
+              return raw.map((c: any) => ({
+                id: c.DeptId,
+                name: `${c.DeptName}`,
+              }));
+            } catch (e: any) {
+              toast.error(e.message || "Failed to load cost centres");
+              return [];
+            }
+          }, [epfNo])}
+          onViewItem={(dept) => handleViewReport(dept)}
+          idColumnTitle="Cost Centre Code"
+          nameColumnTitle="Cost Centre Name"
+          loadingMessage="Loading cost centres..."
+          emptyMessage="No cost centres available."
+        />
+      </div>
+
+      {showReport && selectedDept && (
+        <ReportViewer
+          title={`ANNUAL VERIFICATION OF STORES ${selectedYear} (Validation)`}
+          subtitlebold2="Cost Centre:"
+          subtitlenormal2={`${selectedDept.DeptId} - ${selectedDept.DeptName}`}
+
+          loading={reportLoading}
+          hasData={reportData.length > 0}
+          handleDownloadCSV={handleDownloadCSV}
+          printPDF={printPDF}
+          closeReport={closeReport}
+        >
+          <table className="w-full text-xs">
+            <thead className={`${maroonGrad} text-white`}>
+              <tr>
+                <th className="border border-gray-400 px-3 py-2 text-center whitespace-nowrap w-[5%]">
+                  S/No
+                </th>
+                <th className="border border-gray-400 px-3 py-2 text-center whitespace-nowrap">
+                  Code No
+                </th>
+                <th className="border border-gray-400 px-3 py-2 text-left whitespace-nowrap">
+                  Description
+                </th>
+                <th className="border border-gray-400 px-3 py-2 text-center whitespace-nowrap">
+                  Grade Code
+                </th>
+                <th className="border border-gray-400 px-3 py-2 text-center whitespace-nowrap">
+                  UOM
+                </th>
+                <th className="border border-gray-400 px-3 py-2 text-right whitespace-nowrap">
+                  Standard Price
+                </th>
+                <th className="border border-gray-400 px-3 py-2 text-right whitespace-nowrap">
+                  Stock Book Qty
+                </th>
+                <th className="border border-gray-400 px-3 py-2 text-right whitespace-nowrap">
+                  Physical
+                </th>
+                <th className="border border-gray-400 px-3 py-2 text-center whitespace-nowrap">
+                  Reason
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportData.map((item, idx) => (
+                <tr
+                  key={idx}
+                  className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                >
+                  <td className="border border-gray-300 px-3 py-2 text-center">
+                    {idx + 1}
+                  </td>
+                  <td className="border border-gray-300 px-3 py-2 text-left">
+                    {item.MatCd || ""}
+                  </td>
+                  <td className="border border-gray-300 px-3 py-2 text-left">
+                    {item.MatNm || ""}
+                  </td>
+                  <td className="border border-gray-300 px-3 py-2 text-center">
+                    {item.GradeCd || ""}
+                  </td>
+                  <td className="border border-gray-300 px-3 py-2 text-center">
+                    {item.UomCd || ""}
+                  </td>
+                  <td className="border border-gray-300 px-3 py-2 text-right">
+                    {formatNumber(item.UnitPrice)}
+                  </td>
+                  <td className="border border-gray-300 px-3 py-2 text-right">
+                    {formatNumber(item.QtyOnHand)}
+                  </td>
+                  <td className="border border-gray-300 px-3 py-2 text-right">
+                    {formatNumber(item.CntedQty)}
+                  </td>
+                  <td className="border border-gray-300 px-3 py-2 text-center">
+                    {item.Reason || ""}
+                  </td>
+                </tr>
+              ))}
+              {/* Total Rows */}
+              <tr className="bg-gray-200 font-bold">
+                <td
+                  colSpan={5}
+                  className="border border-gray-400 px-3 py-2 text-right"
+                >
+                  Total Book Value
+                </td>
+                <td className="border border-gray-400 px-3 py-2 text-right">
+                  {formatNumber(totals.bookValue)}
+                </td>
+                <td colSpan={3}></td>
+              </tr>
+              <tr className="bg-gray-200 font-bold">
+                <td
+                  colSpan={5}
+                  className="border border-gray-400 px-3 py-2 text-right"
+                >
+                  Total Physical Value
+                </td>
+                <td className="border border-gray-400 px-3 py-2 text-right">
+                  {formatNumber(totals.physicalValue)}
+                </td>
+                <td colSpan={3}></td>
+              </tr>
+              <tr className="bg-gray-300 font-bold">
+                <td
+                  colSpan={5}
+                  className="border border-gray-400 px-3 py-2 text-right"
+                >
+                  Difference
+                </td>
+                <td className="border border-gray-400 px-3 py-2 text-right">
+                  {formatNumber(totals.difference)}
+                </td>
+                <td colSpan={3}></td>
+              </tr>
+            </tbody>
+          </table>
+        </ReportViewer>
+      )}
     </div>
   );
-}
+};
 
-export default PHVValidationForm;
+export default PHVValidation;

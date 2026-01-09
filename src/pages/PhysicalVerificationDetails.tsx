@@ -1,8 +1,8 @@
-import {useState, useEffect} from "react";
-import {data as sidebarData} from "../data/SideBarData";
+import { useState, useEffect } from "react";
+import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
-import PHVEntryForm from "../mainTopics/PhysicalVerification/PHVEntryForm";
 import PHVValidation from "../mainTopics/PhysicalVerification/PHVValidation";
+import PHVEntryForm from "../mainTopics/PhysicalVerification/PHVEntryForm";
 
 
 
@@ -33,11 +33,12 @@ const PhysicalVerificationDetails = () => {
     const renderSubtopicContent = (subtopicName: string) => {
         switch (subtopicName) {
             case "PHV Entry Form":
-                return <PHVEntryForm epfNo={""}/>;
-            
+                return <PHVEntryForm />;
+
             case "PHV Validation":
-                return <PHVValidation/>;
-           
+                return <PHVValidation />;
+
+
             default:
                 return (
                     <div className="text-red-500 text-xs">

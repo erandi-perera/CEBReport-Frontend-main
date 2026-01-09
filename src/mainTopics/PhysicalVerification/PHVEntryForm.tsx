@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useUser } from "../../contexts/UserContext";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+import { toast } from "react-toastify";
+import ReusableCompanyList from "../../components/utils/ReusableCompanyList";
+import ReportViewer from "../../components/utils/ReportViewer";
 
 interface CostCentre {
   DeptId: string;
@@ -14,526 +14,381 @@ interface PHVItem {
   MatNm: string;
   UomCd: string;
   GradeCd: string;
-  Qty: number; 
-  Rate: number; // Unit Price
+  Qty: number;
+  Rate: number;
   Amount: number;
-  CntedQty?: number; 
-  Remarks?: string; 
+  CntedQty?: number;
+  Remarks?: string;
   [key: string]: any;
 }
 
-function PHVEntryForm() {
+const PHVEntryForm: React.FC = () => {
   const { user } = useUser();
   const epfNo = user?.Userno || "";
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const [costCentres, setCostCentres] = useState<CostCentre[]>([]);
-  const [deptId, setDeptId] = useState("");
+  const [selectedDept, setSelectedDept] = useState<CostCentre | null>(null);
   const [docNo, setDocNo] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<PHVItem[]>([]);
-  const [error, setError] = useState("");
+  const [reportData, setReportData] = useState<PHVItem[]>([]);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
-  const columnDisplayNames: Record<string, string> = {
-    MatCd: "Code No",
-    MatNm: "Description",
-    GradeCd: "Grade Code",
-    UomCd: "UOM",
-    Rate: "Unit Price",
-    CntedQty: "Counted Qty",
-    Qty: "Qty on Hand",
-    Amount: "Amount",
-  };
+  const maroon = "text-[#7A0000]";
+  const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
-  useEffect(() => {
-    if (!epfNo) return;
-
-    const loadCostCentres = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/misapi/api/incomeexpenditure/departments/${epfNo}`, {
-          headers: { "Content-Type": "application/json" },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const list = Array.isArray(json) ? json : json.data || [];
-        setCostCentres(list);
-      } catch (err: any) {
-        setError("Failed to load Cost Centres");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCostCentres();
-  }, [epfNo]);
-
-  const handleView = async () => {
-    setError("");
-    setResult([]);
-    if (!deptId) return setError("Please select Cost Centre");
-    if (!docNo) return setError("Please enter Document No");
-
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `http://localhost:44381/api/physical-verification?deptId=${encodeURIComponent(deptId)}&docNo=${encodeURIComponent(docNo)}`
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setResult(Array.isArray(json) ? json : json.data || []);
-    } catch (err: any) {
-      setError("Error fetching PHV data: " + (err.message || err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReset = () => {
-    setDeptId("");
-    setDocNo("");
-    setResult([]);
-    setError("");
-  };
-
-  const columnTotals = useMemo(() => {
-    const totals: Record<string, number> = {};
-    result.forEach((item) => {
-      Object.keys(item).forEach((key) => {
-        if (typeof item[key] === "number") {
-          totals[key] = (totals[key] || 0) + item[key];
-        }
-      });
-    });
-    return totals;
-  }, [result]);
-
-  //   PDF format
-  const handleExportPDF = () => {
-    if (result.length === 0) {
-      setError("No data to export");
+  const handleViewReport = async (dept: { id: string; name: string }, documentNo: string) => {
+    if (!documentNo.trim()) {
+      toast.error("Please enter Document No");
       return;
     }
 
-    const doc = new jsPDF("p", "mm", "a4");
-    const pageWidth = doc.internal.pageSize.getWidth();
+    const typedDept: CostCentre = {
+      DeptId: dept.id,
+      DeptName: dept.name,
+    };
 
-    doc.setFontSize(14);
-    doc.text("Ceylon Electricity Board", 105, 15, { align: "center" });
-    doc.setFontSize(12);
+    setSelectedDept(typedDept);
+    setDocNo(documentNo.trim());
+    setReportLoading(true);
+    setReportData([]);
+    setShowReport(true);
 
-    const repYear = "20" + docNo.split("/")[2];  // Extract the two-digit year from docNo and make it four-digit
-    doc.text(`Annual Verification of Stores ${repYear}`, 105, 22, { align: "center" });
+    try {
+      const res = await fetch(
+        `http://localhost:44381/api/physical-verification?deptId=${encodeURIComponent(dept.id)}&docNo=${encodeURIComponent(documentNo.trim())}`
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const items: PHVItem[] = Array.isArray(json) ? json : json.data || [];
+      setReportData(items);
 
-    doc.setFontSize(11);
-    doc.text(`Cost center : ${deptId}`, 14, 35);
-    doc.text(`Verification Sheet No : ${docNo}`, pageWidth - 14, 35, { align: "right" });
-
-    // Export columns: Serial No, Code No, Description, Grade Code, UOM, Unit Price, Counted Qty, Remarks (empty)
-    const exportHeaders = ["Serial No", "Code No", "Description", "Grade Code", "UOM", "Unit Price", "Counted Qty", "Remarks"];
-
-    const exportRows = result.map((item, index) => [
-      index + 1,
-      item.MatCd || "",
-      item.MatNm || "",
-      item.GradeCd || "",
-      item.UomCd || "",
-      (item.UnitPrice || 0).toLocaleString("en-US", { minimumFractionDigits: 2 }),
-      (item.CntedQty || 0).toLocaleString("en-US", { minimumFractionDigits: 2 }),
-      "",  // Empty Remarks
-    ]);
-
-    autoTable(doc, {
-      head: [exportHeaders],
-      body: exportRows,
-      startY: 50,
-      theme: "grid",
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [122, 0, 0] },
-    });
-
-    const finalY = (doc as any).lastAutoTable.finalY || 50;
-
-    doc.setFontSize(10);
-    doc.text(
-      `Total Counted Quantity: ${columnTotals["CntedQty"]?.toLocaleString("en-US", { minimumFractionDigits: 2 }) || "0.00"
-      }`,
-      14,
-      finalY + 10
-    );
-
-    // ===== MOVE VERIFICATION TO NEXT PAGE IF NEEDED =====
-    const pageHeight = doc.internal.pageSize.getHeight();
-    if (finalY + 80 > pageHeight) {
-      doc.addPage();
+      items.length === 0
+        ? toast.warn("No records found")
+        : toast.success("Report loaded successfully");
+    } catch (err: any) {
+      toast.error("Failed to load report: " + (err.message || "Unknown error"));
+    } finally {
+      setReportLoading(false);
     }
+  };
 
-    const verifyStartY = 20;
+  const closeReport = () => {
+    setShowReport(false);
+    setReportData([]);
+    setSelectedDept(null);
+    setDocNo("");
+  };
 
-    // ===== CERTIFICATION TEXT =====
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(0);
+  const printPDF = () => {
+    if (reportData.length === 0 || !iframeRef.current || !selectedDept) return;
 
-    doc.text(
-      "We do hereby certify that Stocks were physically counted as per that given statment.",
-      14,
-      verifyStartY
-    );
+    const repYear = "20" + docNo.split("/")[2];
+    const totalCounted = reportData.reduce((sum, item) => sum + (item.CntedQty || 0), 0);
 
-    // helper for dotted lines
-    const dots = "........................................";
-
-    // ===== VERIFIERS =====
-    doc.setFont("helvetica", "bold");
-    doc.text("Verifiers:", 14, verifyStartY + 10);
-
-    autoTable(doc, {
-      startY: verifyStartY + 16,
-      head: [["No", "Name", "Designation", "Signature"]],
-      body: [
-        ["1.", dots, dots, dots],
-        ["2.", dots, dots, dots],
-        ["3.", dots, dots, dots],
-      ],
-      theme: "plain",
-      styles: {
-        fontSize: 9,
-        cellPadding: 4,
-      },
-      headStyles: {
-        fontStyle: "bold",
-      },
-      columnStyles: {
-        0: { cellWidth: 15 },
-        1: { cellWidth: 70 },
-        2: { cellWidth: 55 },
-        3: { cellWidth: 45 },
-      },
-    });
-
-    // ===== CEB OBSERVATION TEAM =====
-    const afterVerifiersY = (doc as any).lastAutoTable.finalY;
-
-    doc.setFont("helvetica", "bold");
-    doc.text("CEB Observation Team:", 14, afterVerifiersY + 10);
-
-    autoTable(doc, {
-      startY: afterVerifiersY + 16,
-      head: [["No", "Name", "Designation", "Signature"]],
-      body: [
-        ["1.", dots, dots, dots],
-        ["2.", dots, dots, dots],
-      ],
-      theme: "plain",
-      styles: {
-        fontSize: 9,
-        cellPadding: 4,
-      },
-      headStyles: {
-        fontStyle: "bold",
-      },
-      columnStyles: {
-        0: { cellWidth: 15 },
-        1: { cellWidth: 70 },
-        2: { cellWidth: 55 },
-        3: { cellWidth: 45 },
-      },
-    });
-
-    // ===== AGREEMENT SECTION =====
-    const afterObsY = (doc as any).lastAutoTable.finalY;
-
-    const labelX = 14;
-    const lineX = 90;
-    const lineWidth = "....................................................";
-
-    doc.setFont("helvetica", "normal");
-    doc.text(
-      "Agreed for above physical count Store keeper / Elect. Supirintendent",
-      labelX,
-      afterObsY + 12
-    );
-
-    doc.text("Signature:", labelX, afterObsY + 22);
-    doc.text(lineWidth, lineX, afterObsY + 22);
-
-    doc.text("Name / P.F. No / Designation:", labelX, afterObsY + 32);
-    doc.text(lineWidth, lineX, afterObsY + 32);
-
-    doc.text("Approved date:", labelX, afterObsY + 42);
-    doc.text(lineWidth, lineX, afterObsY + 42);
-
-    // ===== REMARKS =====
-    doc.setFontSize(9);
-    doc.text(
-      "Note to Remarks : S : Slow Moving   N : Non Moving   D : Damage",
-      14,
-      afterObsY + 55
-    );
-
-
+    // Format: 1/8/2026 1:24:19 PM
     const now = new Date();
-    doc.setFontSize(9);
-    doc.text(`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, 14, 285);
-    doc.text("Re-printed (Web Reporting)", 14, 292);
+    const formattedDate = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
+    const formattedTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
 
-    doc.save(`PHV_Report_${docNo}.pdf`);
+    const tableStyle = `
+    @page { margin: 10mm 8mm 10mm 8mm; size: A4 portrait; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; font-size: 8pt; line-height: 1.3; }
+    table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-top: 6px; }
+    th, td { border: 1px solid #000; padding: 4px; word-wrap: break-word; vertical-align: middle; }
+    th { background-color: #ffffff; color: #000000; font-weight: bold; text-align: center; }
+    .right { text-align: right; }
+    .center { text-align: center; }
+    .left { text-align: left; }
+    h1 { font-size: 14pt; margin: 8px 0 4px 0; text-align: center; color: #7A0000; }
+    h2 { font-size: 12pt; margin: 4px 0; text-align: center; color: #000000; }
+    .header { font-size: 9pt; display: flex; justify-content: space-between; margin: 6px 0; }
+    .dotted { border-bottom: 1px dotted #000; display: inline-block; width: 120px; min-height: 16px; vertical-align: middle; }
+    .sig-table { width: 100%; border: none; }
+    .sig-table td { border: none; padding: 3px 0; vertical-align: bottom; }
+    .no-col { width: 40px; text-align: left; }
+    .name-col { width: 170px; }
+    .des-col { width: 140px; }
+    .sig-col { width: 140px; }
+  `;
+
+    let bodyHTML = "";
+    reportData.forEach((item, idx) => {
+      bodyHTML += `<tr>
+      <td class="center">${idx + 1}</td>
+      <td class="center">${item.MatCd || ""}</td>
+      <td class="left">${item.MatNm || ""}</td>
+      <td class="center">${item.GradeCd || ""}</td>
+      <td class="center">${item.UomCd || ""}</td>
+      <td class="right">${(item.UnitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+      <td class="right">${(item.CntedQty || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+      <td style="width: 90px"></td>
+    </tr>`;
+    });
+
+    const fullHTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PHV Report</title>
+<style>${tableStyle}</style>
+</head>
+<body>
+<h1>CEYLON ELECTRICITY BOARD</h1>
+<h2>ANNUAL VERIFICATION OF STORES ${repYear}</h2>
+
+<div class="header">
+  <div>Cost center :  ${selectedDept.DeptName}</div>
+  <div>Verification Sheet No : ${docNo}</div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Serial No</th>
+      <th>Code No</th>
+      <th>Description</th>
+      <th>Grade Code</th>
+      <th>UOM</th>
+      <th>Unit Price</th>
+      <th>Counted Qty</th>
+      <th style="width: 90px">Remarks</th>
+    </tr>
+  </thead>
+  <tbody>${bodyHTML}</tbody>
+</table>
+
+<p style="margin: 10px 0 6px 0;"><strong>Total Counted Quantity : ${totalCounted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
+
+<div style="margin-top: 12px; font-size: 9pt;">
+      <p style="margin: 0 0 10px 0; text-align: justify;">
+        We do hereby certify that Stocks were physically counted as per that given statement.
+      </p>
+
+      <div style="display: flex; justify-content: space-between; gap: 30px;">
+
+        <!-- Left Side: Wider space for Verifiers & CEB Team -->
+        <div style="flex: 2;">
+
+          <!-- Verifiers -->
+          <p style="margin: 0 0 6px 0;"><strong>Verifiers:</strong></p>
+          <table class="sig-table">
+            <tr>
+              <td class="no-col"><strong>No</strong></td>
+              <td class="name-col"><strong>Name</strong></td>
+              <td class="des-col"><strong>Designation</strong></td>
+              <td class="sig-col"><strong>Signature</strong></td>
+            </tr>
+            <tr>
+              <td class="no-col">1.</td>
+              <td><span class="dotted"></span></td>
+              <td><span class="dotted"></span></td>
+              <td><span class="dotted"></span></td>
+            </tr>
+            <tr>
+              <td class="no-col">2.</td>
+              <td><span class="dotted"></span></td>
+              <td><span class="dotted"></span></td>
+              <td><span class="dotted"></span></td>
+            </tr>
+            <tr>
+              <td class="no-col">3.</td>
+              <td><span class="dotted"></span></td>
+              <td><span class="dotted"></span></td>
+              <td><span class="dotted"></span></td>
+            </tr>
+          </table>
+
+          <!-- CEB Observation Team -->
+          <p style="margin: 12px 0 6px 0;"><strong>CEB Observation Team:</strong></p>
+          <table class="sig-table">
+            <tr>
+              <td class="no-col"><strong>No</strong></td>
+              <td class="name-col"><strong>Name</strong></td>
+              <td class="des-col"><strong>Designation</strong></td>
+              <td class="sig-col"><strong>Signature</strong></td>
+            </tr>
+            <tr>
+              <td class="no-col">1.</td>
+              <td><span class="dotted"></span></td>
+              <td><span class="dotted"></span></td>
+              <td><span class="dotted"></span></td>
+            </tr>
+            <tr>
+              <td class="no-col">2.</td>
+              <td><span class="dotted"></span></td>
+              <td><span class="dotted"></span></td>
+              <td><span class="dotted"></span></td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Right Side: Narrower, same content and placement -->
+        <div style="flex: 1; font-size: 9pt;">
+          <p style="margin: 0 0 10px 0;"><strong>Agreed for above physical count Store keeper / Elect. Superintendent</strong></p>
+          <p style="margin: 5px 0;">Signature : <span class="dotted" style="width: 200px;"></span></p>
+          <p style="margin: 5px 0;">Name / P.F. No / Designation : <span class="dotted" style="width: 200px;"></span></p>
+          <p style="margin: 5px 0;">Approved date : <span class="dotted" style="width: 200px;"></span></p>
+
+          <p style="margin-top: 18px; font-size: 8pt;">
+            Note to Remarks : S : Slow Moving &nbsp;&nbsp; N : Non Moving &nbsp;&nbsp; D : Damage
+          </p>
+          <p style="font-size: 8pt; text-align: right; margin-top: 4px;">Re-printed (Web Reporting)</p>
+        </div>
+
+    </div>
+</div>
+
+<!-- Date & Time at the very bottom -->
+<div style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 8pt; padding: 10px 0;">
+  Date & time of the Report Generated : ${formattedDate} ${formattedTime}
+</div>
+
+</body>
+</html>`;
+
+    const doc = iframeRef.current!.contentDocument!;
+    doc.open();
+    doc.write(fullHTML);
+    doc.close();
+    setTimeout(() => iframeRef.current?.contentWindow?.print(), 800);
   };
+  const handleDownloadCSV = () => {
+    if (reportData.length === 0 || !selectedDept) return;
 
-  // === EXPORT: EXCEL ===
-  const handleExportExcel = () => {
-    if (result.length === 0) return;
+    const headers = [
+      "Serial No",
+      "Code No",
+      "Description",
+      "Grade Code",
+      "UOM",
+      "Unit Price",
+      "Counted Qty",
+      "Remarks",
+    ];
 
-    const exportData = result.map((item, index) => ({
-      "Serial No": index + 1,
-      "Code No": item.MatCd || "",
-      "Description": item.MatNm || "",
-      "Grade Code": item.GradeCd || "",
-      "UOM": item.UomCd || "",
-      "Unit Price": item.UnitPrice || 0,
-      "Counted Qty": item.CntedQty ?? 0,
-      "Remarks": "",  // Empty Remarks
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "PHV Data");
-    XLSX.writeFile(workbook, `PHV_Report_${docNo}.xlsx`);
-  };
-
-  // === EXPORT: CSV ===
-  const handleExportCSV = () => {
-    if (result.length === 0) return;
-
-    const headers = ["Serial No", "Code No", "Description", "Grade Code", "UOM", "Unit Price", "Counted Qty", "Remarks"];
-    const rows = result.map((item, index) => [
+    const rows = reportData.map((item, index) => [
       index + 1,
-      item.MatCd || "",
-      item.MatNm || "",
-      item.GradeCd || "",
-      item.UomCd || "",
-      item.UnitPrice || 0,
-      item.CntedQty ?? 0,
-      "",  // Empty Remarks
+
+      // 👇 FORCE Code No AS STRING (keeps all 5 digits)
+      `="${item.MatCd ?? ""}"`,
+
+      item.MatNm ?? "",
+      item.GradeCd ?? "",
+      item.UomCd ?? "",
+      (item.UnitPrice ?? 0).toFixed(2),
+      (item.CntedQty ?? 0).toFixed(2),
+      "",
     ]);
 
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(r => r.join(",")),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(
+      ["\uFEFF" + csvContent],
+      { type: "text/csv;charset=utf-8;" }
+    );
+
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `PHV_Report_${docNo}.csv`);
-    document.body.appendChild(link);
+    link.href = url;
+    link.download = `PHV_Report_${selectedDept.DeptId}_${docNo.replace(/\//g, "_")}.csv`;
     link.click();
-    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <div
-        style={{
-          backgroundColor: "#fff",
-          borderRadius: "12px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          padding: "30px",
-          maxWidth: "900px",
-          margin: "0 auto",
-        }}
-      >
-        <h2 style={{ color: "#7A0000", textAlign: "center", marginBottom: "30px" }}>
-          Physical Verification Entry Form
-        </h2>
+    <div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm">
+      <iframe ref={iframeRef} style={{ display: "none" }} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: "15px", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <label style={{ fontWeight: "bold", minWidth: "110px" }}>Cost Centre:</label>
-            <select
-              value={deptId}
-              onChange={(e) => setDeptId(e.target.value)}
-              style={{
-                padding: "8px 12px",
-                border: "1px solid #ccc",
-                borderRadius: "6px",
-                width: "220px",
-                fontSize: "14px",
-              }}
-            >
-              <option value="">Select Cost Centre</option>
-              {costCentres.map((cc) => (
-                <option key={cc.DeptId} value={cc.DeptId}>
-                  {cc.DeptId} - {cc.DeptName}
-                </option>
-              ))}
-            </select>
-          </div>
+      <h2 className={`text-xl font-bold mb-6 ${maroon}`}>
+        Physical Verification Entry Form
+      </h2>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <label style={{ fontWeight: "bold", minWidth: "120px" }}>Document No:</label>
-            <input
-              type="text"
-              value={docNo}
-              onChange={(e) => setDocNo(e.target.value)}
-              placeholder="e.g. 520.11/PHV/25/0001"
-              style={{
-                padding: "8px 12px",
-                border: "1px solid #ccc",
-                borderRadius: "6px",
-                width: "280px",
-                fontSize: "14px",
-              }}
-            />
-          </div>
-
-          <button
-            onClick={handleView}
-            style={{
-              backgroundColor: "#7A0000",
-              color: "white",
-              border: "none",
-              padding: "10px 20px",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              minWidth: "80px",
-            }}
-          >
-            View
-          </button>
-
-          <button
-            onClick={handleReset}
-            style={{
-              backgroundColor: "#f0f0f0",
-              color: "#333",
-              border: "1px solid #ccc",
-              padding: "10px 20px",
-              borderRadius: "6px",
-              cursor: "pointer",
-              minWidth: "80px",
-            }}
-          >
-            Clear
-          </button>
-        </div>
-
-        {result.length > 0 && (
-          <div style={{ marginTop: "20px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
-            <button
-              onClick={handleExportPDF}
-              style={{
-                backgroundColor: "#7A0000",
-                color: "white",
-                border: "none",
-                padding: "10px 18px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "14px",
-              }}
-            >
-              Export PDF
-            </button>
-            <button
-              onClick={handleExportExcel}
-              style={{
-                backgroundColor: "#1e6b3a",
-                color: "white",
-                border: "none",
-                padding: "10px 18px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "14px",
-              }}
-            >
-              Export Excel
-            </button>
-            <button
-              onClick={handleExportCSV}
-              style={{
-                backgroundColor: "#2c5234",
-                color: "white",
-                border: "none",
-                padding: "10px 18px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "14px",
-              }}
-            >
-              Export CSV
-            </button>
-          </div>
-        )}
-
-        {error && <div style={{ marginTop: "15px", color: "red", fontWeight: "bold" }}>{error}</div>}
-        {loading && <div style={{ marginTop: "15px", color: "#7A0000" }}>Loading data...</div>}
-
-        {/* Browser Table - Shows ALL columns */}
-        {result.length > 0 && (
-          <div style={{ marginTop: "30px" }}>
-            <div
-              style={{
-                maxHeight: "500px",
-                overflow: "auto",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-              }}
-            >
-              <table
-                style={{
-                  width: "100%",
-                  minWidth: "800px",
-                  borderCollapse: "collapse",
-                  fontSize: "13px",
-                }}
-              >
-                <thead>
-                  <tr style={{ backgroundColor: "#7A0000", color: "white", position: "sticky", top: 0, zIndex: 1 }}>
-                    {Object.keys(result[0]).map((key) => (
-                      <th
-                        key={key}
-                        style={{
-                          padding: "12px 10px",
-                          border: "1px solid #ddd",
-                          textAlign: typeof result[0][key] === "number" ? "right" : "left",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {columnDisplayNames[key] || key}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.map((item, idx) => (
-                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? "#f9f9f9" : "#fff" }}>
-                      {Object.keys(item).map((key) => (
-                        <td
-                          key={key}
-                          style={{
-                            padding: "10px",
-                            border: "1px solid #ddd",
-                            textAlign: typeof item[key] === "number" ? "right" : "left",
-                          }}
-                        >
-                          {typeof item[key] === "number"
-                            ? item[key].toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })
-                            : item[key] ?? ""}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+      <div className="mb-6">
+        <label className="block font-bold mb-2">Document No:</label>
+        <input
+          type="text"
+          value={docNo}
+          onChange={(e) => setDocNo(e.target.value)}
+          placeholder="e.g. 520.11/PHV/25/0001"
+          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7A0000]"
+        />
       </div>
+
+      <div className="mt-8">
+        <ReusableCompanyList
+          fetchItems={useCallback(async () => {
+            if (!epfNo) {
+              toast.error("No EPF number available.");
+              return [];
+            }
+            try {
+              const res = await fetch(`/misapi/api/incomeexpenditure/departments/${epfNo}`);
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const json = await res.json();
+              const raw = Array.isArray(json) ? json : json.data || [];
+              return raw.map((c: any) => ({
+                id: c.DeptId,
+                name: `${c.DeptId} - ${c.DeptName}`,
+              }));
+            } catch (e: any) {
+              toast.error(e.message || "Failed to load cost centres");
+              return [];
+            }
+          }, [epfNo])}
+          onViewItem={(dept) => handleViewReport(dept, docNo)}
+          idColumnTitle="Cost Centre"
+          nameColumnTitle="Description"
+          loadingMessage="Loading cost centres..."
+          emptyMessage="No cost centres available."
+        />
+      </div>
+
+      {showReport && selectedDept && (
+        <ReportViewer
+          title={`ANNUAL VERIFICATION OF STORES ${"20" + docNo.split("/")[2]}`}
+          subtitlebold2="Cost center :"
+          subtitlenormal2={selectedDept.DeptName}
+          subtitlebold3="Verification Sheet No :"
+          subtitlenormal3={docNo}
+          loading={reportLoading}
+          hasData={reportData.length > 0}
+          handleDownloadCSV={handleDownloadCSV}
+          printPDF={printPDF}
+          closeReport={closeReport}
+        >
+          <table className="w-full text-xs">
+            <thead className={`${maroonGrad} text-white`}>
+              <tr>
+                <th className="border border-gray-400 px-3 py-2 text-center">Serial No</th>
+                <th className="border border-gray-400 px-3 py-2 text-center">Code No</th>
+                <th className="border border-gray-400 px-3 py-2 text-center">Description</th>
+                <th className="border border-gray-400 px-3 py-2 text-center">Grade Code</th>
+                <th className="border border-gray-400 px-3 py-2 text-center">UOM</th>
+                <th className="border border-gray-400 px-3 py-2 text-center">Unit Price</th>
+                <th className="border border-gray-400 px-3 py-2 text-center">Counted Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportData.map((item, idx) => (
+                <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                  <td className="border border-gray-300 px-3 py-2 text-center">{idx + 1}</td>
+                  <td className="border border-gray-300 px-3 py-2 text-center">{item.MatCd || ""}</td>
+                  <td className="border border-gray-300 px-3 py-2 text-left">{item.MatNm || ""}</td>
+                  <td className="border border-gray-300 px-3 py-2 text-center">{item.GradeCd || ""}</td>
+                  <td className="border border-gray-300 px-3 py-2 text-center">{item.UomCd || ""}</td>
+                  <td className="border border-gray-300 px-3 py-2 text-right">{(item.UnitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="border border-gray-300 px-3 py-2 text-right">{(item.CntedQty || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ReportViewer>
+      )}
     </div>
   );
-}
+};
 
-export default PHVEntryForm;  
+export default PHVEntryForm;
