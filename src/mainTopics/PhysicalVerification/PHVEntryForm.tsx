@@ -55,7 +55,7 @@ const PHVEntryForm: React.FC = () => {
 
     try {
       const res = await fetch(
-        `http://localhost:44381/api/physical-verification?deptId=${encodeURIComponent(dept.id)}&docNo=${encodeURIComponent(documentNo.trim())}`
+        `/misapi/api/physical-verification?deptId=${encodeURIComponent(dept.id)}&docNo=${encodeURIComponent(documentNo.trim())}`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -295,13 +295,13 @@ const PHVEntryForm: React.FC = () => {
     ]);
 
     rows.push([
-      "",                 
-      "",                 
+      "",
+      "",
       "Total Counted Quantity",
-      "",                 
-      "",                 
-      "",                 
-      totalCountedQty.toFixed(2), 
+      "",
+      "",
+      "",
+      totalCountedQty.toFixed(2),
       "",
     ]);
 

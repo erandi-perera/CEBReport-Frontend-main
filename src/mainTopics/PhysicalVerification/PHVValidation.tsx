@@ -74,7 +74,7 @@ const PHVValidation: React.FC = () => {
 
     try {
       const res = await fetch(
-        `/LedgerCard/api/physical-verification-validation?deptId=${encodeURIComponent(
+        `/misapi/api/physical-verification-validation?deptId=${encodeURIComponent(
           dept.id
         )}&repYear=${encodeURIComponent(
           selectedYear
@@ -255,7 +255,7 @@ h3 { text-align: center; margin: 0 0 15px 0; }
           setSelectedYear={setSelectedYear}
           selectedMonth={selectedMonth}
           setSelectedMonth={setSelectedMonth}
-          className="gap-8" 
+          className="gap-8"
         />
       </div>
 
