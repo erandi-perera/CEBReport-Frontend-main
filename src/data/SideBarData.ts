@@ -76,7 +76,7 @@ export const data = [
 			{id: 32, name: "Sales and collection"},
 			{id: 33, name: "Stamp duty for payment collections"},
 			{id: 34, name: "Monthly revenue collection of different channels"},
-			{id: 35, name: "Kiosk payment collection"},
+			{id: 35, name: "Kiosk 	payment collection"},
 			{id: 36, name: "Payment collection"},
 			{id: 37, name: "Suspense payment details"},
 			{id: 38, name: "Finalized account details"},
@@ -298,5 +298,32 @@ export const data = [
 		path: "/report/PIV",
 	},
 
+
+	{
+		id: 16,
+		name: "Physical Verification",
+		icon: TbReportAnalytics,
+		subtopics: [
+			{id: 130,
+			 name: "PHV Entry Form",
+
+			},	
+
+			{id: 131,
+			 name: "PHV Validation",
+
+			},
+
+			{id: 132,
+			 name: "PHV Validation Warehousewise",
+
+			},
+			
+		],
+
+		path: "/report/PhysicalVerification",
+	},
+
 	// id = 17 is used above for Solar Information - Jobs
+
 ];

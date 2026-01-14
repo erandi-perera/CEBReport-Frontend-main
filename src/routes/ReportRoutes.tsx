@@ -19,6 +19,7 @@ import LedgerCardDetails from "../pages/LedgerCardDetails";
 import CashBookDetails from "../pages/CashBookDetails";
 import PIVDetails from "../pages/PIVDetails";
 import SolarJobsDetails from "../pages/SolarJobsDetails";
+import PhysicalVerificationDetails from "../pages/PhysicalVerificationDetails";
 
 const ReportRoutes = () => (
 	<>
@@ -176,6 +177,15 @@ const ReportRoutes = () => (
 			element={
 				<Layout>
 					<SolarJobsDetails />
+				</Layout>
+			}
+		/>
+
+		<Route
+			path="/report/PhysicalVerification"
+			element={
+				<Layout>
+					<PhysicalVerificationDetails />
 				</Layout>
 			}
 		/>
