@@ -313,11 +313,6 @@ export const data = [
 			 name: "PHV Validation",
 
 			},
-
-			//{id: 132,
-			// name: "PHV Validation Warehousewise",
-
-			//},
 			
 		],
 
