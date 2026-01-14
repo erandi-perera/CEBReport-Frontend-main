@@ -3,6 +3,8 @@ import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import PHVValidation from "../mainTopics/PhysicalVerification/PHVValidation";
 import PHVEntryForm from "../mainTopics/PhysicalVerification/PHVEntryForm";
+import PHVValidationWarehousewise from "../mainTopics/PhysicalVerification/PHVValidationWarehousewise";
+
 
 
 
@@ -38,6 +40,8 @@ const PhysicalVerificationDetails = () => {
             case "PHV Validation":
                 return <PHVValidation />;
 
+            case "PHV Validation Warehousewise":
+                return <PHVValidationWarehousewise/>;
 
             default:
                 return (
