@@ -1840,7 +1840,7 @@ const TariffBlockWiseConsumption: React.FC = () => {
               Loading...
             </span>
           ) : (
-            "View Report"
+            "Generate Report"
           )}
         </button>
       </div>

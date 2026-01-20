@@ -41,7 +41,7 @@ export const data = [
   },
   {
     id: 2,
-    name: "Billing & Payment",
+    name: "Customer Details",
     icon: RiBankLine,
     subtopics: [
       { id: 19, name: "Customer Information" },

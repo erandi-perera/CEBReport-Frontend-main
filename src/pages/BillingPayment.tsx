@@ -16,7 +16,7 @@ const BillingPayment = () => {
   useEffect(() => {
     // Get Billing & Payment topic's subtopics directly from sidebarData
     const billingTopic = sidebarData.find(
-      (topic) => topic.name === "Billing & Payment"
+      (topic) => topic.name === "Customer Details"
     );
     if (billingTopic) {
       setSubtopics(billingTopic.subtopics);

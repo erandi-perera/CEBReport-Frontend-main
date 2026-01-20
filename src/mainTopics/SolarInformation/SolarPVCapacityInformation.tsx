@@ -164,7 +164,7 @@ const SolarPVCapacityInformation: React.FC = () => {
             setIsLoadingAreas(true);
             setAreaError(null);
             try {
-                const areaData = await fetchWithErrorHandling("/misapi/api/areas");
+                const areaData = await fetchWithErrorHandling("/misapi/api/ordinary/areas");
                 const sortedAreas = (areaData.data || []).sort((a: Area, b: Area) =>
                     a.AreaName.localeCompare(b.AreaName)
                 );
@@ -187,7 +187,7 @@ const SolarPVCapacityInformation: React.FC = () => {
             setProvinceError(null);
             try {
                 const provinceData = await fetchWithErrorHandling(
-                    "/misapi/solarapi/ordinary/province"
+                    "/misapi/api/ordinary/province"
                 );
                 const sortedProvinces = (provinceData.data || []).sort(
                     (a: Province, b: Province) =>
@@ -212,7 +212,7 @@ const SolarPVCapacityInformation: React.FC = () => {
             setDivisionError(null);
             try {
                 const divisionData = await fetchWithErrorHandling(
-                    "/misapi/solarapi/ordinary/region"
+                    "/misapi/api/ordinary/region"
                 );
                 const sortedDivisions = (divisionData.data || []).sort(
                     (a: Division, b: Division) => a.RegionCode.localeCompare(b.RegionCode)
@@ -240,7 +240,7 @@ const SolarPVCapacityInformation: React.FC = () => {
 
             try {
                 const monthData = await fetchWithErrorHandling(
-                    "/misapi/solarapi/solarPVCapacity/billcycle/max"
+                    "/misapi/api/ordinary/netprogrs/billcycle/max"
                 );
                 if (monthData.data && monthData.data.BillCycles?.length > 0) {
                     const options = generateMonthOptions(
