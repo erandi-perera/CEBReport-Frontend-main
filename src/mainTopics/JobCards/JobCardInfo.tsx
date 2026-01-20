@@ -482,256 +482,264 @@ const JobCardTable: React.FC<{
           }
         }
       `}</style>
-		<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/90 print:static print:inset-auto print:p-0 print:bg-white">
-			<div className="relative bg-white w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw] max-w-7xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mt-20 md:mt-32 lg:mt-40 lg:ml-64 mx-auto print:relative print:w-full print:max-w-none print:rounded-none print:shadow-none print:border-none print:overflow-visible">
-				<div className="p-2 md:p-2 max-h-[80vh] overflow-y-auto print:p-0 print:max-h-none print:overflow-visible print:mt-10 print:ml-12">
-					<div className="flex justify-end gap-3 mb-6 md:mb-8 print:hidden">
-						<button
-							onClick={handleDownloadCSV}
-							className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
-						>
-							<Download className="w-4 h-4" /> CSV
-						</button>
-						<button
-							onClick={() => printPDF(jobCards, departmentName)}
-							className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
-						>
-							<Printer className="w-4 h-4" /> PDF
-						</button>
-						<button
-							onClick={onClose}
-							className="flex items-center gap-1 px-3 py-1.5 border border-red-400 text-red-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-red-50 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-200 transition"
-						>
-							<X className="w-4 h-4" /> Close
-						</button>
-					</div>
-					
-					<h2
-						className={`text-lg md:text-xl font-bold text-center md:mb-6 ${maroon}`}
-					>
-						Job Card
-					</h2>
-
-					<div className="flex justify-between md:mb-2 md:text-sm leading-5">
-						<div className="ml-5">
-							<p>
-								<span className="font-bold">Project No.</span>{" "}
-								{firstJob.ProjectNo.trim()}
-							</p>
-							<p>
-								<span className="font-bold">Estimated Cost:</span>{" "}
-								{formatNumber(firstJob.EstimatedCost)}
-							</p>
-							<p>
-								<span className="font-bold">Committed Cost:</span>{" "}
-								{formatNumber(firstJob.CommitedCost)}
-							</p>
-							<p>
-								<span className="font-bold">Variance in Rs.:</span>{" "}
-								{formatNumber(variance)}
-							</p>
-							<p>
-								<span className="font-bold">Variance in %:</span>{" "}
-								{variancePercent}
-							</p>
-							<p>
-								<span className="font-bold">Scope of the Project:</span>{" "}
-								{firstJob.Description.trim()}
-							</p>
+			<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/90 print:static print:inset-auto print:p-0 print:bg-white">
+				<div className="relative bg-white w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw] max-w-7xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mt-20 md:mt-32 lg:mt-40 lg:ml-64 mx-auto print:relative print:w-full print:max-w-none print:rounded-none print:shadow-none print:border-none print:overflow-visible">
+					<div className="p-2 md:p-2 max-h-[80vh] overflow-y-auto print:p-0 print:max-h-none print:overflow-visible print:mt-10 print:ml-12">
+						<div className="flex justify-end gap-3 mb-6 md:mb-8 print:hidden">
+							<button
+								onClick={handleDownloadCSV}
+								className="flex items-center gap-1 px-3 py-1.5 border border-blue-400 text-blue-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+							>
+								<Download className="w-4 h-4" /> CSV
+							</button>
+							<button
+								onClick={() => printPDF(jobCards, departmentName)}
+								className="flex items-center gap-1 px-3 py-1.5 border border-green-400 text-green-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
+							>
+								<Printer className="w-4 h-4" /> PDF
+							</button>
+							<button
+								onClick={onClose}
+								className="flex items-center gap-1 px-3 py-1.5 border border-red-400 text-red-700 bg-white rounded-md text-xs font-medium shadow-sm hover:bg-red-50 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-200 transition"
+							>
+								<X className="w-4 h-4" /> Close
+							</button>
 						</div>
-						<div className="mr-12">
-							<p>
-								<span className="font-bold">Fund Source:</span>{" "}
-								{firstJob.FundSource.trim()}
-							</p>
-							<p>
-								<span className="font-bold">Job Status:</span>{" "}
-								{firstJob.Status.trim()}
-							</p>
-							<p>
-								<span className="font-bold">Estimate No:</span>{" "}
-								{firstJob.EstimateNo.trim()}
-							</p>
-							<p>
-								<span className="font-bold">Job Assigned Date:</span>{" "}
-								{firstJob.ProjectAssignedDate
-									? new Date(
-											firstJob.ProjectAssignedDate
-									  ).toLocaleDateString("en-GB", {
-											day: "2-digit",
-											month: "2-digit",
-											year: "numeric",
-									  })
-									: "-"}
-							</p>
+
+						<h2
+							className={`text-lg md:text-xl font-bold text-center md:mb-6 ${maroon}`}
+						>
+							Job Card
+						</h2>
+
+						<div className="flex justify-between md:mb-2 md:text-sm leading-5">
+							<div className="ml-5">
+								<p>
+									<span className="font-bold">Project No.</span>{" "}
+									{firstJob.ProjectNo.trim()}
+								</p>
+								<p>
+									<span className="font-bold">Estimated Cost:</span>{" "}
+									{formatNumber(firstJob.EstimatedCost)}
+								</p>
+								<p>
+									<span className="font-bold">Committed Cost:</span>{" "}
+									{formatNumber(firstJob.CommitedCost)}
+								</p>
+								<p>
+									<span className="font-bold">Variance in Rs.:</span>{" "}
+									{formatNumber(variance)}
+								</p>
+								<p>
+									<span className="font-bold">Variance in %:</span>{" "}
+									{variancePercent}
+								</p>
+								<p>
+									<span className="font-bold">
+										Scope of the Project:
+									</span>{" "}
+									{firstJob.Description.trim()}
+								</p>
+							</div>
+							<div className="mr-12">
+								<p>
+									<span className="font-bold">Fund Source:</span>{" "}
+									{firstJob.FundSource.trim()}
+								</p>
+								<p>
+									<span className="font-bold">Job Status:</span>{" "}
+									{firstJob.Status.trim()}
+								</p>
+								<p>
+									<span className="font-bold">Estimate No:</span>{" "}
+									{firstJob.EstimateNo.trim()}
+								</p>
+								<p>
+									<span className="font-bold">Job Assigned Date:</span>{" "}
+									{firstJob.ProjectAssignedDate
+										? new Date(
+												firstJob.ProjectAssignedDate
+										  ).toLocaleDateString("en-GB", {
+												day: "2-digit",
+												month: "2-digit",
+												year: "numeric",
+										  })
+										: "-"}
+								</p>
+							</div>
 						</div>
-					</div>
-					<div className="flex justify-end text-sm md:text-base font-semibold text-gray-600 mr-8">
-						Currency: LKR
-					</div>
+						<div className="flex justify-end text-sm md:text-base font-semibold text-gray-600 mr-8">
+							Currency: LKR
+						</div>
 
-					<div className="ml-5 mt-1 border border-gray-200 rounded-lg overflow-x-auto print:ml-12 print:mt-12 print:overflow-visible">
-						<table className="w-full border-collapse text-sm min-w-[700px] print-table">
-							<thead className="bg-gradient-to-r from-[#7A0000] to-[#A52A2A] text-white">
-								<tr>
-									<th className="px-2 py-1.5 border-r border-gray-200 w-[8%] text-xs">
-										Year
-									</th>
-									<th className="px-2 py-1.5 border-r border-gray-200 w-[8%] text-xs">
-										Month
-									</th>
-									<th className="px-2 py-1.5 border-r border-gray-200 w-[15%] text-xs">
-										Document Profile
-									</th>
-									<th className="px-2 py-1.5 border-r border-gray-200 w-[15%] text-xs">
-										Document No.
-									</th>
-									<th className="px-2 py-1.5 border-r border-gray-200 w-[10%] text-xs">
-										Date
-									</th>
-									<th className="px-2 py-1.5 border-r border-gray-200 w-[10%] text-xs">
-										Sequence No.
-									</th>
-									<th className="px-2 py-1.5 border-r border-gray-200 w-[12%] text-xs">
-										LAB
-									</th>
-									<th className="px-2 py-1.5 border-r border-gray-200 w-[12%] text-xs">
-										MAT
-									</th>
-									<th className="px-2 py-1.5 border-r border-gray-200 w-[12%] text-xs">
-										OTHER
-									</th>
-									<th className="px-2 py-1.5 w-[12%] text-xs">
-										Total
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{sortedGroups.map((group, groupIndex) => {
-									const sortedJobs = [...group.jobs].sort(
-										(a, b) => a.SequenceNo - b.SequenceNo
-									);
-									return sortedJobs.map((job, jobIndex) => {
-										const lab =
-											job.ResType.toUpperCase() === "LABOUR"
-												? job.TrxAmt
-												: 0;
-										const mat =
-											job.ResType.toUpperCase() === "MATERIAL"
-												? job.TrxAmt
-												: 0;
-										const other =
-											job.ResType.toUpperCase() === "OTHER"
-												? job.TrxAmt
-												: 0;
-										const total = lab + mat + other;
-										const isFirstInGroup = jobIndex === 0;
-										const isLastInGroup =
-											jobIndex === sortedJobs.length - 1;
-
-										return (
-											<React.Fragment
-												key={`${job.LogYear}-${job.LogMonth}-${job.DocumentNo}-${job.SequenceNo}-${groupIndex}-${jobIndex}`}
-											>
-												<tr
-													className={
-														groupIndex % 2
-															? "bg-white"
-															: "bg-gray-50"
-													}
-												>
-													<td className="px-2 py-1.5 border-r border-gray-200 text-xs">
-														{isFirstInGroup ? job.LogYear : ""}
-													</td>
-													<td className="px-2 py-1.5 border-r border-gray-200 text-xs">
-														{isFirstInGroup ? job.LogMonth : ""}
-													</td>
-													<td className="px-2 py-1.5 truncate border-r border-gray-200 text-xs">
-														{isFirstInGroup
-															? job.DocumentProfile.trim()
-															: ""}
-													</td>
-													<td className="px-2 py-1.5 truncate border-r border-gray-200 text-xs">
-														{isFirstInGroup
-															? job.DocumentNo.trim()
-															: ""}
-													</td>
-													<td className="px-2 py-1.5 border-r border-gray-200 text-xs">
-														{isFirstInGroup && job.AccDate
-															? new Date(
-																	job.AccDate
-															  ).toLocaleDateString("en-GB", {
-																	day: "2-digit",
-																	month: "2-digit",
-																	year: "numeric",
-															  })
-															: isFirstInGroup
-															? "-"
-															: ""}
-													</td>
-													<td className="px-2 py-1.5 border-r border-gray-200 text-right text-xs">
-														{job.SequenceNo}
-													</td>
-													<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono text-xs">
-														{formatNumber(lab)}
-													</td>
-													<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono text-xs">
-														{formatNumber(mat)}
-													</td>
-													<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono text-xs">
-														{formatNumber(other)}
-													</td>
-													<td className="px-2 py-1.5 text-right font-mono text-xs">
-														{formatNumber(total)}
-													</td>
-												</tr>
-												{isLastInGroup &&
-													groupIndex < sortedGroups.length - 1 && (
-														<tr>
-															<td
-																colSpan={10}
-																className="border-t border-gray-300"
-															></td>
-														</tr>
-													)}
-											</React.Fragment>
+						<div className="ml-5 mt-1 border border-gray-200 rounded-lg overflow-x-auto print:ml-12 print:mt-12 print:overflow-visible">
+							<table className="w-full border-collapse text-sm min-w-[700px] print-table">
+								<thead className="bg-gradient-to-r from-[#7A0000] to-[#A52A2A] text-white">
+									<tr>
+										<th className="px-2 py-1.5 border-r border-gray-200 w-[8%] text-xs">
+											Year
+										</th>
+										<th className="px-2 py-1.5 border-r border-gray-200 w-[8%] text-xs">
+											Month
+										</th>
+										<th className="px-2 py-1.5 border-r border-gray-200 w-[15%] text-xs">
+											Document Profile
+										</th>
+										<th className="px-2 py-1.5 border-r border-gray-200 w-[15%] text-xs">
+											Document No.
+										</th>
+										<th className="px-2 py-1.5 border-r border-gray-200 w-[10%] text-xs">
+											Date
+										</th>
+										<th className="px-2 py-1.5 border-r border-gray-200 w-[10%] text-xs">
+											Sequence No.
+										</th>
+										<th className="px-2 py-1.5 border-r border-gray-200 w-[12%] text-xs">
+											LAB
+										</th>
+										<th className="px-2 py-1.5 border-r border-gray-200 w-[12%] text-xs">
+											MAT
+										</th>
+										<th className="px-2 py-1.5 border-r border-gray-200 w-[12%] text-xs">
+											OTHER
+										</th>
+										<th className="px-2 py-1.5 w-[12%] text-xs">
+											Total
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									{sortedGroups.map((group, groupIndex) => {
+										const sortedJobs = [...group.jobs].sort(
+											(a, b) => a.SequenceNo - b.SequenceNo
 										);
-									});
-								})}
-								<tr className="bg-gray-200 font-bold print-totals">
-									<td
-										colSpan={6}
-										className="px-2 py-1.5 text-right border-r border-gray-200"
-									>
-										Total
-									</td>
-									<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono">
-										{formatNumber(totals.lab)}
-									</td>
-									<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono">
-										{formatNumber(totals.mat)}
-									</td>
-									<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono">
-										{formatNumber(totals.other)}
-									</td>
-									<td className="px-2 py-1.5 text-right font-mono">
-										{formatNumber(totals.total)}
-									</td>
-								</tr>
-							</tbody>
-						</table>
+										return sortedJobs.map((job, jobIndex) => {
+											const lab =
+												job.ResType.toUpperCase() === "LABOUR"
+													? job.TrxAmt
+													: 0;
+											const mat =
+												job.ResType.toUpperCase() === "MATERIAL"
+													? job.TrxAmt
+													: 0;
+											const other =
+												job.ResType.toUpperCase() === "OTHER"
+													? job.TrxAmt
+													: 0;
+											const total = lab + mat + other;
+											const isFirstInGroup = jobIndex === 0;
+											const isLastInGroup =
+												jobIndex === sortedJobs.length - 1;
+
+											return (
+												<React.Fragment
+													key={`${job.LogYear}-${job.LogMonth}-${job.DocumentNo}-${job.SequenceNo}-${groupIndex}-${jobIndex}`}
+												>
+													<tr
+														className={
+															groupIndex % 2
+																? "bg-white"
+																: "bg-gray-50"
+														}
+													>
+														<td className="px-2 py-1.5 border-r border-gray-200 text-xs">
+															{isFirstInGroup ? job.LogYear : ""}
+														</td>
+														<td className="px-2 py-1.5 border-r border-gray-200 text-xs">
+															{isFirstInGroup
+																? job.LogMonth
+																: ""}
+														</td>
+														<td className="px-2 py-1.5 truncate border-r border-gray-200 text-xs">
+															{isFirstInGroup
+																? job.DocumentProfile.trim()
+																: ""}
+														</td>
+														<td className="px-2 py-1.5 truncate border-r border-gray-200 text-xs">
+															{isFirstInGroup
+																? job.DocumentNo.trim()
+																: ""}
+														</td>
+														<td className="px-2 py-1.5 border-r border-gray-200 text-xs">
+															{isFirstInGroup && job.AccDate
+																? new Date(
+																		job.AccDate
+																  ).toLocaleDateString(
+																		"en-GB",
+																		{
+																			day: "2-digit",
+																			month: "2-digit",
+																			year: "numeric",
+																		}
+																  )
+																: isFirstInGroup
+																? "-"
+																: ""}
+														</td>
+														<td className="px-2 py-1.5 border-r border-gray-200 text-right text-xs">
+															{job.SequenceNo}
+														</td>
+														<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono text-xs">
+															{formatNumber(lab)}
+														</td>
+														<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono text-xs">
+															{formatNumber(mat)}
+														</td>
+														<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono text-xs">
+															{formatNumber(other)}
+														</td>
+														<td className="px-2 py-1.5 text-right font-mono text-xs">
+															{formatNumber(total)}
+														</td>
+													</tr>
+													{isLastInGroup &&
+														groupIndex <
+															sortedGroups.length - 1 && (
+															<tr>
+																<td
+																	colSpan={10}
+																	className="border-t border-gray-300"
+																></td>
+															</tr>
+														)}
+												</React.Fragment>
+											);
+										});
+									})}
+									<tr className="bg-gray-200 font-bold print-totals">
+										<td
+											colSpan={6}
+											className="px-2 py-1.5 text-right border-r border-gray-200"
+										>
+											Total
+										</td>
+										<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono">
+											{formatNumber(totals.lab)}
+										</td>
+										<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono">
+											{formatNumber(totals.mat)}
+										</td>
+										<td className="px-2 py-1.5 border-r border-gray-200 text-right font-mono">
+											{formatNumber(totals.other)}
+										</td>
+										<td className="px-2 py-1.5 text-right font-mono">
+											{formatNumber(totals.total)}
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<div className="hidden print:block text-xs text-gray-500 mt-12 text-center">
+							Printed on:{" "}
+							{new Date().toLocaleString("en-US", {
+								timeZone: "Asia/Colombo",
+							})}
+						</div>
 					</div>
-					<div className="hidden print:block text-xs text-gray-500 mt-12 text-center">
-						Printed on:{" "}
-						{new Date().toLocaleString("en-US", {
-							timeZone: "Asia/Colombo",
-						})}
-					</div>
+					<iframe ref={iframeRef} className="hidden" />
 				</div>
-				<iframe ref={iframeRef} className="hidden" />
 			</div>
 		</div>
-	</div>
 	);
 };
 

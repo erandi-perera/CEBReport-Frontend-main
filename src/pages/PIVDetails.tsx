@@ -6,6 +6,13 @@ import ProvincePIVProvincial from "../mainTopics/PIV/ProvincePIVProvincial";
 import ProvincePIVAll from "../mainTopics/PIV/ProvincePIVAll";
 import ProvincePivOtherCC from "../mainTopics/PIV/ProvincePivOtherCC";
 import OtherCCtoProvince from "../mainTopics/PIV/OtherCCtoProvince";
+import BranchWisePivBoth from "../mainTopics/PIV/BranchWisePivBoth";
+import PIVCollectionsByPeoplesBank from "../mainTopics/PIV/PIVCollectionsByPeoplesBank";
+import PivBySLT from "../mainTopics/PIV/PIVCollectionsBySLT";
+import PivByBanks from "../mainTopics/PIV/PivByBanks";
+import PIVDetailsReport from "../mainTopics/PIV/PIVDetailsReport";
+import ProvinceWisePIVStampDuty from "../mainTopics/PIV/ProvinceWisePIVStampDuty";
+
 
 type Subtopic = {
 	id: number;
@@ -33,16 +40,29 @@ const PIVDetails = () => {
 
 	const renderSubtopicContent = (subtopicName: string) => {
 		switch (subtopicName) {
-			case "Branch/Province wise PIV Collections Paid to Bank":
+			case "1. Branch/Province wise PIV Collections Paid to Bank":
 				return <ProvincePIV />;
-			case "Branch/Province wise PIV Collections by Provincial POS relevant to the Province":
+			case "2. Branch/Province wise PIV Collections by Provincial POS relevant to the Province":
 				return <ProvincePIVProvincial />;
-			case "Branch/Province wise PIV Collections Paid to Provincial POS":
+			case "3. Branch/Province wise PIV Collections Paid to Provincial POS":
 				return <ProvincePIVAll />;
-			case "PIV Collections by Provincial POS relevant to Other Cost Centers":
+			case "4. PIV Collections by Provincial POS relevant to Other Cost Centers":
 				return <ProvincePivOtherCC />;
-			case "PIV Collections by Other Cost Centers relevant to the Province":
+			case "5. PIV Collections by Other Cost Centers relevant to the Province":
 				return <OtherCCtoProvince />;
+			case "6. Branch wise PIV Tabulation ( Both Bank and POS)":
+				return <BranchWisePivBoth />;
+			case "7. PIV Collections by Banks":
+				return <PivByBanks />;
+			case "7.1 PIV Collections by Peoples Banks":
+				return <PIVCollectionsByPeoplesBank />;
+			case "7.2 PIV Collections by IPG  (SLT) ":
+				return <PivBySLT />;
+			case "8. PIV Details Report (PIV Amount not tallied with Paid Amount)":
+				return <PIVDetailsReport />;
+			case "9. Province wise PIV Stamp Duty":
+				return <ProvinceWisePIVStampDuty />;
+
 			default:
 				return (
 					<div className="text-red-500 text-xs">

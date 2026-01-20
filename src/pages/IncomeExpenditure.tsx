@@ -4,6 +4,7 @@ import SubtopicCard from "../components/shared/SubtopicCard";
 import CostCenterIncomeExpenditure from "../mainTopics/IncomeExpenditure/CostCenterIncomeExpenditure";
 import ProvinceExpenditure from "../mainTopics/IncomeExpenditure/ProvinceExpenditure";
 import RegionExpenditure from "../mainTopics/IncomeExpenditure/RegionExpenditure";
+import IncomeExpenditureRegionDetailed from "../mainTopics/IncomeExpenditure/IncomeExpenditureRegionDetailed";
 
 type Subtopic = {
 	id: number;
@@ -36,6 +37,8 @@ const IncomeExpenditure = () => {
 				return <ProvinceExpenditure />;
 			case "Region Wise Income & Expenditure":
 				return <RegionExpenditure />;
+			case "Region Wise Income & Expenditure (Detailed)":
+				return <IncomeExpenditureRegionDetailed />;
 			default:
 				return (
 					<div className="text-red-500 text-xs">
