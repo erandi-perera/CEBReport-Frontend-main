@@ -1,494 +1,699 @@
-import { useEffect, useState, useRef } from "react";
-import { Search, RotateCcw, Eye, ChevronLeft, Download, Printer } from "lucide-react";
-import { useUser } from "../../contexts/UserContext";
+import {useEffect, useState, useRef} from "react";
+import {
+	Search,
+	RotateCcw,
+	Eye,
+	ChevronLeft,
+	Download,
+	Printer,
+} from "lucide-react";
+import {useUser} from "../../contexts/UserContext";
 
 interface Department {
-  DeptId: string;
-  DeptName: string;
+	DeptId: string;
+	DeptName: string;
 }
 
 interface WorkInProgressData {
-  AssignmentYear: string;
-  ProjectNo: string;
-  CategoryCode: string;
-  Description: string;
-  FundSource: string;
-  WipYear: string;
-  WipMonth: string;
-  PivNo: string;
-  GrandTotal: number;
-  PaidDate: string;
-  SoftCloseDate: string;
-  EstimatedCost: number;
-  Status: string;
-  ResourceType: string;
-  CommittedCost: number;
-  CctName: string;
-  CommittedLabourCost?: number;
-  CommittedMaterialCost?: number;
-  CommittedOtherCost?: number;
-  LabourCost?: number;
-  MaterialCost?: number;
-  OtherCost?: number;
-  Variance?: number;
-  TotalCost?: number;
+	AssignmentYear: string;
+	ProjectNo: string;
+	CategoryCode: string;
+	Description: string;
+	FundSource: string;
+	WipYear: string;
+	WipMonth: string;
+	PivNo: string;
+	GrandTotal: number;
+	PaidDate: string;
+	SoftCloseDate: string;
+	EstimatedCost: number;
+	Status: string;
+	ResourceType: string;
+	CommittedCost: number;
+	CctName: string;
+	CommittedLabourCost?: number;
+	CommittedMaterialCost?: number;
+	CommittedOtherCost?: number;
+	LabourCost?: number;
+	MaterialCost?: number;
+	OtherCost?: number;
+	Variance?: number;
+	TotalCost?: number;
 }
 
 interface CostCenterWorkInprogressProps {
-  preSelectedDepartment?: Department;
-  onBack?: () => void;
+	preSelectedDepartment?: Department;
+	onBack?: () => void;
+	onHome?: () => void;
 }
 
-const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterWorkInprogressProps) => {
-  const { user } = useUser();
-  
-  const [data, setData] = useState<Department[]>([]);
-  const [searchId, setSearchId] = useState("");
-  const [searchName, setSearchName] = useState("");
-  const [filtered, setFiltered] = useState<Department[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const pageSize = 9;
+const CostCenterWorkInprogress = ({
+	preSelectedDepartment,
+	onBack,
+	onHome,
+}: CostCenterWorkInprogressProps) => {
+	const {user} = useUser();
 
-  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
-  const [showWorkInProgress, setShowWorkInProgress] = useState(false);
-  const [workInProgressData, setWorkInProgressData] = useState<WorkInProgressData[]>([]);
-  const [workInProgressLoading, setWorkInProgressLoading] = useState(false);
-  const [workInProgressError, setWorkInProgressError] = useState<string | null>(null);
+	const [data, setData] = useState<Department[]>([]);
+	const [searchId, setSearchId] = useState("");
+	const [searchName, setSearchName] = useState("");
+	const [filtered, setFiltered] = useState<Department[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [page, setPage] = useState(1);
+	const pageSize = 9;
 
-  const printRef = useRef<HTMLDivElement>(null);
+	const [selectedDepartment, setSelectedDepartment] =
+		useState<Department | null>(null);
+	const [showWorkInProgress, setShowWorkInProgress] = useState(false);
+	const [workInProgressData, setWorkInProgressData] = useState<
+		WorkInProgressData[]
+	>([]);
+	const [workInProgressLoading, setWorkInProgressLoading] = useState(false);
+	const [workInProgressError, setWorkInProgressError] = useState<
+		string | null
+	>(null);
 
-  const epfNo = user?.Userno || "";
-  
-  useEffect(() => {
-    console.log('Current user:', user);
-    console.log('EPF Number being used:', epfNo);
-  }, [user, epfNo]);
+	const printRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (preSelectedDepartment && !selectedDepartment) {
-      setSelectedDepartment(preSelectedDepartment);
-      fetchWorkInProgressData(preSelectedDepartment.DeptId);
-    }
-  }, [preSelectedDepartment]);
+	const epfNo = user?.Userno || "";
 
-  const maroon = "text-[#7A0000]";
-  const maroonBg = "bg-[#7A0000]";
-  const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
+	useEffect(() => {
+		console.log("Current user:", user);
+		console.log("EPF Number being used:", epfNo);
+	}, [user, epfNo]);
 
-  const paginatedDepartments = filtered.slice((page - 1) * pageSize, page * pageSize);
+	useEffect(() => {
+		if (preSelectedDepartment && !selectedDepartment) {
+			// show modal immediately when parent supplies a pre-selected department
+			setShowWorkInProgress(true);
+			setSelectedDepartment(preSelectedDepartment);
+			fetchWorkInProgressData(preSelectedDepartment.DeptId);
+		}
+	}, [preSelectedDepartment]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!epfNo) {
-        setError("No EPF number available. Please login again.");
-        setLoading(false);
-        return;
-      }
+	const maroon = "text-[#7A0000]";
+	const maroonBg = "bg-[#7A0000]";
+	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
-      setLoading(true);
-      try {
-        const res = await fetch(`/misapi/api/incomeexpenditure/departments/${epfNo}`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        
-        const contentType = res.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await res.text();
-          throw new Error(`Expected JSON but got ${contentType}. Response: ${text.substring(0, 100)}`);
-        }
-        
-        const parsed = await res.json();
-        
-        let rawData = [];
-        if (Array.isArray(parsed)) {
-          rawData = parsed;
-        } else if (parsed.data && Array.isArray(parsed.data)) {
-          rawData = parsed.data;
-        } else if (parsed.result && Array.isArray(parsed.result)) {
-          rawData = parsed.result;
-        } else if (parsed.departments && Array.isArray(parsed.departments)) {
-          rawData = parsed.departments;
-        } else {
-          console.log('Unexpected response structure:', parsed);
-          rawData = [];
-        }
-        
-        const final: Department[] = rawData.map((item: any) => ({
-          DeptId: item.DeptId?.toString() || item.deptId?.toString() || "",
-          DeptName: item.DeptName?.toString().trim() || item.deptName?.toString().trim() || "",
-        }));
-        
-        setData(final);
-        setFiltered(final);
-      } catch (e: any) {
-        console.error('API Error:', e);
-        setError(e.message.includes("JSON.parse") ? "Invalid data format received from server. Please check if the API is returning valid JSON." : e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [epfNo]);
+	const paginatedDepartments = filtered.slice(
+		(page - 1) * pageSize,
+		page * pageSize
+	);
 
-  useEffect(() => {
-    const f = data.filter(
-      (d) =>
-        (!searchId || d.DeptId.toLowerCase().includes(searchId.toLowerCase())) &&
-        (!searchName || d.DeptName.toLowerCase().includes(searchName.toLowerCase()))
-    );
-    setFiltered(f);
-    setPage(1);
-  }, [searchId, searchName, data]);
+	useEffect(() => {
+		const fetchData = async () => {
+			if (!epfNo) {
+				setError("No EPF number available. Please login again.");
+				setLoading(false);
+				return;
+			}
 
-  const fetchWorkInProgressData = async (deptId: string) => {
-    setWorkInProgressLoading(true);
-    setWorkInProgressError(null);
-    try {
-      const apiUrl = `/misapi/api/costcenterworkinprogress/${deptId}`;
-      
-      const response = await fetch(apiUrl, {
-        credentials: 'include',
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        throw new Error(`Expected JSON but got ${contentType}. Response: ${text.substring(0, 100)}`);
-      }
-      
-      const jsonData = await response.json();
-      
-      let rawData = [];
-      if (Array.isArray(jsonData)) {
-        rawData = jsonData;
-      } else if (jsonData.data && Array.isArray(jsonData.data)) {
-        rawData = jsonData.data;
-      } else if (jsonData.result && Array.isArray(jsonData.result)) {
-        rawData = jsonData.result;
-      } else if (jsonData.workInProgress && Array.isArray(jsonData.workInProgress)) {
-        rawData = jsonData.workInProgress;
-      } else {
-        console.log('Unexpected response structure:', jsonData);
-        rawData = [];
-      }
-      
-      const mappedData: WorkInProgressData[] = rawData.map((item: any) => ({
-        AssignmentYear: item.AssignmentYear?.toString() || item.assignmentYear?.toString() || "",
-        ProjectNo: item.ProjectNo?.toString() || item.projectNo?.toString() || "",
-        CategoryCode: item.CategoryCode?.toString() || item.categoryCode?.toString() || "",
-        Description: item.Description?.toString() || item.description?.toString() || "",
-        FundSource: item.FundSource?.toString() || item.fundSource?.toString() || "",
-        WipYear: item.WipYear?.toString() || item.wipYear?.toString() || "",
-        WipMonth: item.WipMonth?.toString() || item.wipMonth?.toString() || "",
-        PivNo: item.PivNo?.toString() || item.pivNo?.toString() || "",
-        GrandTotal: parseFloat(item.GrandTotal || item.grandTotal || 0),
-        PaidDate: item.PaidDate?.toString() || item.paidDate?.toString() || "",
-        SoftCloseDate: item.SoftCloseDate?.toString() || item.softCloseDate?.toString() || "",
-        EstimatedCost: parseFloat(item.EstimatedCost || item.estimatedCost || 0),
-        Status: item.Status?.toString() || item.status?.toString() || "",
-        ResourceType: item.ResourceType?.toString() || item.resourceType?.toString() || "",
-        CommittedCost: parseFloat(item.CommittedCost || item.committedCost || 0),
-        CctName: item.CctName?.toString() || item.cctName?.toString() || "",
-        CommittedLabourCost: parseFloat(item.CommittedLabourCost || item.committedLabourCost || item.LabourCost || item.labourCost || item.LAB || item.lab || 0),
-        CommittedMaterialCost: parseFloat(item.CommittedMaterialCost || item.committedMaterialCost || item.MaterialCost || item.materialCost || item.MAT || item.mat || 0),
-        CommittedOtherCost: parseFloat(item.CommittedOtherCost || item.committedOtherCost || item.OtherCost || item.otherCost || item.OTHER || item.other || 0),
-        LabourCost: parseFloat(item.LabourCost || item.labourCost || 0),
-        MaterialCost: parseFloat(item.MaterialCost || item.materialCost || 0),
-        OtherCost: parseFloat(item.OtherCost || item.otherCost || 0),
-        Variance: parseFloat(item.Variance || item.variance || 0),
-        TotalCost: parseFloat(item.TotalCost || item.totalCost || 0),
-      }));
-      
-      setWorkInProgressData(mappedData);
-      setShowWorkInProgress(true);
-    } catch (error: any) {
-      setWorkInProgressError(error.message.includes("JSON.parse") ? "Invalid data format received from server" : error.message);
-    } finally {
-      setWorkInProgressLoading(false);
-    }
-  };
+			setLoading(true);
+			try {
+				const res = await fetch(
+					`/misapi/api/incomeexpenditure/departments/${epfNo}`
+				);
+				if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
-  const handleDepartmentSelect = (department: Department) => {
-    setSelectedDepartment(department);
-    fetchWorkInProgressData(department.DeptId);
-  };
+				const contentType = res.headers.get("content-type");
+				if (!contentType || !contentType.includes("application/json")) {
+					const text = await res.text();
+					throw new Error(
+						`Expected JSON but got ${contentType}. Response: ${text.substring(
+							0,
+							100
+						)}`
+					);
+				}
 
-  const closeWorkInProgressModal = () => {
-    setShowWorkInProgress(false);
-    setWorkInProgressData([]);
-    setSelectedDepartment(null);
-  };
+				const parsed = await res.json();
 
-  const clearFilters = () => {
-    setSearchId("");
-    setSearchName("");
-  };
+				let rawData = [];
+				if (Array.isArray(parsed)) {
+					rawData = parsed;
+				} else if (parsed.data && Array.isArray(parsed.data)) {
+					rawData = parsed.data;
+				} else if (parsed.result && Array.isArray(parsed.result)) {
+					rawData = parsed.result;
+				} else if (
+					parsed.departments &&
+					Array.isArray(parsed.departments)
+				) {
+					rawData = parsed.departments;
+				} else {
+					console.log("Unexpected response structure:", parsed);
+					rawData = [];
+				}
 
-  // UPDATED CSV Export function - Matching WIP Close Job Report format
-  const downloadAsCSV = () => {
-    if (!workInProgressData.length || !selectedDepartment) return;
+				const final: Department[] = rawData.map((item: any) => ({
+					DeptId: item.DeptId?.toString() || item.deptId?.toString() || "",
+					DeptName:
+						item.DeptName?.toString().trim() ||
+						item.deptName?.toString().trim() ||
+						"",
+				}));
 
-    const consolidatedMap = new Map<string, WorkInProgressData>();
-    
-    workInProgressData.forEach((item) => {
-      const key = `${item.ProjectNo?.trim()}-${item.CategoryCode?.trim()}`;
-      
-      if (consolidatedMap.has(key)) {
-        const existing = consolidatedMap.get(key)!;
-        const resourceType = item.ResourceType?.trim().toUpperCase();
-        const committedCost = item.CommittedCost || 0;
-        
-        if (resourceType === 'LAB' || resourceType === 'LABOUR') {
-          existing.CommittedLabourCost = (existing.CommittedLabourCost || 0) + committedCost;
-        } else if (resourceType === 'MAT' || resourceType === 'MATERIAL') {
-          existing.CommittedMaterialCost = (existing.CommittedMaterialCost || 0) + committedCost;
-        } else if (resourceType === 'OTHER') {
-          existing.CommittedOtherCost = (existing.CommittedOtherCost || 0) + committedCost;
-        }
-      } else {
-        const resourceType = item.ResourceType?.trim().toUpperCase();
-        const committedCost = item.CommittedCost || 0;
-        
-        const consolidatedItem: WorkInProgressData = {
-          ...item,
-          CommittedLabourCost: 0,
-          CommittedMaterialCost: 0,
-          CommittedOtherCost: 0,
-        };
-        
-        if (resourceType === 'LAB' || resourceType === 'LABOUR') {
-          consolidatedItem.CommittedLabourCost = committedCost;
-        } else if (resourceType === 'MAT' || resourceType === 'MATERIAL') {
-          consolidatedItem.CommittedMaterialCost = committedCost;
-        } else if (resourceType === 'OTHER') {
-          consolidatedItem.CommittedOtherCost = committedCost;
-        }
-        
-        consolidatedMap.set(key, consolidatedItem);
-      }
-    });
+				setData(final);
+				setFiltered(final);
+			} catch (e: any) {
+				console.error("API Error:", e);
+				setError(
+					e.message.includes("JSON.parse")
+						? "Invalid data format received from server. Please check if the API is returning valid JSON."
+						: e.message
+				);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchData();
+	}, [epfNo]);
 
-    const sortedData = Array.from(consolidatedMap.values()).sort((a, b) => {
-      const yearCompare = (b.AssignmentYear || '').localeCompare(a.AssignmentYear || '');
-      if (yearCompare !== 0) return yearCompare;
-      return (a.ProjectNo || '').localeCompare(b.ProjectNo || '');
-    });
+	useEffect(() => {
+		const f = data.filter(
+			(d) =>
+				(!searchId ||
+					d.DeptId.toLowerCase().includes(searchId.toLowerCase())) &&
+				(!searchName ||
+					d.DeptName.toLowerCase().includes(searchName.toLowerCase()))
+		);
+		setFiltered(f);
+		setPage(1);
+	}, [searchId, searchName, data]);
 
-    const totals = sortedData.reduce((acc, item) => {
-      const labCost = item.CommittedLabourCost || item.LabourCost || 0;
-      const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
-      const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
-      const total = labCost + matCost + otherCost;
-      const variance = (item.EstimatedCost || 0) - total;
+	const fetchWorkInProgressData = async (deptId: string) => {
+		setWorkInProgressLoading(true);
+		setWorkInProgressError(null);
+		try {
+			const apiUrl = `/misapi/api/costcenterworkinprogress/${deptId}`;
 
-      return {
-        estimatedCost: acc.estimatedCost + (item.EstimatedCost || 0),
-        labCost: acc.labCost + labCost,
-        matCost: acc.matCost + matCost,
-        otherCost: acc.otherCost + otherCost,
-        total: acc.total + total,
-        variance: acc.variance + variance
-      };
-    }, {
-      estimatedCost: 0,
-      labCost: 0,
-      matCost: 0,
-      otherCost: 0,
-      total: 0,
-      variance: 0
-    });
+			const response = await fetch(apiUrl, {
+				credentials: "include",
+				headers: {Accept: "application/json"},
+			});
 
-    const formatNum = (num: number) => num.toFixed(2);
+			if (!response.ok)
+				throw new Error(`HTTP error! status: ${response.status}`);
 
+			const contentType = response.headers.get("content-type");
+			if (!contentType || !contentType.includes("application/json")) {
+				const text = await response.text();
+				throw new Error(
+					`Expected JSON but got ${contentType}. Response: ${text.substring(
+						0,
+						100
+					)}`
+				);
+			}
 
-    const csvRows = [
-      [`Work In Progress Report`],
-      [`Cost Centre : ${selectedDepartment.DeptId} / ${selectedDepartment.DeptName.toUpperCase()}`],
-      [],
-      ["Year", "Project No.", "Category", "Fund Id", "Stand_Cost", "Description", "Dept_id", "PIV_No", "Project Assigned", "LABOUR", "MATERIAL", "OTHER", "TOTAL"],
-      ...sortedData.map((item) => {
-        const labCost = item.CommittedLabourCost || item.LabourCost || 0;
-        const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
-        const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
-        const total = labCost + matCost + otherCost;
+			const jsonData = await response.json();
 
-        return [
-          item.AssignmentYear || "",
-          item.ProjectNo || "",
-          item.CategoryCode || "",
-          item.FundSource || "",
-          formatNum(item.EstimatedCost || 0),
-          `"${(item.Description || "").replace(/"/g, '""')}"`,
-          selectedDepartment.DeptId || "",
-          item.PivNo || "",
-          item.Status || "",
-          formatNum(labCost),
-          formatNum(matCost),
-          formatNum(otherCost),
-          formatNum(total)
-        ];
-      }),
-      [],
-      [
-        "", "", "", "", 
-        formatNum(totals.estimatedCost),
-        "TOTAL",
-        "", "",
-        "",
-        formatNum(totals.labCost),
-        formatNum(totals.matCost),
-        formatNum(totals.otherCost),
-        formatNum(totals.total)
-      ],
-      [],
-      ["SUMMARY"],
-      ["Total Estimated Cost", formatNum(totals.estimatedCost)],
-      ["Total Labour", formatNum(totals.labCost)],
-      ["Total Material", formatNum(totals.matCost)],
-      ["Total Other", formatNum(totals.otherCost)],
-      ["Total Committed", formatNum(totals.total)],
-      ["Variance", formatNum(totals.variance)],
-      ["Total Records", sortedData.length.toString()],
-      [],
-      [`Generated: ${new Date().toLocaleString()}`],
-      [`CEB@${new Date().getFullYear()}`]
-    ];
+			let rawData = [];
+			if (Array.isArray(jsonData)) {
+				rawData = jsonData;
+			} else if (jsonData.data && Array.isArray(jsonData.data)) {
+				rawData = jsonData.data;
+			} else if (jsonData.result && Array.isArray(jsonData.result)) {
+				rawData = jsonData.result;
+			} else if (
+				jsonData.workInProgress &&
+				Array.isArray(jsonData.workInProgress)
+			) {
+				rawData = jsonData.workInProgress;
+			} else {
+				console.log("Unexpected response structure:", jsonData);
+				rawData = [];
+			}
 
-    const csvContent = csvRows.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Work_In_Progress_Report_Cost_Centre_${selectedDepartment.DeptId}_${selectedDepartment.DeptName.replace(/[^a-zA-Z0-9]/g, '_')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+			const mappedData: WorkInProgressData[] = rawData.map((item: any) => ({
+				AssignmentYear:
+					item.AssignmentYear?.toString() ||
+					item.assignmentYear?.toString() ||
+					"",
+				ProjectNo:
+					item.ProjectNo?.toString() || item.projectNo?.toString() || "",
+				CategoryCode:
+					item.CategoryCode?.toString() ||
+					item.categoryCode?.toString() ||
+					"",
+				Description:
+					item.Description?.toString() ||
+					item.description?.toString() ||
+					"",
+				FundSource:
+					item.FundSource?.toString() || item.fundSource?.toString() || "",
+				WipYear: item.WipYear?.toString() || item.wipYear?.toString() || "",
+				WipMonth:
+					item.WipMonth?.toString() || item.wipMonth?.toString() || "",
+				PivNo: item.PivNo?.toString() || item.pivNo?.toString() || "",
+				GrandTotal: parseFloat(item.GrandTotal || item.grandTotal || 0),
+				PaidDate:
+					item.PaidDate?.toString() || item.paidDate?.toString() || "",
+				SoftCloseDate:
+					item.SoftCloseDate?.toString() ||
+					item.softCloseDate?.toString() ||
+					"",
+				EstimatedCost: parseFloat(
+					item.EstimatedCost || item.estimatedCost || 0
+				),
+				Status: item.Status?.toString() || item.status?.toString() || "",
+				ResourceType:
+					item.ResourceType?.toString() ||
+					item.resourceType?.toString() ||
+					"",
+				CommittedCost: parseFloat(
+					item.CommittedCost || item.committedCost || 0
+				),
+				CctName: item.CctName?.toString() || item.cctName?.toString() || "",
+				CommittedLabourCost: parseFloat(
+					item.CommittedLabourCost ||
+						item.committedLabourCost ||
+						item.LabourCost ||
+						item.labourCost ||
+						item.LAB ||
+						item.lab ||
+						0
+				),
+				CommittedMaterialCost: parseFloat(
+					item.CommittedMaterialCost ||
+						item.committedMaterialCost ||
+						item.MaterialCost ||
+						item.materialCost ||
+						item.MAT ||
+						item.mat ||
+						0
+				),
+				CommittedOtherCost: parseFloat(
+					item.CommittedOtherCost ||
+						item.committedOtherCost ||
+						item.OtherCost ||
+						item.otherCost ||
+						item.OTHER ||
+						item.other ||
+						0
+				),
+				LabourCost: parseFloat(item.LabourCost || item.labourCost || 0),
+				MaterialCost: parseFloat(
+					item.MaterialCost || item.materialCost || 0
+				),
+				OtherCost: parseFloat(item.OtherCost || item.otherCost || 0),
+				Variance: parseFloat(item.Variance || item.variance || 0),
+				TotalCost: parseFloat(item.TotalCost || item.totalCost || 0),
+			}));
 
-  const printPDF = () => {
-    if (!printRef.current || !selectedDepartment) return;
+			setWorkInProgressData(mappedData);
+		} catch (error: any) {
+			setWorkInProgressError(
+				error.message.includes("JSON.parse")
+					? "Invalid data format received from server"
+					: error.message
+			);
+		} finally {
+			setWorkInProgressLoading(false);
+		}
+	};
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+	const handleDepartmentSelect = (department: Department) => {
+		// Open modal immediately so user sees loading spinner
+		setSelectedDepartment(department);
+		setShowWorkInProgress(true);
+		fetchWorkInProgressData(department.DeptId);
+	};
 
-    const consolidatedMap = new Map<string, WorkInProgressData>();
-    
-    workInProgressData.forEach((item) => {
-      const key = `${item.ProjectNo?.trim()}-${item.CategoryCode?.trim()}`;
-      
-      if (consolidatedMap.has(key)) {
-        const existing = consolidatedMap.get(key)!;
-        const resourceType = item.ResourceType?.trim().toUpperCase();
-        const committedCost = item.CommittedCost || 0;
-        
-        if (resourceType === 'LAB' || resourceType === 'LABOUR') {
-          existing.CommittedLabourCost = (existing.CommittedLabourCost || 0) + committedCost;
-        } else if (resourceType === 'MAT' || resourceType === 'MATERIAL') {
-          existing.CommittedMaterialCost = (existing.CommittedMaterialCost || 0) + committedCost;
-        } else if (resourceType === 'OTHER') {
-          existing.CommittedOtherCost = (existing.CommittedOtherCost || 0) + committedCost;
-        }
-      } else {
-        const resourceType = item.ResourceType?.trim().toUpperCase();
-        const committedCost = item.CommittedCost || 0;
-        
-        const consolidatedItem: WorkInProgressData = {
-          ...item,
-          CommittedLabourCost: 0,
-          CommittedMaterialCost: 0,
-          CommittedOtherCost: 0,
-        };
-        
-        if (resourceType === 'LAB' || resourceType === 'LABOUR') {
-          consolidatedItem.CommittedLabourCost = committedCost;
-        } else if (resourceType === 'MAT' || resourceType === 'MATERIAL') {
-          consolidatedItem.CommittedMaterialCost = committedCost;
-        } else if (resourceType === 'OTHER') {
-          consolidatedItem.CommittedOtherCost = committedCost;
-        }
-        
-        consolidatedMap.set(key, consolidatedItem);
-      }
-    });
+	const closeWorkInProgressModal = () => {
+		setShowWorkInProgress(false);
+		setWorkInProgressData([]);
+		setSelectedDepartment(null);
+		// If parent provided an onHome handler, call it to return to the company/department list
+		if (onHome) {
+			onHome();
+		}
+	};
 
-    const sortedData = Array.from(consolidatedMap.values()).sort((a, b) => {
-      const yearCompare = (b.AssignmentYear || '').localeCompare(a.AssignmentYear || '');
-      if (yearCompare !== 0) return yearCompare;
-      return (a.ProjectNo || '').localeCompare(b.ProjectNo || '');
-    });
+	const clearFilters = () => {
+		setSearchId("");
+		setSearchName("");
+	};
 
-    const pdfTotals = sortedData.reduce((acc, item) => {
-      const labCost = item.CommittedLabourCost || item.LabourCost || 0;
-      const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
-      const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
-      const total = labCost + matCost + otherCost;
-      const variance = (item.EstimatedCost || 0) - total;
+	// UPDATED CSV Export function - Matching WIP Close Job Report format
+	const downloadAsCSV = () => {
+		if (!workInProgressData.length || !selectedDepartment) return;
 
-      return {
-        estimatedCost: acc.estimatedCost + (item.EstimatedCost || 0),
-        labCost: acc.labCost + labCost,
-        matCost: acc.matCost + matCost,
-        otherCost: acc.otherCost + otherCost,
-        total: acc.total + total,
-        variance: acc.variance + variance
-      };
-    }, {
-      estimatedCost: 0,
-      labCost: 0,
-      matCost: 0,
-      otherCost: 0,
-      total: 0,
-      variance: 0
-    });
+		const consolidatedMap = new Map<string, WorkInProgressData>();
 
-    let tableRowsHTML = '';
-    sortedData.forEach((item) => {
-      const labCost = item.CommittedLabourCost || item.LabourCost || 0;
-      const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
-      const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
-      const total = labCost + matCost + otherCost;
-      const variance = (item.EstimatedCost || 0) - total;
+		workInProgressData.forEach((item) => {
+			const key = `${item.ProjectNo?.trim()}-${item.CategoryCode?.trim()}`;
 
-      tableRowsHTML += `
+			if (consolidatedMap.has(key)) {
+				const existing = consolidatedMap.get(key)!;
+				const resourceType = item.ResourceType?.trim().toUpperCase();
+				const committedCost = item.CommittedCost || 0;
+
+				if (resourceType === "LAB" || resourceType === "LABOUR") {
+					existing.CommittedLabourCost =
+						(existing.CommittedLabourCost || 0) + committedCost;
+				} else if (resourceType === "MAT" || resourceType === "MATERIAL") {
+					existing.CommittedMaterialCost =
+						(existing.CommittedMaterialCost || 0) + committedCost;
+				} else if (resourceType === "OTHER") {
+					existing.CommittedOtherCost =
+						(existing.CommittedOtherCost || 0) + committedCost;
+				}
+			} else {
+				const resourceType = item.ResourceType?.trim().toUpperCase();
+				const committedCost = item.CommittedCost || 0;
+
+				const consolidatedItem: WorkInProgressData = {
+					...item,
+					CommittedLabourCost: 0,
+					CommittedMaterialCost: 0,
+					CommittedOtherCost: 0,
+				};
+
+				if (resourceType === "LAB" || resourceType === "LABOUR") {
+					consolidatedItem.CommittedLabourCost = committedCost;
+				} else if (resourceType === "MAT" || resourceType === "MATERIAL") {
+					consolidatedItem.CommittedMaterialCost = committedCost;
+				} else if (resourceType === "OTHER") {
+					consolidatedItem.CommittedOtherCost = committedCost;
+				}
+
+				consolidatedMap.set(key, consolidatedItem);
+			}
+		});
+
+		const sortedData = Array.from(consolidatedMap.values()).sort((a, b) => {
+			const yearCompare = (b.AssignmentYear || "").localeCompare(
+				a.AssignmentYear || ""
+			);
+			if (yearCompare !== 0) return yearCompare;
+			return (a.ProjectNo || "").localeCompare(b.ProjectNo || "");
+		});
+
+		const totals = sortedData.reduce(
+			(acc, item) => {
+				const labCost = item.CommittedLabourCost || item.LabourCost || 0;
+				const matCost =
+					item.CommittedMaterialCost || item.MaterialCost || 0;
+				const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
+				const total = labCost + matCost + otherCost;
+				const variance = (item.EstimatedCost || 0) - total;
+
+				return {
+					estimatedCost: acc.estimatedCost + (item.EstimatedCost || 0),
+					labCost: acc.labCost + labCost,
+					matCost: acc.matCost + matCost,
+					otherCost: acc.otherCost + otherCost,
+					total: acc.total + total,
+					variance: acc.variance + variance,
+				};
+			},
+			{
+				estimatedCost: 0,
+				labCost: 0,
+				matCost: 0,
+				otherCost: 0,
+				total: 0,
+				variance: 0,
+			}
+		);
+
+		const formatNum = (num: number) => num.toFixed(2);
+
+		const csvRows = [
+			[`Work In Progress Report`],
+			[
+				`Cost Centre : ${
+					selectedDepartment.DeptId
+				} / ${selectedDepartment.DeptName.toUpperCase()}`,
+			],
+			[],
+			[
+				"Year",
+				"Project No.",
+				"Category",
+				"Fund Id",
+				"Stand_Cost",
+				"Description",
+				"Dept_id",
+				"PIV_No",
+				"Project Assigned",
+				"LABOUR",
+				"MATERIAL",
+				"OTHER",
+				"TOTAL",
+			],
+			...sortedData.map((item) => {
+				const labCost = item.CommittedLabourCost || item.LabourCost || 0;
+				const matCost =
+					item.CommittedMaterialCost || item.MaterialCost || 0;
+				const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
+				const total = labCost + matCost + otherCost;
+
+				return [
+					item.AssignmentYear || "",
+					item.ProjectNo || "",
+					item.CategoryCode || "",
+					item.FundSource || "",
+					formatNum(item.EstimatedCost || 0),
+					`"${(item.Description || "").replace(/"/g, '""')}"`,
+					selectedDepartment.DeptId || "",
+					item.PivNo || "",
+					item.Status || "",
+					formatNum(labCost),
+					formatNum(matCost),
+					formatNum(otherCost),
+					formatNum(total),
+				];
+			}),
+			[],
+			[
+				"",
+				"",
+				"",
+				"",
+				formatNum(totals.estimatedCost),
+				"TOTAL",
+				"",
+				"",
+				"",
+				formatNum(totals.labCost),
+				formatNum(totals.matCost),
+				formatNum(totals.otherCost),
+				formatNum(totals.total),
+			],
+			[],
+			["SUMMARY"],
+			["Total Estimated Cost", formatNum(totals.estimatedCost)],
+			["Total Labour", formatNum(totals.labCost)],
+			["Total Material", formatNum(totals.matCost)],
+			["Total Other", formatNum(totals.otherCost)],
+			["Total Committed", formatNum(totals.total)],
+			["Variance", formatNum(totals.variance)],
+			["Total Records", sortedData.length.toString()],
+			[],
+			[`Generated: ${new Date().toLocaleString()}`],
+			[`CEB@${new Date().getFullYear()}`],
+		];
+
+		const csvContent = csvRows.map((r) => r.join(",")).join("\n");
+		const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = `Work_In_Progress_Report_Cost_Centre_${
+			selectedDepartment.DeptId
+		}_${selectedDepartment.DeptName.replace(/[^a-zA-Z0-9]/g, "_")}.csv`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+	};
+
+	const printPDF = () => {
+		if (!printRef.current || !selectedDepartment) return;
+
+		const printWindow = window.open("", "_blank");
+		if (!printWindow) return;
+
+		const consolidatedMap = new Map<string, WorkInProgressData>();
+
+		workInProgressData.forEach((item) => {
+			const key = `${item.ProjectNo?.trim()}-${item.CategoryCode?.trim()}`;
+
+			if (consolidatedMap.has(key)) {
+				const existing = consolidatedMap.get(key)!;
+				const resourceType = item.ResourceType?.trim().toUpperCase();
+				const committedCost = item.CommittedCost || 0;
+
+				if (resourceType === "LAB" || resourceType === "LABOUR") {
+					existing.CommittedLabourCost =
+						(existing.CommittedLabourCost || 0) + committedCost;
+				} else if (resourceType === "MAT" || resourceType === "MATERIAL") {
+					existing.CommittedMaterialCost =
+						(existing.CommittedMaterialCost || 0) + committedCost;
+				} else if (resourceType === "OTHER") {
+					existing.CommittedOtherCost =
+						(existing.CommittedOtherCost || 0) + committedCost;
+				}
+			} else {
+				const resourceType = item.ResourceType?.trim().toUpperCase();
+				const committedCost = item.CommittedCost || 0;
+
+				const consolidatedItem: WorkInProgressData = {
+					...item,
+					CommittedLabourCost: 0,
+					CommittedMaterialCost: 0,
+					CommittedOtherCost: 0,
+				};
+
+				if (resourceType === "LAB" || resourceType === "LABOUR") {
+					consolidatedItem.CommittedLabourCost = committedCost;
+				} else if (resourceType === "MAT" || resourceType === "MATERIAL") {
+					consolidatedItem.CommittedMaterialCost = committedCost;
+				} else if (resourceType === "OTHER") {
+					consolidatedItem.CommittedOtherCost = committedCost;
+				}
+
+				consolidatedMap.set(key, consolidatedItem);
+			}
+		});
+
+		const sortedData = Array.from(consolidatedMap.values()).sort((a, b) => {
+			const yearCompare = (b.AssignmentYear || "").localeCompare(
+				a.AssignmentYear || ""
+			);
+			if (yearCompare !== 0) return yearCompare;
+			return (a.ProjectNo || "").localeCompare(b.ProjectNo || "");
+		});
+
+		const pdfTotals = sortedData.reduce(
+			(acc, item) => {
+				const labCost = item.CommittedLabourCost || item.LabourCost || 0;
+				const matCost =
+					item.CommittedMaterialCost || item.MaterialCost || 0;
+				const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
+				const total = labCost + matCost + otherCost;
+				const variance = (item.EstimatedCost || 0) - total;
+
+				return {
+					estimatedCost: acc.estimatedCost + (item.EstimatedCost || 0),
+					labCost: acc.labCost + labCost,
+					matCost: acc.matCost + matCost,
+					otherCost: acc.otherCost + otherCost,
+					total: acc.total + total,
+					variance: acc.variance + variance,
+				};
+			},
+			{
+				estimatedCost: 0,
+				labCost: 0,
+				matCost: 0,
+				otherCost: 0,
+				total: 0,
+				variance: 0,
+			}
+		);
+
+		let tableRowsHTML = "";
+		sortedData.forEach((item) => {
+			const labCost = item.CommittedLabourCost || item.LabourCost || 0;
+			const matCost = item.CommittedMaterialCost || item.MaterialCost || 0;
+			const otherCost = item.CommittedOtherCost || item.OtherCost || 0;
+			const total = labCost + matCost + otherCost;
+			const variance = (item.EstimatedCost || 0) - total;
+
+			tableRowsHTML += `
         <tr>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px;">${item.AssignmentYear || ""}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; font-family: monospace;">${item.ProjectNo || ""}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px;">${item.CategoryCode || ""}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px;">${item.FundSource || ""}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: center;">${item.WipYear || "0"}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: center;">${item.WipMonth || "0"}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace;">${(item.EstimatedCost || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 8px; max-width: 150px; word-wrap: break-word;">${item.Description || ""}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: center;">${item.Status || ""}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace;">${labCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace;">${matCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace;">${otherCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace; font-weight: bold;">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace; color: ${variance < 0 ? '#dc2626' : variance > 0 ? '#16a34a' : '#6b7280'};">${variance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px;">${
+					item.AssignmentYear || ""
+				}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; font-family: monospace;">${
+					item.ProjectNo || ""
+				}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px;">${
+					item.CategoryCode || ""
+				}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px;">${
+					item.FundSource || ""
+				}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: center;">${
+					item.WipYear || "0"
+				}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: center;">${
+					item.WipMonth || "0"
+				}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace;">${(
+					item.EstimatedCost || 0
+				).toLocaleString("en-US", {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+				})}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 8px; max-width: 150px; word-wrap: break-word;">${
+					item.Description || ""
+				}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: center;">${
+					item.Status || ""
+				}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace;">${labCost.toLocaleString(
+					"en-US",
+					{minimumFractionDigits: 2, maximumFractionDigits: 2}
+				)}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace;">${matCost.toLocaleString(
+					"en-US",
+					{minimumFractionDigits: 2, maximumFractionDigits: 2}
+				)}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace;">${otherCost.toLocaleString(
+					"en-US",
+					{minimumFractionDigits: 2, maximumFractionDigits: 2}
+				)}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace; font-weight: bold;">${total.toLocaleString(
+					"en-US",
+					{minimumFractionDigits: 2, maximumFractionDigits: 2}
+				)}</td>
+          <td style="padding: 2px 4px; border: 1px solid #ddd; font-size: 9px; text-align: right; font-family: monospace; color: ${
+					variance < 0 ? "#dc2626" : variance > 0 ? "#16a34a" : "#6b7280"
+				};">${variance.toLocaleString("en-US", {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			})}</td>
         </tr>
       `;
-    });
+		});
 
-    const summaryHTML = `
+		const summaryHTML = `
       <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
         <h4 style="font-size: 11px; font-weight: bold; margin-bottom: 8px; color: #333;">SUMMARY</h4>
         <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
           <tr>
             <td style="padding: 2px 4px; font-weight: bold;">Estimated Cost:</td>
-            <td style="padding: 2px 4px; text-align: right; font-family: monospace;">${pdfTotals.estimatedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="padding: 2px 4px; text-align: right; font-family: monospace;">${pdfTotals.estimatedCost.toLocaleString(
+					"en-US",
+					{minimumFractionDigits: 2, maximumFractionDigits: 2}
+				)}</td>
             <td style="padding: 2px 4px; font-weight: bold;">Total Committed:</td>
-            <td style="padding: 2px 4px; text-align: right; font-family: monospace;">${pdfTotals.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="padding: 2px 4px; text-align: right; font-family: monospace;">${pdfTotals.total.toLocaleString(
+					"en-US",
+					{minimumFractionDigits: 2, maximumFractionDigits: 2}
+				)}</td>
           </tr>
           <tr>
             <td style="padding: 2px 4px; font-weight: bold;">Variance:</td>
-            <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: ${pdfTotals.variance < 0 ? '#dc2626' : pdfTotals.variance > 0 ? '#16a34a' : '#6b7280'};">${pdfTotals.variance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: ${
+					pdfTotals.variance < 0
+						? "#dc2626"
+						: pdfTotals.variance > 0
+						? "#16a34a"
+						: "#6b7280"
+				};">${pdfTotals.variance.toLocaleString("en-US", {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		})}</td>
             <td style="padding: 2px 4px; font-weight: bold;">Total Records:</td>
-            <td style="padding: 2px 4px; text-align: right; font-family: monospace;">${sortedData.length}</td>
+            <td style="padding: 2px 4px; text-align: right; font-family: monospace;">${
+					sortedData.length
+				}</td>
           </tr>
         </table>
         <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
@@ -496,18 +701,27 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
           <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
             <tr>
               <td style="padding: 2px 4px; font-weight: bold;">LAB:</td>
-              <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: #2563eb;">${pdfTotals.labCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: #2563eb;">${pdfTotals.labCost.toLocaleString(
+						"en-US",
+						{minimumFractionDigits: 2, maximumFractionDigits: 2}
+					)}</td>
               <td style="padding: 2px 4px; font-weight: bold;">MAT:</td>
-              <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: #ea580c;">${pdfTotals.matCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: #ea580c;">${pdfTotals.matCost.toLocaleString(
+						"en-US",
+						{minimumFractionDigits: 2, maximumFractionDigits: 2}
+					)}</td>
               <td style="padding: 2px 4px; font-weight: bold;">OTHER:</td>
-              <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: #9333ea;">${pdfTotals.otherCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td style="padding: 2px 4px; text-align: right; font-family: monospace; color: #9333ea;">${pdfTotals.otherCost.toLocaleString(
+						"en-US",
+						{minimumFractionDigits: 2, maximumFractionDigits: 2}
+					)}</td>
             </tr>
           </table>
         </div>
       </div>
     `;
 
-    printWindow.document.write(`
+		printWindow.document.write(`
       <html>
         <head>
           <title></title>
@@ -574,21 +788,22 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
         </body>
       </html>
     `);
-    
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 500);
-  };
 
-  const WorkInProgressModal = () => {
-    if (!showWorkInProgress || !selectedDepartment) return null;
-    
-    return (
-			<div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pr-4 pl-[1cm]">
-				<div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4 ml-[2cm]">
+		printWindow.document.close();
+		printWindow.focus();
+		setTimeout(() => {
+			printWindow.print();
+			printWindow.close();
+		}, 500);
+	};
+
+	const WorkInProgressModal = () => {
+		if (!showWorkInProgress || !selectedDepartment) return null;
+
+		return (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/90">
+			<div className="relative bg-white w-full max-w-[95vw] rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mt-20 lg:ml-64 mx-auto">
+				<div className="p-4 max-h-[85vh] overflow-y-auto">
 					{/* Header with 1cm top margin */}
 					<div className="p-5 border-b mt-[1cm]">
 						<div className="flex justify-between items-start">
@@ -620,13 +835,28 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
 							</div>
 						) : workInProgressData.length === 0 ? (
 							<div className="flex flex-col items-center justify-center py-12">
-								<button
-									onClick={onBack}
-									className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
-								>
-									<ChevronLeft className="w-4 h-4" /> Back to Age
-									Analysis
-								</button>
+								<div className="flex gap-2 mb-4">
+									<button
+										onClick={onBack}
+										className="flex items-center gap-2 px-4 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700"
+									>
+										<ChevronLeft className="w-4 h-4" /> Back to Age
+										Analysis
+									</button>
+									<button
+										onClick={() => {
+											if (onHome) onHome();
+											else {
+												setShowWorkInProgress(false);
+												setWorkInProgressData([]);
+												setSelectedDepartment(null);
+											}
+										}}
+										className={`px-4 py-1.5 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
+									>
+										Back To Home
+									</button>
+								</div>
 								<div className="text-gray-400 mb-4">
 									<svg
 										className="w-16 h-16 mx-auto"
@@ -833,7 +1063,7 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
 												</div>
 
 												<div className="overflow-x-auto">
-													<table className="w-full border-collapse">
+													<table className="w-full border-collapse ">
 														<thead>
 															<tr
 																className="text-gray-800"
@@ -1120,173 +1350,176 @@ const CostCenterWorkInprogress = ({ preSelectedDepartment, onBack }: CostCenterW
 						)}
 					</div>
 				</div>
+				</div>
 			</div>
 		);
-  };
+	};
 
-  if (preSelectedDepartment) {
-    return <WorkInProgressModal />;
-  }
+	if (preSelectedDepartment) {
+		return <WorkInProgressModal />;
+	}
 
-  return (
-		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
-			<div className="flex justify-between items-center mb-4">
-				<div>
-					<h2 className={`text-xl font-bold ${maroon}`}>
-						Cost Center Work In Progress
-					</h2>
+	return (
+		<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/90">
+			<div className="relative bg-white w-full max-w-[95vw] rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mt-20 lg:ml-224 mx-auto">
+				<div className="p-4 max-h-[85vh] overflow-y-auto">
+					<div>
+						<h2 className={`text-xl font-bold ${maroon}`}>
+							Cost Center Work In Progress
+						</h2>
+					</div>
 				</div>
-			</div>
 
-			<div className="flex flex-wrap gap-3 justify-end mb-4">
-				<div className="relative">
-					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-					<input
-						type="text"
-						value={searchId}
-						placeholder="Search by Dept ID"
-						onChange={(e) => setSearchId(e.target.value)}
-						className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-						autoComplete="off"
-					/>
+				<div className="flex flex-wrap gap-3 justify-end mb-4">
+					<div className="relative">
+						<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+						<input
+							type="text"
+							value={searchId}
+							placeholder="Search by Dept ID"
+							onChange={(e) => setSearchId(e.target.value)}
+							className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+							autoComplete="off"
+						/>
+					</div>
+					<div className="relative">
+						<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+						<input
+							type="text"
+							value={searchName}
+							placeholder="Search by Name"
+							onChange={(e) => setSearchName(e.target.value)}
+							className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
+							autoComplete="off"
+						/>
+					</div>
+					{(searchId || searchName) && (
+						<button
+							onClick={clearFilters}
+							className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm"
+						>
+							<RotateCcw className="w-3 h-3" /> Clear
+						</button>
+					)}
 				</div>
-				<div className="relative">
-					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-					<input
-						type="text"
-						value={searchName}
-						placeholder="Search by Name"
-						onChange={(e) => setSearchName(e.target.value)}
-						className="pl-8 pr-3 py-1.5 w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-sm"
-						autoComplete="off"
-					/>
-				</div>
-				{(searchId || searchName) && (
-					<button
-						onClick={clearFilters}
-						className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm"
-					>
-						<RotateCcw className="w-3 h-3" /> Clear
-					</button>
+
+				{loading && (
+					<div className="text-center py-8">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
+						<p className="mt-2 text-gray-600">Loading departments...</p>
+					</div>
 				)}
-			</div>
 
-			{loading && (
-				<div className="text-center py-8">
-					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7A0000] mx-auto"></div>
-					<p className="mt-2 text-gray-600">Loading departments...</p>
-				</div>
-			)}
+				{error && (
+					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+						Error: {error}
+					</div>
+				)}
 
-			{error && (
-				<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-					Error: {error}
-				</div>
-			)}
+				{!loading && !error && filtered.length === 0 && (
+					<div className="text-gray-600 bg-gray-100 p-4 rounded">
+						No departments found.
+					</div>
+				)}
 
-			{!loading && !error && filtered.length === 0 && (
-				<div className="text-gray-600 bg-gray-100 p-4 rounded">
-					No departments found.
-				</div>
-			)}
-
-			{!loading && !error && filtered.length > 0 && (
-				<>
-					<div className="overflow-x-auto rounded-lg border border-gray-200">
-						<div className="max-h-[50vh] overflow-y-auto">
-							<table className="w-full table-fixed text-left text-gray-700 text-sm">
-								<thead
-									className={`${maroonGrad} text-white sticky top-0`}
-								>
-									<tr>
-										<th className="px-4 py-2 w-1/4">
-											Cost Center Code
-										</th>
-										<th className="px-4 py-2 w-1/2">
-											Cost Center Name
-										</th>
-										<th className="px-4 py-2 w-1/4 text-center">
-											Action
-										</th>
-									</tr>
-								</thead>
-								<tbody>
-									{paginatedDepartments.map((department, i) => (
-										<tr
-											key={`${department.DeptId}-${i}`}
-											className={`${
-												i % 2 ? "bg-white" : "bg-gray-50"
-											} ${
-												selectedDepartment?.DeptId ===
-												department.DeptId
-													? "ring-2 ring-[#7A0000] ring-inset"
-													: ""
-											}`}
-										>
-											<td className="px-4 py-2 truncate font-mono">
-												{department.DeptId}
-											</td>
-											<td className="px-4 py-2 truncate">
-												{department.DeptName}
-											</td>
-											<td className="px-4 py-2 text-center">
-												<button
-													onClick={() =>
-														handleDepartmentSelect(department)
-													}
-													className={`px-3 py-1 ${
-														selectedDepartment?.DeptId ===
-														department.DeptId
-															? "bg-green-600 text-white"
-															: maroonGrad + " text-white"
-													} rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
-												>
-													<Eye className="inline-block mr-1 w-3 h-3" />
-													{selectedDepartment?.DeptId ===
-													department.DeptId
-														? "Viewing"
-														: "View"}
-												</button>
-											</td>
+				{!loading && !error && filtered.length > 0 && (
+					<>
+						<div className="overflow-x-auto rounded-lg border border-gray-200">
+							<div className="max-h-[50vh] overflow-y-auto">
+								<table className="w-full table-fixed text-left text-gray-700 text-sm">
+									<thead
+										className={`${maroonGrad} text-white sticky top-0`}
+									>
+										<tr>
+											<th className="px-4 py-2 w-1/4">
+												Cost Center Code
+											</th>
+											<th className="px-4 py-2 w-1/2">
+												Cost Center Name
+											</th>
+											<th className="px-4 py-2 w-1/4 text-center">
+												Action
+											</th>
 										</tr>
-									))}
-								</tbody>
-							</table>
+									</thead>
+									<tbody>
+										{paginatedDepartments.map((department, i) => (
+											<tr
+												key={`${department.DeptId}-${i}`}
+												className={`${
+													i % 2 ? "bg-white" : "bg-gray-50"
+												} ${
+													selectedDepartment?.DeptId ===
+													department.DeptId
+														? "ring-2 ring-[#7A0000] ring-inset"
+														: ""
+												}`}
+											>
+												<td className="px-4 py-2 truncate font-mono">
+													{department.DeptId}
+												</td>
+												<td className="px-4 py-2 truncate">
+													{department.DeptName}
+												</td>
+												<td className="px-4 py-2 text-center">
+													<button
+														onClick={() =>
+															handleDepartmentSelect(department)
+														}
+														className={`px-3 py-1 ${
+															selectedDepartment?.DeptId ===
+															department.DeptId
+																? "bg-green-600 text-white"
+																: maroonGrad + " text-white"
+														} rounded-md text-xs font-medium hover:brightness-110 transition shadow`}
+													>
+														<Eye className="inline-block mr-1 w-3 h-3" />
+														{selectedDepartment?.DeptId ===
+														department.DeptId
+															? "Viewing"
+															: "View"}
+													</button>
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
 						</div>
-					</div>
 
-					<div className="flex justify-end items-center gap-3 mt-3">
-						<button
-							onClick={() => setPage((p) => Math.max(1, p - 1))}
-							disabled={page === 1}
-							className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
-						>
-							Previous
-						</button>
-						<span className="text-xs text-gray-500">
-							Page {page} of {Math.ceil(filtered.length / pageSize)}
-						</span>
-						<button
-							onClick={() =>
-								setPage((p) =>
-									Math.min(
-										Math.ceil(filtered.length / pageSize),
-										p + 1
+						<div className="flex justify-end items-center gap-3 mt-3">
+							<button
+								onClick={() => setPage((p) => Math.max(1, p - 1))}
+								disabled={page === 1}
+								className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
+							>
+								Previous
+							</button>
+							<span className="text-xs text-gray-500">
+								Page {page} of {Math.ceil(filtered.length / pageSize)}
+							</span>
+							<button
+								onClick={() =>
+									setPage((p) =>
+										Math.min(
+											Math.ceil(filtered.length / pageSize),
+											p + 1
+										)
 									)
-								)
-							}
-							disabled={page >= Math.ceil(filtered.length / pageSize)}
-							className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
-						>
-							Next
-						</button>
-					</div>
-				</>
-			)}
+								}
+								disabled={page >= Math.ceil(filtered.length / pageSize)}
+								className="px-3 py-1 border rounded bg-white text-gray-600 text-xs hover:bg-gray-100 disabled:opacity-40"
+							>
+								Next
+							</button>
+						</div>
+					</>
+				)}
 
-			<WorkInProgressModal />
+				<WorkInProgressModal />
+			</div>
 		</div>
-  );
+	);
 };
 
 export default CostCenterWorkInprogress;
