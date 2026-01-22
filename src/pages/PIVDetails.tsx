@@ -12,7 +12,14 @@ import PivBySLT from "../mainTopics/PIV/PIVCollectionsBySLT";
 import PivByBanks from "../mainTopics/PIV/PivByBanks";
 import PIVDetailsReport from "../mainTopics/PIV/PIVDetailsReport";
 import ProvinceWisePIVStampDuty from "../mainTopics/PIV/ProvinceWisePIVStampDuty";
-
+import RegionalPIVStampDutyReport from "../mainTopics/PIV/RegionalPIVStampDutyReport";
+import PivChequeDepositReport from "../mainTopics/PIV/PivChequeDepositReport";
+import PivSearchReport from "../mainTopics/PIV/PivSearchReport";
+import TypewisePIV from "../mainTopics/PIV/TypewisePIV";
+import ConsolidatedOutputVAT from "../mainTopics/PIV/ConsolidatedOutputVAT";
+import StampDutyDetailedReport from "../mainTopics/PIV/StampDutyDetailedReport";
+import ProvincialConsolidatedOutputVAT from "../mainTopics/PIV/ProvincialConsolidatedOutputVAT";
+import RegionWiseVatReport from "../mainTopics/PIV/RegionWiseVatReport";
 
 type Subtopic = {
 	id: number;
@@ -62,6 +69,22 @@ const PIVDetails = () => {
 				return <PIVDetailsReport />;
 			case "9. Province wise PIV Stamp Duty":
 				return <ProvinceWisePIVStampDuty />;
+			case "10. Regional PIV Stamp Duty":
+				return <RegionalPIVStampDutyReport />;
+			case "11. PIV Details for Cheque Deposits":
+				return <PivChequeDepositReport />;
+			case "12. PIV Search":
+				return <PivSearchReport />;
+			case "13. PIV Type wise PIV Details":
+				return <TypewisePIV />;
+			case "14. Consolidated Output VAT Schedule":
+				return <ConsolidatedOutputVAT />;
+			case "15. PIV Stamp Duty Detail Report":
+				return <StampDutyDetailedReport />;
+			case "16. Province wise VAT Report":
+				return <ProvincialConsolidatedOutputVAT />;
+			case "17. Region wise VAT Report":
+				return <RegionWiseVatReport />;
 
 			default:
 				return (
