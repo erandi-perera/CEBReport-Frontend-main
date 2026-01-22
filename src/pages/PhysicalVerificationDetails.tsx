@@ -4,6 +4,8 @@ import SubtopicCard from "../components/shared/SubtopicCard";
 import PHVValidation from "../mainTopics/PhysicalVerification/PHVValidation";
 import PHVEntryForm from "../mainTopics/PhysicalVerification/PHVEntryForm";
 import PHVValidationWarehousewise from "../mainTopics/PhysicalVerification/PHVValidationWarehousewise";
+import AnnualVerificationSheet from "../mainTopics/PhysicalVerification/AnnualVerificationSheet";
+
 
 
 
@@ -34,14 +36,19 @@ const PhysicalVerificationDetails = () => {
 
     const renderSubtopicContent = (subtopicName: string) => {
         switch (subtopicName) {
-            case "PHV Entry Form":
+            case "1.PHV Entry Form":
                 return <PHVEntryForm />;
 
-            case "PHV Validation":
+            case "2.1 PHV Validation":
                 return <PHVValidation />;
 
-            case "PHV Validation Warehousewise":
+            case "2.2 PHV Validation (Warehousewise)":
                 return <PHVValidationWarehousewise/>;
+
+            
+            case "3.1 Annual Verification Sheet (Signature) - AV/1/A":
+                return <AnnualVerificationSheet/>;
+         
 
             default:
                 return (
