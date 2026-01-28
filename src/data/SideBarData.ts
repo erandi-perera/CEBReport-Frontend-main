@@ -327,31 +327,34 @@ export const data = [
 				id: 157,
 				name: "17. Region wise VAT Report",
 			},
+			{
+				id: 158,
+				name: "18. Province wise System Set-Off PIV Details",
+			},
+			{
+				id: 158,
+				name: "18.1 Province wise Manual Set-Off PIV Details",
+			},
+			{
+				id: 159,
+				name: "19. POS Paid PIV Tabulation Summary Report (AFMHQ)",
+			},
 		],
 		path: "/report/PIV",
 	},
-
 
 	{
 		id: 16,
 		name: "Physical Verification",
 		icon: TbReportAnalytics,
 		subtopics: [
-			{id: 130,
-			 name: "PHV Entry Form",
+			{id: 130, name: "PHV Entry Form"},
 
-			},	
-
-			{id: 131,
-			 name: "PHV Validation",
-
-			},
-			
+			{id: 131, name: "PHV Validation"},
 		],
 
 		path: "/report/PhysicalVerification",
 	},
 
 	// id = 17 is used above for Solar Information - Jobs
-
 ];

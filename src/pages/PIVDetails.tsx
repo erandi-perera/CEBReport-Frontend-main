@@ -20,6 +20,9 @@ import ConsolidatedOutputVAT from "../mainTopics/PIV/ConsolidatedOutputVAT";
 import StampDutyDetailedReport from "../mainTopics/PIV/StampDutyDetailedReport";
 import ProvincialConsolidatedOutputVAT from "../mainTopics/PIV/ProvincialConsolidatedOutputVAT";
 import RegionWiseVatReport from "../mainTopics/PIV/RegionWiseVatReport";
+import ProvinceSetOffReport from "../mainTopics/PIV/ProvinceSetOffReport";
+import ProvinceManualSetOffReport from "../mainTopics/PIV/ProvinceManualSetOffReport";
+import PosPaidPivTabulationSummaryAfmhq from "../mainTopics/PIV/PosPaidPivTabulationSummaryAfmhq";
 
 type Subtopic = {
 	id: number;
@@ -85,6 +88,12 @@ const PIVDetails = () => {
 				return <ProvincialConsolidatedOutputVAT />;
 			case "17. Region wise VAT Report":
 				return <RegionWiseVatReport />;
+			case "18. Province wise System Set-Off PIV Details":
+				return <ProvinceSetOffReport />;
+			case "18.1 Province wise Manual Set-Off PIV Details":
+				return <ProvinceManualSetOffReport />;
+			case "19. POS Paid PIV Tabulation Summary Report (AFMHQ)":
+				return <PosPaidPivTabulationSummaryAfmhq />;
 
 			default:
 				return (
