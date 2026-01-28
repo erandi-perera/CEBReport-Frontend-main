@@ -45,7 +45,7 @@ const escapeHtml = (text: string | null | undefined): string => {
   return div.innerHTML;
 };
 
-const AnnualVerificationSheet: React.FC = () => {
+const AnnualVerificationSheetSignature: React.FC = () => {
   const { user } = useUser();
   const epfNo = user?.Userno || "";
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -460,7 +460,7 @@ const AnnualVerificationSheet: React.FC = () => {
       <iframe ref={iframeRef} style={{ display: "none" }} />
 
       <h2 className={`text-xl font-bold mb-6 ${maroon}`}>
-        Annual Verification Sheet
+        Annual Verification Sheet Signature
       </h2>
 
       <div className="flex justify-end mb-4">
@@ -626,4 +626,4 @@ const AnnualVerificationSheet: React.FC = () => {
   );
 };
 
-export default AnnualVerificationSheet;
+export default AnnualVerificationSheetSignature;

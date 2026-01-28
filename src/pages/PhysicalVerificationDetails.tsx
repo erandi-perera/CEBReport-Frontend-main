@@ -4,8 +4,9 @@ import SubtopicCard from "../components/shared/SubtopicCard";
 import PHVValidation from "../mainTopics/PhysicalVerification/PHVValidation";
 import PHVEntryForm from "../mainTopics/PhysicalVerification/PHVEntryForm";
 import PHVValidationWarehousewise from "../mainTopics/PhysicalVerification/PHVValidationWarehousewise";
-import AnnualVerificationSheet from "../mainTopics/PhysicalVerification/AnnualVerificationSheet";
-
+import AnnualVerificationSheetSignature from "../mainTopics/PhysicalVerification/AnnualVerificationSheetSignature";
+import AnnualVerificationWHwiseSignature from "../mainTopics/PhysicalVerification/AnnualVerificationWHwiseSignature";
+import PHVSlowNonMovingWHwise from "../mainTopics/PhysicalVerification/PHVSlowNonMovingWHwise";
 
 
 
@@ -47,8 +48,15 @@ const PhysicalVerificationDetails = () => {
 
             
             case "3.1 Annual Verification Sheet (Signature) - AV/1/A":
-                return <AnnualVerificationSheet/>;
+                return <AnnualVerificationSheetSignature/>;
+
+            case "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A":
+                return <AnnualVerificationWHwiseSignature/>;
          
+            case "3.3 PHV Slow Moving Non Moving WHwise":
+                return <PHVSlowNonMovingWHwise/>;
+         
+
 
             default:
                 return (
