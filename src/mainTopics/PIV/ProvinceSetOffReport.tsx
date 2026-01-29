@@ -1,3 +1,4 @@
+//18. Province wise System Set-Off PIV Details
 // File: ProvinceSetOffReport.tsx
 
 import React, {useState, useRef, useCallback} from "react";
@@ -111,7 +112,7 @@ const ProvinceSetOffReport: React.FC = () => {
 			const apiFrom = fromDate.split("-").join("/");
 			const apiTo = toDate.split("-").join("/");
 
-			const url = `/misapi/api/province-setoff-report/report?fromDate=${apiFrom}&toDate=${apiTo}&compId=${company.compId.trim()}`;
+			const url = `/LedgerCard/api/province-setoff-report/report?fromDate=${apiFrom}&toDate=${apiTo}&compId=${company.compId.trim()}`;
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP error ${res.status}`);
 
@@ -269,9 +270,17 @@ const ProvinceSetOffReport: React.FC = () => {
   h3 { text-align: center; color: #7A0000; font-size: 14px; margin: 6px 0; }
   .subtitle { font-size: 11px; margin: 4px 0; }
   .bold { font-weight: bold; }
-  @page { size: A4 landscape; margin: 10mm; }
-  @page { @bottom-center { content: "Printed on: ${new Date().toLocaleString()}   Page " counter(page) " of " counter(pages); font-size: 9px; } }
-</style>
+  @page { margin: 10mm; 
+@bottom-left { 
+        content: "Printed on: ${new Date().toLocaleString()}"; 
+        font-size: 9px; 
+      }
+      @bottom-right { 
+        content: "Page " counter(page) " of " counter(pages); 
+        font-size: 9px; 
+	}
+}
+	</style>
 </head>
 <body>
 <h3>System generated PIV set-off</h3>

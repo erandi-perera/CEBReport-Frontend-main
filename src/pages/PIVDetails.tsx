@@ -23,6 +23,7 @@ import RegionWiseVatReport from "../mainTopics/PIV/RegionWiseVatReport";
 import ProvinceSetOffReport from "../mainTopics/PIV/ProvinceSetOffReport";
 import ProvinceManualSetOffReport from "../mainTopics/PIV/ProvinceManualSetOffReport";
 import PosPaidPivTabulationSummaryAfmhq from "../mainTopics/PIV/PosPaidPivTabulationSummaryAfmhq";
+import AccountCodesWisePivReport from "../mainTopics/PIV/AccountCodesWisePivReport";
 
 type Subtopic = {
 	id: number;
@@ -94,6 +95,8 @@ const PIVDetails = () => {
 				return <ProvinceManualSetOffReport />;
 			case "19. POS Paid PIV Tabulation Summary Report (AFMHQ)":
 				return <PosPaidPivTabulationSummaryAfmhq />;
+			case "20. PIV Details (Issued and Paid Cost Centers AFMHQ Only)":
+				return <AccountCodesWisePivReport />;
 
 			default:
 				return (

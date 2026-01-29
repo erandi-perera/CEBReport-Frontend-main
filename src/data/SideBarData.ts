@@ -332,12 +332,16 @@ export const data = [
 				name: "18. Province wise System Set-Off PIV Details",
 			},
 			{
-				id: 158,
+				id: 159,
 				name: "18.1 Province wise Manual Set-Off PIV Details",
 			},
 			{
-				id: 159,
+				id: 160,
 				name: "19. POS Paid PIV Tabulation Summary Report (AFMHQ)",
+			},
+			{
+				id: 161,
+				name: "20. PIV Details (Issued and Paid Cost Centers AFMHQ Only)",
 			},
 		],
 		path: "/report/PIV",

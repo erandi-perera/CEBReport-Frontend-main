@@ -1,3 +1,4 @@
+//18.1 Province wise Manual Set-Off PIV Details
 // File: ProvinceManualSetOffReport.tsx
 
 import React, {useState, useRef, useCallback} from "react";
@@ -81,9 +82,9 @@ const ProvinceManualSetOffReport: React.FC = () => {
 		"Set-Off PIV Date",
 		"Set-Off PIV Amount",
 		"Set-Off Account Code",
+		"Old PIV No",
 		"Set-off Code Amount",
-		"Manual Set-Off From (PIV No)",
-		"Paid Date",
+		"Old PIVPaid Date",
 	];
 
 	const handleViewReport = async (company: Company) => {
@@ -105,7 +106,7 @@ const ProvinceManualSetOffReport: React.FC = () => {
 			const apiFrom = fromDate.split("-").join("/");
 			const apiTo = toDate.split("-").join("/");
 
-			const url = `/misapi/api/province-manual-setoff-report/report?fromDate=${apiFrom}&toDate=${apiTo}&compId=${company.compId.trim()}`;
+			const url = `/LedgerCard/api/province-manual-setoff-report/report?fromDate=${apiFrom}&toDate=${apiTo}&compId=${company.compId.trim()}`;
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP error ${res.status}`);
 
@@ -158,8 +159,8 @@ const ProvinceManualSetOffReport: React.FC = () => {
 				forceText(formatDate(item.SPivDate)), // date
 				formatNumber(item.SPivAmount),
 				forceText(item.SAccountCode || ""), // account code
-				formatNumber(item.SAccountAmount),
 				forceText(item.OPivNo || ""), // setoff_from piv no
+				formatNumber(item.SAccountAmount),
 				forceText(formatDate(item.PaidDate)), // paid date
 			];
 			csvRows.push(row.map(csvEscape).join(","));
@@ -204,8 +205,8 @@ const ProvinceManualSetOffReport: React.FC = () => {
 			"110px", // Set-Off PIV Amount
 			"100px", // Set-Off Account Code
 			"110px", // Set-off Code Amount
-			"100px", // Manual Set-Off From (PIV No)
-			"95px", // Paid Date
+			"100px", // Old PIV No
+			"95px", //Old PIV Paid Date
 		];
 
 		const colGroupHTML = `<colgroup>${colWidths.map((w) => `<col style="width: ${w};" />`).join("")}</colgroup>`;
@@ -219,8 +220,8 @@ const ProvinceManualSetOffReport: React.FC = () => {
         <td>${formatDate(item.SPivDate)}</td>
         <td class="numeric">${formatNumber(item.SPivAmount)}</td>
         <td>${escapeHtml(item.SAccountCode || "-")}</td>
+		        <td>${escapeHtml(item.OPivNo || "-")}</td>
         <td class="numeric">${formatNumber(item.SAccountAmount)}</td>
-        <td>${escapeHtml(item.OPivNo || "-")}</td>
         <td>${formatDate(item.PaidDate)}</td>
       </tr>`;
 		});
@@ -234,9 +235,9 @@ const ProvinceManualSetOffReport: React.FC = () => {
           <th>Set-Off PIV Date</th>
           <th>Set-Off PIV Amount</th>
           <th>Set-Off Account Code</th>
+		            <th>Old PIV No</th>
           <th>Set-off Code Amount</th>
-          <th>Manual Set-Off From (PIV No)</th>
-          <th>Paid Date</th>
+          <th>Old PIV Paid Date</th>
         </tr>
       </thead>`;
 
@@ -250,15 +251,26 @@ const ProvinceManualSetOffReport: React.FC = () => {
   body { font-family: Arial, sans-serif; margin: 10mm; print-color-adjust: exact; }
   h3 { text-align: center; color: #7A0000; font-size: 14px; margin: 6px 0; }
   .subtitle { font-size: 11px; margin: 4px 0; }
+  .subtitle-left { font-size: 11px; margin: 4px 0; text-align: left; }
   .bold { font-weight: bold; }
-  @page { size: A4 landscape; margin: 10mm; }
-  @page { @bottom-center { content: "Printed on: ${new Date().toLocaleString()}   Page " counter(page) " of " counter(pages); font-size: 9px; } }
+  @page {  margin: 10mm; 
+  @bottom-left { 
+        content: "Printed on: ${new Date().toLocaleString()}"; 
+        font-size: 9px; 
+      }
+      @bottom-right { 
+        content: "Page " counter(page) " of " counter(pages); 
+        font-size: 9px; 
+      }
+		}
 </style>
 </head>
 <body>
 <h3>Manual generated PIV set-off</h3>
 <div class="subtitle"><span class="bold">Company Name / Branch :</span> ${escapeHtml(selectedCompany.compId)} / ${escapeHtml(selectedCompany.CompName)}</div>
 <div class="subtitle"><span class="bold">Period:</span> ${fromDate} To ${toDate}</div>
+<div class="subtitle-left"><span class="bold">Currency:</span>LKR</div>
+
 <table>${colGroupHTML}${headerHTML}<tbody>${bodyHTML}</tbody></table>
 </body>
 </html>`;
@@ -353,13 +365,12 @@ const ProvinceManualSetOffReport: React.FC = () => {
 										Set-Off PIV Amount
 									</th>
 									<th className="px-2 py-2">Set-Off Account Code</th>
+									<th className="px-2 py-2">Old PIV No</th>
 									<th className="px-2 py-2 text-right">
 										Set-off Code Amount
 									</th>
-									<th className="px-2 py-2">
-										Manual Set-Off From (PIV No)
-									</th>
-									<th className="px-2 py-2">Paid Date</th>
+
+									<th className="px-2 py-2">Old PIV Paid Date</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -388,12 +399,13 @@ const ProvinceManualSetOffReport: React.FC = () => {
 										<td className="px-2 py-2 border border-gray-200">
 											{item.SAccountCode || "-"}
 										</td>
-										<td className="px-2 py-2 text-right border border-gray-200">
-											{formatNumber(item.SAccountAmount)}
-										</td>
 										<td className="px-2 py-2 border border-gray-200">
 											{item.OPivNo || "-"}
 										</td>
+										<td className="px-2 py-2 text-right border border-gray-200">
+											{formatNumber(item.SAccountAmount)}
+										</td>
+
 										<td className="px-2 py-2 border border-gray-200">
 											{formatDate(item.PaidDate)}
 										</td>
