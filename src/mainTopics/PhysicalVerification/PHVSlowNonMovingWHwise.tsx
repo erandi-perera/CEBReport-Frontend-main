@@ -26,6 +26,7 @@ interface SlowNonMovingItem {
   QtyOnHand: number;
   StockBook: number;
   Reason: string;
+  PhvDate: String;
 }
 
 const formatNumber = (num: number | null | undefined): string => {
@@ -36,22 +37,6 @@ const formatNumber = (num: number | null | undefined): string => {
   });
 };
 
-const escapeHtml = (text: string | null | undefined): string => {
-  if (text == null) return "";
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-};
-
-const groupByDocumentNo = (items: SlowNonMovingItem[]) => {
-  const grouped: Record<string, SlowNonMovingItem[]> = {};
-  items.forEach(item => {
-    const key = (item.DocumentNo || "").trim();
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(item);
-  });
-  return grouped;
-};
 
 const PHVSlowNonMovingWHwise: React.FC = () => {
   const { user } = useUser();
@@ -80,8 +65,6 @@ const PHVSlowNonMovingWHwise: React.FC = () => {
   const slowMovingItems = reportData.filter(
     item => item.MovementType === "SLOW"
   );
-  const nonMovingDocs = groupByDocumentNo(nonMovingItems);
-  const slowMovingDocs = groupByDocumentNo(slowMovingItems);
 
   const maroon = "text-[#7A0000]";
   const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
@@ -241,10 +224,16 @@ const PHVSlowNonMovingWHwise: React.FC = () => {
       }
       const json = await res.json();
       const mappedData = (Array.isArray(json) ? json : []).map((item: any) => ({
-        ...item,
-        MovementType: item.Status === "1. Non-moving" ? "NON" :
-                      item.Status === "2. Slow-moving" ? "SLOW" : ""
-      }));
+  ...item,
+  MovementType:
+    item.Status === "1. Non-moving"
+      ? "NON"
+      : item.Status === "2. Slow-moving"
+      ? "SLOW"
+      : "",
+  PhvDate: item.PhvDate ?? ""   // ✅ MAP DATE FROM API
+}));
+
       setReportData(mappedData);
       mappedData.length === 0
         ? toast.warn("No records found")
@@ -286,7 +275,7 @@ const handleDownloadCSV = () => {
     if (!items.length) return;
 
     rows.push(`"${title}"`);
-    rows.push(`"Serial No","Code","Description","Grade Code","UOM","Unit Price","Qty","Stock Value","Remarks"`);
+    rows.push(`"Serial No","Code No","Description","Grade Code","UOM","Unit Price","Qty","Stock Value","Remarks"`);
 
     items.forEach((item, idx) => {
       rows.push([
@@ -316,7 +305,7 @@ const handleDownloadCSV = () => {
 
   // Grand total
   const grandTotal = reportData.reduce((s, x) => s + (x.StockBook || 0), 0);
-  rows.push(`"","", "", "", "", "", "GRAND TOTAL",${formatNumberCSV(grandTotal)},""`);
+  rows.push(`"","", "", "", "", "", GRAND TOTAL,${formatNumberCSV(grandTotal)},""`);
 
   // Generate CSV
   const blob = new Blob(["\uFEFF" + rows.join("\n")], { type: "text/csv" });
@@ -327,88 +316,120 @@ const handleDownloadCSV = () => {
 };
 
 
-  const printPDF = () => {
-    if (!iframeRef.current || !selectedDept || !selectedWarehouse || reportData.length === 0) {
-      toast.error("Please select Cost Center, Warehouse, Year/Month and click 'View' first");
-      return;
-    }
+// CORRECTED printPDF function with proper 4-section structure
 
-    const nonMovingItems = reportData.filter(i => i.MovementType === "NON");
-    const slowMovingItems = reportData.filter(i => i.MovementType === "SLOW");
+const printPDF = () => {
+  if (!iframeRef.current || !selectedDept || !selectedWarehouse || reportData.length === 0) {
+    toast.error("Please select Cost Center, Warehouse, Year/Month and click 'View' first");
+    return;
+  }
 
-    const MAX_ROWS_PER_PAGE = 18; // Fits header + table + signature/footer (adjust if needed)
+  const nonMovingItems = reportData.filter(i => i.MovementType === "NON");
+  const slowMovingItems = reportData.filter(i => i.MovementType === "SLOW");
 
-    const tableStyle = `
-      @page { size: A4 portrait; margin: 10mm; }
-      body { margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 9.5pt; line-height: 1.15; }
-      .page { page-break-after: always; min-height: 270mm; position: relative; display: flex; flex-direction: column; }
-      .header { text-align: center; margin-bottom: 6px; }
-      .header h2 { margin: 0; font-size: 11pt; font-weight: bold; }
-      .header h3 { margin: 2px 0; font-size: 9.5pt; }
-      .subtitles { font-size: 9pt; display: flex; justify-content: space-between; margin: 2px 0; }
-      .subtitles div { flex-basis: 50%; }
-      .subtitles .right { text-align: right; }
-      table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-top: 4px; table-layout: fixed; }
-      th, td { border: 1px solid black; padding: 2px 3px; }
-      th { background: #f0f0f0; font-weight: bold; text-align: center; }
-      .left { text-align: left; }
-      .center { text-align: center; }
-      .right { text-align: right; }
-      .subtotal { background: #f8f8f8; font-weight: bold; }
-      .grandtotal { background: #e8e8e8; font-weight: bold; font-size: 9.5pt; }
-      .note { font-size: 8.5pt; margin: 8px 0; padding: 6px; border: 1px solid black; }
-      .signature { margin-top: 20px; font-size: 9pt; page-break-inside: avoid; }
-      .signature .left { float: left; width: 48%; }
-      .signature .right { float: right; width: 48%; text-align: right; }
-      .signature p { margin: 1px 0; line-height: 1.1; }
-      .signature table { border: none; width: 100%; font-size: 9pt; }
-      .signature td { border: none; padding: 1px; }
-      .footer { position: absolute; bottom: 0; left: 0; right: 0; font-size: 8pt; display: flex; justify-content: space-between; }
-      .clear { clear: both; }
-    `;
+  const verificationDate =
+    reportData.length > 0 && reportData[0]?.PhvDate
+      ? new Date(String(reportData[0].PhvDate)).toLocaleDateString("en-GB")
+      : "";
 
-    const escape = (str: any) => String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  // --- PAGE LAYOUT CONSTANTS ---
+  const PAGE_HEIGHT = 277;
+  const HEADER_HEIGHT = 42;
+  const TABLE_HEADER_HEIGHT = 12;
+  const ROW_HEIGHT = 12; // ✅ INCREASED from 8 to 12mm to accommodate 2-3 line descriptions
+  const NOTE_HEIGHT = 20; // Height for note section
+  const GRAND_TOTAL_HEIGHT = 8; // Height for grand total row
+  const SIGNATURE_HEIGHT = 52;
+  const FOOTER_HEIGHT = 14;
 
-    const formatNum = (n: number | null | undefined) => 
-      (n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Calculate available space for table rows on regular pages
+  const AVAILABLE_FOR_ROWS_REGULAR =
+    PAGE_HEIGHT - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - SIGNATURE_HEIGHT - FOOTER_HEIGHT;
 
-    const renderHeader = () => `
-      <div class="header">
-        <h2>STATEMENT OF NON-MOVING, SLOW MOVING MATERIALS IN STOCKS - ${selectedYear}</h2>
-        <h3>COST CENTRE : ${selectedDept.DeptId} WHARE HOUSE - ${selectedWarehouse}</h3>
-      </div>
-      <div class="subtitles">
-        <div>1.ORIGINAL  :  Deputy General Manager</div>
-        <div class="right">Form - AV/6</div>
-      </div>
-      <div class="subtitles">
-        <div>2.DUPLICATE :  Engineer-in-charge</div>
-        <div class="right">Date of Verification : 03/11/2025</div>
-      </div>
-      <div class="subtitles">
-        <div>3.TRIPLCATE :   Store-kepper/E.S.(C.S.C)</div>
-        <div class="right"></div>
-      </div>
-    `;
+  // Calculate available space for table rows on the last page (includes note + grand total)
+  const AVAILABLE_FOR_ROWS_LAST =
+    PAGE_HEIGHT - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - NOTE_HEIGHT - GRAND_TOTAL_HEIGHT - SIGNATURE_HEIGHT - FOOTER_HEIGHT;
 
-    const renderTableHeader = () => `
-      <thead>
-        <tr>
-          <th style="width:5%">Serial</th>
-          <th style="width:9%">Code No</th>
-          <th style="width:28%">Description</th>
-          <th style="width:7%">Grade Code</th>
-          <th style="width:5%">UOM</th>
-          <th style="width:9%">Quantity<br>(Stock Book)</th>
-          <th style="width:9%">Unit Price</th>
-          <th style="width:10%">Cost (Rs.)<br>(Stock Book)</th>
-          <th style="width:9%">Reasons</th>
-          <th style="width:9%">Recommended action<br>to be taken</th>
-        </tr>
-      </thead>
-    `;
+  const MAX_ROWS_PER_PAGE_REGULAR = Math.floor(AVAILABLE_FOR_ROWS_REGULAR / ROW_HEIGHT);
+  const MAX_ROWS_PER_PAGE_LAST = Math.floor(AVAILABLE_FOR_ROWS_LAST / ROW_HEIGHT) - 1; // -1 for subtotal
 
-    const renderRows = (items: SlowNonMovingItem[], start: number) => items.map((it, i) => `
+  const tableStyle = `
+    @page { size: A4 portrait; margin: 10mm; }
+    body { margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 9.5pt; line-height: 1.15; }
+    .page { page-break-after: always; height: 277mm; position: relative; display: flex; flex-direction: column; }
+    .header { text-align: center; margin-bottom: 6px; }
+    .header h2 { margin: 0; font-size: 11pt; font-weight: bold; color: #7A0000; }
+    .header h3 { margin: 2px 0; font-size: 9.5pt; }
+    .subtitles { font-size: 9pt; display: flex; justify-content: space-between; margin: 2px 0; }
+    .subtitles div { flex-basis: 50%; }
+    .subtitles .right { text-align: right; }
+    table { width: 100%; border-collapse: collapse; font-size: 7.5pt; margin-top: 4px; table-layout: fixed; }
+    th, td { border: 1px solid black; padding: 2px 3px; }
+    th { background: #f0f0f0; font-weight: bold; text-align: center; font-size: 8pt; }
+    .left { text-align: left; word-wrap: break-word; }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .subtotal { background: #f8f8f8; font-weight: bold; text-align: center; }
+    .grandtotal { background: #e8e8e8; font-weight: bold; font-size: 9.5pt; text-align: center; }
+    .note { font-size: 8.5pt; margin: 8px 0; padding: 6px; border: 1px solid black; }
+    .signature { margin-top: auto; margin-bottom: 16px; font-size: 9pt; page-break-inside: avoid; }
+    .signature .left { float: left; width: 48%; }
+    .signature .right { float: right; width: 48%; text-align: right; }
+    .signature p { margin: 1px 0; line-height: 1.1; }
+    .signature table { border: none; width: 100%; font-size: 9pt; }
+    .signature td { border: none; padding: 1px; }
+    .footer { position: absolute; bottom: 0; left: 0; right: 0; font-size: 8px; font-weight: normal; color: #000000; display: flex; justify-content: space-between; align-items: center; padding: 4px 10mm; background: white; }
+    
+    /* Allow descriptions to wrap to multiple lines */
+    tbody tr { height: 12mm; }
+    tbody td { vertical-align: middle; line-height: 1.3; }
+    tbody td.left { white-space: normal; word-break: break-word; max-height: 12mm; overflow: hidden; }
+  `;
+
+  const escape = (str: any) => 
+    String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const formatNum = (n: number | null | undefined) => 
+    (n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const renderHeader = () => `
+    <div class="header">
+      <h2>STATEMENT OF NON-MOVING, SLOW MOVING MATERIALS IN STOCKS - ${selectedYear}</h2>
+      <h3>COST CENTRE : ${selectedDept.DeptId} WHARE HOUSE - ${selectedWarehouse}</h3>
+    </div>
+    <div class="subtitles">
+      <div>1.ORIGINAL  :  Deputy General Manager</div>
+      <div class="right">Form - AV/6</div>
+    </div>
+    <div class="subtitles">
+      <div>2.DUPLICATE :  Engineer-in-charge</div>
+      <div class="right">Date of Verification : ${verificationDate}</div>
+    </div>
+    <div class="subtitles">
+      <div>3.TRIPLCATE :   Store-kepper/E.S.(C.S.C)</div>
+      <div class="right"></div>
+    </div>
+  `;
+
+  const renderTableHeader = () => `
+    <thead>
+      <tr>
+        <th style="width:5%">Serial No</th>
+        <th style="width:9%">Code No</th>
+        <th style="width:28%">Description</th>
+        <th style="width:7%">Grade Code</th>
+        <th style="width:5%">UOM</th>
+        <th style="width:9%">Quantity<br>(Stock Book)</th>
+        <th style="width:9%">Unit Price</th>
+        <th style="width:10%">Cost (Rs.)<br>(Stock Book)</th>
+        <th style="width:7%">Reasons</th>
+        <th style="width:11%">Recommended action<br>to be taken</th>
+      </tr>
+    </thead>
+  `;
+
+  const renderRows = (items: SlowNonMovingItem[], start: number) => 
+    items.map((it, i) => `
       <tr>
         <td class="center">${start + i}</td>
         <td class="center">${escape(it.MaterialCode)}</td>
@@ -423,7 +444,25 @@ const handleDownloadCSV = () => {
       </tr>
     `).join("");
 
-    const renderSignature = () => `
+  const renderSignature = (includeNoteAndGrandTotal: boolean = false) => {
+    const grandTotal = reportData.reduce((s, x) => s + (x.StockBook || 0), 0);
+    
+    return `
+      ${includeNoteAndGrandTotal ? `
+        <div class="note">
+          Note: The Sub Total Value of the report is shown as total stock value of the materials which exists S/N as first letter in remarks column. It is not equal to actual total value of Slow Moving or Non moving Stock. This report is helpd to prepare STATEMENT OF NON-MOVING and SLOW MOVING STOCKS.<br>
+          Note added: 2020/02/17
+        </div>
+        <table style="margin-top: 8px;">
+          <tbody>
+            <tr class="grandtotal">
+              <td colspan="7" class="right">Grand Total</td>
+              <td class="right">${formatNum(grandTotal)}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tbody>
+        </table>
+      ` : ''}
       <div class="signature">
         <div class="left">
           <p>We do hereby certify that Stocks were physically verified as per that given statement.</p>
@@ -435,115 +474,136 @@ const handleDownloadCSV = () => {
           </table>
         </div>
         <div class="right">
-          <p>Agreed and certified correct.</p>
-          <p>......................................</p>
+          <p>Agreed and certified correct.</p><br>
+          <p>......................................</p><br>
           <p>Store-keeper/Elect. Superintendent (C.S.C.)</p>
         </div>
-        <div class="clear"></div>
+        <div style="clear: both;"></div>
       </div>
     `;
+  };
 
-    const renderFooter = (page: number, totalPages: number) => {
-      const now = new Date();
-      const dateStr = now.toLocaleDateString("en-GB");
-      const timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true }).replace(":", ".") + " PM";
-      const timestamp = `${dateStr} ${timeStr}`;
-      return `
-        <div class="footer">
-          <div>Date & time of the Report Generated : ${timestamp}</div>
-          <div>Page ${page} of ${totalPages}</div>
-        </div>
-      `;
-    };
+  const renderFooter = (page: number, totalPages: number) => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-GB");
+    const timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }).replace(":", ".");
+    const timestamp = `${dateStr} ${timeStr}`;
+    return `
+      <div class="footer">
+        <div>Date & time of the Report Generated : ${timestamp}</div>
+        <div>Page ${page} of ${totalPages}</div>
+      </div>
+    `;
+  };
 
-    let html = `<html><head><style>${tableStyle}</style></head><body>`;
-    let pageNum = 0;
-    let totalPages = 0; // Calculate later
-    let serial = 1;
+  // Helper to split items into pages
+  const paginateItems = (items: SlowNonMovingItem[], isLastSection: boolean) => {
+    if (items.length === 0) return [];
+    
+    const pages: SlowNonMovingItem[][] = [];
+    let remaining = [...items];
 
-    // Helper for sections (non/slow moving)
-    const renderSection = (title: string, items: SlowNonMovingItem[]) => {
-      if (items.length === 0) return;
-      const pages = [];
-      for (let i = 0; i < items.length; i += MAX_ROWS_PER_PAGE) {
-        pages.push(items.slice(i, i + MAX_ROWS_PER_PAGE));
-      }
-      const subtotal = items.reduce((s, x) => s + (x.StockBook || 0), 0);
-      pages.forEach((chunk, idx) => {
-        pageNum++;
-        const isLast = idx === pages.length - 1;
-        html += `
-          <div class="page">
-            ${renderHeader()}
-            <div style="font-weight:bold; margin:6px 0 2px;">${title}</div>
-            <table>
-              ${renderTableHeader()}
-              <tbody>
-                ${renderRows(chunk, serial)}
-                ${isLast ? `
-                  <tr class="subtotal">
-                    <td colspan="7" class="right">Sub Total of ${title.replace('1. ', '').replace('2. ', '')}</td>
-                    <td class="right">${formatNum(subtotal)}</td>
-                    <td colspan="2"></td>
-                  </tr>
-                ` : ''}
-              </tbody>
-            </table>
-            ${isLast ? renderSignature() : ''}
-            ${renderFooter(pageNum, 0)} <!-- Total pages updated later -->
-          </div>
-        `;
-        serial += chunk.length;
-      });
-    };
-
-    // Render sections
-    renderSection("1. Non Moving", nonMovingItems);
-    serial = 1; // Reset for slow moving
-    renderSection("2. Slow Moving", slowMovingItems);
-
-    // Final page (note + grand total)
-    if (reportData.length > 0) {
-      pageNum++;
-      const grand = reportData.reduce((s, x) => s + (x.StockBook || 0), 0);
-      totalPages = pageNum;
-      html += `
-        <div class="page">
-          ${renderHeader()}
-          <div class="note">
-            Note :The Sub Total Value of the report is shown as total stock value of the materials which exists S/N as first letter in remarks column. It is not equal to actual total value of Slow Moving or Non moving Stock.This report is helpd to prepare STATEMENT OF NON-MOVING and SLOW MOVING STOCKS.<br>
-            Note added : 2020/02/17
-          </div>
-          <table>
-            ${renderTableHeader()}
-            <tbody>
-              <tr class="grandtotal">
-                <td colspan="7" class="right">Grand Total</td>
-                <td class="right">${formatNum(grand)}</td>
-                <td colspan="2"></td>
-              </tr>
-            </tbody>
-          </table>
-          ${renderSignature()}
-          ${renderFooter(pageNum, totalPages)}
-        </div>
-      `;
-    } else {
-      totalPages = pageNum;
+    while (remaining.length > 0) {
+      const isLastPage = remaining.length <= (isLastSection && pages.length === 0 ? MAX_ROWS_PER_PAGE_LAST : MAX_ROWS_PER_PAGE_REGULAR);
+      const maxRows = isLastPage && isLastSection ? MAX_ROWS_PER_PAGE_LAST : MAX_ROWS_PER_PAGE_REGULAR;
+      
+      pages.push(remaining.slice(0, maxRows));
+      remaining = remaining.slice(maxRows);
     }
 
-    // Update all footers with total pages
-    html = html.replace(/Page \d+ of 0/g, `Page $& of ${totalPages}`);
-
-    html += `</body></html>`;
-
-    const doc = iframeRef.current.contentDocument!;
-    doc.open();
-    doc.write(html);
-    doc.close();
-
-    setTimeout(() => iframeRef.current?.contentWindow?.print(), 600);
+    return pages;
   };
+
+  // Determine which section comes last
+  const hasNonMoving = nonMovingItems.length > 0;
+  const hasSlowMoving = slowMovingItems.length > 0;
+  
+  let allPages: Array<{
+    title: string;
+    items: SlowNonMovingItem[];
+    subtotal: number;
+    isLastPage: boolean;
+    serialStart: number;
+  }> = [];
+
+  let serialCounter = 1;
+
+  // Process Non-Moving section
+  if (hasNonMoving) {
+    const nonMovingPages = paginateItems(nonMovingItems, !hasSlowMoving);
+    const nonMovingSubtotal = nonMovingItems.reduce((s, x) => s + (x.StockBook || 0), 0);
+    
+    nonMovingPages.forEach((pageItems, idx) => {
+      allPages.push({
+        title: "1. Non Moving",
+        items: pageItems,
+        subtotal: idx === nonMovingPages.length - 1 ? nonMovingSubtotal : 0,
+        isLastPage: !hasSlowMoving && idx === nonMovingPages.length - 1,
+        serialStart: serialCounter
+      });
+      serialCounter += pageItems.length;
+    });
+  }
+
+  // Process Slow-Moving section
+  if (hasSlowMoving) {
+    serialCounter = 1; // Reset serial for slow-moving
+    const slowMovingPages = paginateItems(slowMovingItems, true);
+    const slowMovingSubtotal = slowMovingItems.reduce((s, x) => s + (x.StockBook || 0), 0);
+    
+    slowMovingPages.forEach((pageItems, idx) => {
+      allPages.push({
+        title: "2. Slow Moving",
+        items: pageItems,
+        subtotal: idx === slowMovingPages.length - 1 ? slowMovingSubtotal : 0,
+        isLastPage: idx === slowMovingPages.length - 1,
+        serialStart: serialCounter
+      });
+      serialCounter += pageItems.length;
+    });
+  }
+
+  const totalPages = allPages.length;
+
+  // Generate HTML
+  let html = `<html><head><style>${tableStyle}</style></head><body>`;
+
+  allPages.forEach((pageData, pageIdx) => {
+    const pageNum = pageIdx + 1;
+    const showSubtotal = pageData.subtotal > 0;
+    
+    html += `
+      <div class="page">
+        ${renderHeader()}
+        <div style="font-weight:bold; margin:6px 0 2px;">${pageData.title}</div>
+        <table>
+          ${renderTableHeader()}
+          <tbody>
+            ${renderRows(pageData.items, pageData.serialStart)}
+            ${showSubtotal ? `
+              <tr class="subtotal">
+                <td colspan="7" class="right">Sub Total of ${pageData.title.replace('1. ', '').replace('2. ', '')}</td>
+                <td class="right">${formatNum(pageData.subtotal)}</td>
+                <td colspan="2"></td>
+              </tr>
+            ` : ''}
+          </tbody>
+        </table>
+        ${renderSignature(pageData.isLastPage)}
+        ${renderFooter(pageNum, totalPages)}
+      </div>
+    `;
+  });
+
+  html += `</body></html>`;
+
+  const doc = iframeRef.current.contentDocument!;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  setTimeout(() => iframeRef.current?.contentWindow?.print(), 600);
+};
 
   return (
     <div className="max-w-[95%] mx-auto p-2 md:p-4 bg-white rounded-xl shadow border border-gray-200 text-sm md:text-base font-sans">

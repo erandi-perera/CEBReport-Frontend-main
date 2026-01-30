@@ -506,7 +506,7 @@ const AnnualVerificationSheetSignature: React.FC = () => {
 
       {showReport && selectedDept && (
         <ReportViewer
-          title={`ANNUAL VERIFICATION OF STORES - ${selectedYear} (Verification Sheet)`}
+          title={`ANNUAL VERIFICATION SHEET SIGNATURE - ${selectedYear} `}
           subtitlebold2="Cost Center :"
           subtitlenormal2={`${selectedDept.DeptId} - ${selectedDept.DeptName}`}
           loading={reportLoading}

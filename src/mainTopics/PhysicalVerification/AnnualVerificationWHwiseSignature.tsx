@@ -371,7 +371,6 @@ const AnnualVerificationWHwiseSignature: React.FC = () => {
     link.click();
     URL.revokeObjectURL(url);
   };
-  
 const printPDF = () => {
   if (reportData.length === 0 || !iframeRef.current || !selectedDept) return;
 
@@ -828,7 +827,7 @@ const printPDF = () => {
       )}
       {showReport && selectedDept && (
         <ReportViewer
-          title={`ANNUAL VERIFICATION OF STORES - ${selectedYear} (Verification Sheet)`}
+          title={`ANNUAL VERIFICATION WAREHOUSEWISE SIGNATURE - ${selectedYear} `}
           subtitlebold2="Cost Center :"
           subtitlenormal2={`${selectedDept.DeptId} - ${selectedDept.DeptName}`}
           loading={reportLoading}

@@ -330,7 +330,7 @@ export const data = [
 			},
 
 			{id: 135,
-			 name: "3.3 PHV Slow Moving Non Moving WHwise",
+			 name: "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
 
 			},
 

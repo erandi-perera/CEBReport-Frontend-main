@@ -53,7 +53,7 @@ const PhysicalVerificationDetails = () => {
             case "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A":
                 return <AnnualVerificationWHwiseSignature/>;
          
-            case "3.3 PHV Slow Moving Non Moving WHwise":
+            case "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6":
                 return <PHVSlowNonMovingWHwise/>;
          
 
