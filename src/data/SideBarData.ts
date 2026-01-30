@@ -338,14 +338,22 @@ export const data = [
 		icon: TbReportAnalytics,
 		subtopics: [
 			{id: 130,
-			 name: "PHV Entry Form",
+			 name: "1.PHV Entry Form",
 
 			},	
 
 			{id: 131,
-			 name: "PHV Validation",
+			 name: "2.1 PHV Validation",
 
 			},
+
+			{id: 132,
+			 name: "PHV Validation Warehousewise",
+
+			},
+
+
+			
 			
 		],
 

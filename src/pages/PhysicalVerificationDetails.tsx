@@ -3,6 +3,10 @@ import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import PHVValidation from "../mainTopics/PhysicalVerification/PHVValidation";
 import PHVEntryForm from "../mainTopics/PhysicalVerification/PHVEntryForm";
+import PHVValidationWarehousewise from "../mainTopics/PhysicalVerification/PHVValidationWarehousewise";
+import AnnualVerificationSheetSignature from "../mainTopics/PhysicalVerification/AnnualVerificationSheetSignature";
+import AnnualVerificationWHwiseSignature from "../mainTopics/PhysicalVerification/AnnualVerificationWHwiseSignature";
+import PHVSlowNonMovingWHwise from "../mainTopics/PhysicalVerification/PHVSlowNonMovingWHwise";
 
 
 
@@ -33,11 +37,25 @@ const PhysicalVerificationDetails = () => {
 
     const renderSubtopicContent = (subtopicName: string) => {
         switch (subtopicName) {
-            case "PHV Entry Form":
+            case "1.PHV Entry Form":
                 return <PHVEntryForm />;
 
-            case "PHV Validation":
+            case "2.1 PHV Validation":
                 return <PHVValidation />;
+
+            case "2.2 PHV Validation (Warehousewise)":
+                return <PHVValidationWarehousewise/>;
+
+            
+            case "3.1 Annual Verification Sheet (Signature) - AV/1/A":
+                return <AnnualVerificationSheetSignature/>;
+
+            case "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A":
+                return <AnnualVerificationWHwiseSignature/>;
+         
+            case "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6":
+                return <PHVSlowNonMovingWHwise/>;
+         
 
 
             default:
