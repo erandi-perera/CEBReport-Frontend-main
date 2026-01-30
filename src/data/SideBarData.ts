@@ -155,7 +155,8 @@ export const data = [
 		subtopics: [
 			{id: 59, name: "Material Details"},
 			{id: 101, name: "Cost Center wise Quantity on Hand"},
-			{id: 100, name: "Average Consumptions"},
+			{id: 100, name: "Average Consumptions - All Material Codes"},
+			{id: 102, name: "Average Consumptions - Selected Maerial Codes"},
 		],
 		path: "/report/inventory",
 	},
@@ -294,6 +295,38 @@ export const data = [
 				id: 129,
 				name: "9. Province wise PIV Stamp Duty",
 			},
+			{
+				id: 150,
+				name: "10. Regional PIV Stamp Duty",
+			},
+			{
+				id: 151,
+				name: "11. PIV Details for Cheque Deposits",
+			},
+			{
+				id: 152,
+				name: "12. PIV Search",
+			},
+			{
+				id: 153,
+				name: "13. PIV Type wise PIV Details",
+			},
+			{
+				id: 154,
+				name: "14. Consolidated Output VAT Schedule",
+			},
+			{
+				id: 155,
+				name: "15. PIV Stamp Duty Detail Report",
+			},
+			{
+				id: 156,
+				name: "16. Province wise VAT Report",
+			},
+			{
+				id: 157,
+				name: "17. Region wise VAT Report",
+			},
 		],
 		path: "/report/PIV",
 	},
@@ -315,22 +348,7 @@ export const data = [
 			},
 
 			{id: 132,
-			 name: "2.2 PHV Validation (Warehousewise)",
-
-			},
-
-			{id: 133,
-			 name: "3.1 Annual Verification Sheet (Signature) - AV/1/A",
-
-			},
-
-			{id: 134,
-			 name: "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A",
-
-			},
-
-			{id: 135,
-			 name: "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
+			 name: "PHV Validation Warehousewise",
 
 			},
 

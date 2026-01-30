@@ -1,381 +1,497 @@
-
-import { useEffect, useState, useRef } from "react";
-import { Search, RotateCcw, Eye, Download, Printer, ArrowRight } from "lucide-react";
-import { useUser } from "../../contexts/UserContext";
+import {useEffect, useState, useRef} from "react";
+import {
+	Search,
+	RotateCcw,
+	Eye,
+	Download,
+	Printer,
+	ArrowRight,
+} from "lucide-react";
+import {useUser} from "../../contexts/UserContext";
 import CostCenterWorkInprogress from "./CostCenterWorkInprogress";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import {
+	BarChart,
+	Bar,
+	XAxis,
+	YAxis,
+	CartesianGrid,
+	Tooltip,
+	Legend,
+	ResponsiveContainer,
+} from "recharts";
 
 interface Department {
-  DeptId: string;
-  DeptName: string;
+	DeptId: string;
+	DeptName: string;
 }
 
 interface ProjectCommitmentSummary {
-  Period: string;
-  Sum: number;
-  CctName: string;
+	Period: string;
+	Sum: number;
+	CctName: string;
 }
 
 interface ProjectAgeAnalysis {
-  Period: string;
-  NoOfProjects: number;
-  CctName: string;
+	Period: string;
+	NoOfProjects: number;
+	CctName: string;
 }
 
 interface ConsolidatedAgeAnalysis {
-  Period: string;
-  CctName: string;
-  NoOfProjects: number;
-  Amount: number;
+	Period: string;
+	CctName: string;
+	NoOfProjects: number;
+	Amount: number;
 }
 
 const AgeAnalysisCostCenter = () => {
-  // Get user from context
-  const { user } = useUser();
-  
-  // Main state
-  const [data, setData] = useState<Department[]>([]);
-  const [searchId, setSearchId] = useState("");
-  const [searchName, setSearchName] = useState("");
-  const [filtered, setFiltered] = useState<Department[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const pageSize = 9;
+	// Get user from context
+	const {user} = useUser();
 
-  // Age Analysis Modal State
-  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
-  const [showAgeAnalysis, setShowAgeAnalysis] = useState(false);
-  const [ageAnalysisData, setAgeAnalysisData] = useState<ConsolidatedAgeAnalysis[]>([]);
-  const [ageAnalysisLoading, setAgeAnalysisLoading] = useState(false);
-  const [ageAnalysisError, setAgeAnalysisError] = useState<string | null>(null);
+	// Main state
+	const [data, setData] = useState<Department[]>([]);
+	const [searchId, setSearchId] = useState("");
+	const [searchName, setSearchName] = useState("");
+	const [filtered, setFiltered] = useState<Department[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [page, setPage] = useState(1);
+	const pageSize = 9;
 
-  // Navigation State
-  const [showWorkInProgress, setShowWorkInProgress] = useState(false);
+	// Age Analysis Modal State
+	const [selectedDepartment, setSelectedDepartment] =
+		useState<Department | null>(null);
+	const [showAgeAnalysis, setShowAgeAnalysis] = useState(false);
+	const [ageAnalysisData, setAgeAnalysisData] = useState<
+		ConsolidatedAgeAnalysis[]
+	>([]);
+	const [ageAnalysisLoading, setAgeAnalysisLoading] = useState(false);
+	const [ageAnalysisError, setAgeAnalysisError] = useState<string | null>(
+		null
+	);
 
-  // Ref for print functionality
-  const printRef = useRef<HTMLDivElement>(null);
+	// Navigation State
+	const [showWorkInProgress, setShowWorkInProgress] = useState(false);
 
-  // Get EPF Number from user context (Userno field)
-  const epfNo = user?.Userno || "";
-  
-  // Debug log to see what EPF number is being used
-  useEffect(() => {
-    console.log('Current user:', user);
-    console.log('EPF Number being used:', epfNo);
-  }, [user, epfNo]);
+	// Ref for print functionality
+	const printRef = useRef<HTMLDivElement>(null);
 
-  // Colors
-  const maroon = "text-[#7A0000]";
-  const maroonBg = "bg-[#7A0000]";
-  const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
+	// Get EPF Number from user context (Userno field)
+	const epfNo = user?.Userno || "";
 
-  // Paginated departments
-  const paginatedDepartments = filtered.slice((page - 1) * pageSize, page * pageSize);
+	// Debug log to see what EPF number is being used
+	useEffect(() => {
+		console.log("Current user:", user);
+		console.log("EPF Number being used:", epfNo);
+	}, [user, epfNo]);
 
-  // Fetch departments - Same API as CostCenterWorkInprogress
-  useEffect(() => {
-    const fetchData = async () => {
-      // Don't fetch if no EPF number
-      if (!epfNo) {
-        setError("No EPF number available. Please login again.");
-        setLoading(false);
-        return;
-      }
+	// Colors
+	const maroon = "text-[#7A0000]";
+	const maroonBg = "bg-[#7A0000]";
+	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
-      setLoading(true);
-      try {
-        const res = await fetch(`/misapi/api/incomeexpenditure/departments/${epfNo}`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        
-        const contentType = res.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await res.text();
-          throw new Error(`Expected JSON but got ${contentType}. Response: ${text.substring(0, 100)}`);
-        }
-        
-        const parsed = await res.json();
-        
-        let rawData = [];
-        if (Array.isArray(parsed)) {
-          rawData = parsed;
-        } else if (parsed.data && Array.isArray(parsed.data)) {
-          rawData = parsed.data;
-        } else if (parsed.result && Array.isArray(parsed.result)) {
-          rawData = parsed.result;
-        } else if (parsed.departments && Array.isArray(parsed.departments)) {
-          rawData = parsed.departments;
-        } else {
-          console.log('Unexpected response structure:', parsed);
-          rawData = [];
-        }
-        
-        const final: Department[] = rawData.map((item: any) => ({
-          DeptId: item.DeptId?.toString() || item.deptId?.toString() || "",
-          DeptName: item.DeptName?.toString().trim() || item.deptName?.toString().trim() || "",
-        }));
-        
-        setData(final);
-        setFiltered(final);
-      } catch (e: any) {
-        console.error('API Error:', e);
-        setError(e.message.includes("JSON.parse") ? "Invalid data format received from server. Please check if the API is returning valid JSON." : e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [epfNo]);
+	// Paginated departments
+	const paginatedDepartments = filtered.slice(
+		(page - 1) * pageSize,
+		page * pageSize
+	);
 
-  // Filter departments
-  useEffect(() => {
-    const f = data.filter(
-      (d) =>
-        (!searchId || d.DeptId.toLowerCase().includes(searchId.toLowerCase())) &&
-        (!searchName || d.DeptName.toLowerCase().includes(searchName.toLowerCase()))
-    );
-    setFiltered(f);
-    setPage(1);
-  }, [searchId, searchName, data]);
+	// Fetch departments - Same API as CostCenterWorkInprogress
+	useEffect(() => {
+		const fetchData = async () => {
+			// Don't fetch if no EPF number
+			if (!epfNo) {
+				setError("No EPF number available. Please login again.");
+				setLoading(false);
+				return;
+			}
 
-  // Fetch age analysis data from both APIs
-  const fetchAgeAnalysisData = async (deptId: string) => {
-    setAgeAnalysisLoading(true);
-    setAgeAnalysisError(null);
-    
-    try {
-      // Fetch data from both APIs in parallel
-      const [commitmentResponse, ageAnalysisResponse] = await Promise.all([
-        fetch(`/misapi/api/projectcommitmentsummary/${deptId}`, {
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' }
-        }),
-        fetch(`/misapi/api/projectageanalysis/${deptId}`, {
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' }
-        })
-      ]);
+			setLoading(true);
+			try {
+				const res = await fetch(
+					`/misapi/api/incomeexpenditure/departments/${epfNo}`
+				);
+				if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
-      if (!commitmentResponse.ok) throw new Error(`Commitment API error! status: ${commitmentResponse.status}`);
-      if (!ageAnalysisResponse.ok) throw new Error(`Age Analysis API error! status: ${ageAnalysisResponse.status}`);
+				const contentType = res.headers.get("content-type");
+				if (!contentType || !contentType.includes("application/json")) {
+					const text = await res.text();
+					throw new Error(
+						`Expected JSON but got ${contentType}. Response: ${text.substring(
+							0,
+							100
+						)}`
+					);
+				}
 
-      const [commitmentData, ageAnalysisData] = await Promise.all([
-        commitmentResponse.json(),
-        ageAnalysisResponse.json()
-      ]);
+				const parsed = await res.json();
 
-      // Process commitment data
-      let commitmentArray: ProjectCommitmentSummary[] = [];
-      if (Array.isArray(commitmentData)) {
-        commitmentArray = commitmentData;
-      } else if (commitmentData.data && Array.isArray(commitmentData.data)) {
-        commitmentArray = commitmentData.data;
-      } else if (commitmentData.result && Array.isArray(commitmentData.result)) {
-        commitmentArray = commitmentData.result;
-      }
+				let rawData = [];
+				if (Array.isArray(parsed)) {
+					rawData = parsed;
+				} else if (parsed.data && Array.isArray(parsed.data)) {
+					rawData = parsed.data;
+				} else if (parsed.result && Array.isArray(parsed.result)) {
+					rawData = parsed.result;
+				} else if (
+					parsed.departments &&
+					Array.isArray(parsed.departments)
+				) {
+					rawData = parsed.departments;
+				} else {
+					console.log("Unexpected response structure:", parsed);
+					rawData = [];
+				}
 
-      // Process age analysis data
-      let ageAnalysisArray: ProjectAgeAnalysis[] = [];
-      if (Array.isArray(ageAnalysisData)) {
-        ageAnalysisArray = ageAnalysisData;
-      } else if (ageAnalysisData.data && Array.isArray(ageAnalysisData.data)) {
-        ageAnalysisArray = ageAnalysisData.data;
-      } else if (ageAnalysisData.result && Array.isArray(ageAnalysisData.result)) {
-        ageAnalysisArray = ageAnalysisData.result;
-      }
+				const final: Department[] = rawData.map((item: any) => ({
+					DeptId: item.DeptId?.toString() || item.deptId?.toString() || "",
+					DeptName:
+						item.DeptName?.toString().trim() ||
+						item.deptName?.toString().trim() ||
+						"",
+				}));
 
-      // Create a map to consolidate data by Period + CctName
-      const consolidatedMap = new Map<string, ConsolidatedAgeAnalysis>();
+				setData(final);
+				setFiltered(final);
+			} catch (e: any) {
+				console.error("API Error:", e);
+				setError(
+					e.message.includes("JSON.parse")
+						? "Invalid data format received from server. Please check if the API is returning valid JSON."
+						: e.message
+				);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchData();
+	}, [epfNo]);
 
-      // Add commitment data
-      commitmentArray.forEach((item: any) => {
-        const key = `${item.Period?.trim()}-${item.CctName?.trim()}`;
-        consolidatedMap.set(key, {
-          Period: item.Period?.trim() || "",
-          CctName: item.CctName?.trim() || "",
-          NoOfProjects: 0,
-          Amount: parseFloat(item.Sum || 0)
-        });
-      });
+	// Filter departments
+	useEffect(() => {
+		const f = data.filter(
+			(d) =>
+				(!searchId ||
+					d.DeptId.toLowerCase().includes(searchId.toLowerCase())) &&
+				(!searchName ||
+					d.DeptName.toLowerCase().includes(searchName.toLowerCase()))
+		);
+		setFiltered(f);
+		setPage(1);
+	}, [searchId, searchName, data]);
 
-      // Add age analysis data
-      ageAnalysisArray.forEach((item: any) => {
-        const key = `${item.Period?.trim()}-${item.CctName?.trim()}`;
-        if (consolidatedMap.has(key)) {
-          consolidatedMap.get(key)!.NoOfProjects = parseInt(item.NoOfProjects || 0);
-        } else {
-          consolidatedMap.set(key, {
-            Period: item.Period?.trim() || "",
-            CctName: item.CctName?.trim() || "",
-            NoOfProjects: parseInt(item.NoOfProjects || 0),
-            Amount: 0
-          });
-        }
-      });
+	// Fetch age analysis data from both APIs
+	const fetchAgeAnalysisData = async (deptId: string) => {
+		// Clear previous results and show modal immediately so user sees a loading state
+		setAgeAnalysisError(null);
+		setAgeAnalysisData([]);
+		setShowAgeAnalysis(true);
+		setAgeAnalysisLoading(true);
 
-      // Convert map to array and sort by Period
-      const consolidatedData = Array.from(consolidatedMap.values()).sort((a, b) => {
-        return a.Period.localeCompare(b.Period);
-      });
+		try {
+			// Fetch data from both APIs in parallel
+			const [commitmentResponse, ageAnalysisResponse] = await Promise.all([
+				fetch(`/misapi/api/projectcommitmentsummary/${deptId}`, {
+					credentials: "include",
+					headers: {Accept: "application/json"},
+				}),
+				fetch(`/misapi/api/projectageanalysis/${deptId}`, {
+					credentials: "include",
+					headers: {Accept: "application/json"},
+				}),
+			]);
 
-      setAgeAnalysisData(consolidatedData);
-      setShowAgeAnalysis(true);
-    } catch (error: any) {
-      setAgeAnalysisError(error.message.includes("JSON.parse") ? "Invalid data format received from server" : error.message);
-    } finally {
-      setAgeAnalysisLoading(false);
-    }
-  };
+			if (!commitmentResponse.ok)
+				throw new Error(
+					`Commitment API error! status: ${commitmentResponse.status}`
+				);
+			if (!ageAnalysisResponse.ok)
+				throw new Error(
+					`Age Analysis API error! status: ${ageAnalysisResponse.status}`
+				);
 
-  const handleDepartmentSelect = (department: Department) => {
-    setSelectedDepartment(department);
-    fetchAgeAnalysisData(department.DeptId);
-  };
+			const [commitmentData, ageAnalysisData] = await Promise.all([
+				commitmentResponse.json(),
+				ageAnalysisResponse.json(),
+			]);
 
-  const closeAgeAnalysisModal = () => {
-    setShowAgeAnalysis(false);
-    setAgeAnalysisData([]);
-    setSelectedDepartment(null);
-  };
+			// Process commitment data
+			let commitmentArray: ProjectCommitmentSummary[] = [];
+			if (Array.isArray(commitmentData)) {
+				commitmentArray = commitmentData;
+			} else if (commitmentData.data && Array.isArray(commitmentData.data)) {
+				commitmentArray = commitmentData.data;
+			} else if (
+				commitmentData.result &&
+				Array.isArray(commitmentData.result)
+			) {
+				commitmentArray = commitmentData.result;
+			}
 
-  const navigateToWorkInProgress = () => {
-    setShowWorkInProgress(true);
-    setShowAgeAnalysis(false);
-  };
+			// Process age analysis data
+			let ageAnalysisArray: ProjectAgeAnalysis[] = [];
+			if (Array.isArray(ageAnalysisData)) {
+				ageAnalysisArray = ageAnalysisData;
+			} else if (
+				ageAnalysisData.data &&
+				Array.isArray(ageAnalysisData.data)
+			) {
+				ageAnalysisArray = ageAnalysisData.data;
+			} else if (
+				ageAnalysisData.result &&
+				Array.isArray(ageAnalysisData.result)
+			) {
+				ageAnalysisArray = ageAnalysisData.result;
+			}
 
-  // Prepare chart data
-  const chartData = ageAnalysisData.map(item => ({
-    period: item.Period,
-    noOfProjects: item.NoOfProjects,
-    amount: item.Amount
-  }));
+			// Create a map to consolidate data by Period + CctName
+			const consolidatedMap = new Map<string, ConsolidatedAgeAnalysis>();
 
-  // Custom tooltip for the chart
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
-          <p className="font-semibold text-sm">{`Period: ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-xs" style={{ color: entry.color }}>
-              {entry.dataKey === 'noOfProjects' ? 'No of Projects (Count)' : 'Amount (LKR)'}: {
-                entry.dataKey === 'noOfProjects' 
-                  ? entry.value.toLocaleString() 
-                  : `Rs. ${entry.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              }
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
+			// Add commitment data
+			commitmentArray.forEach((item: any) => {
+				const key = `${item.Period?.trim()}-${item.CctName?.trim()}`;
+				consolidatedMap.set(key, {
+					Period: item.Period?.trim() || "",
+					CctName: item.CctName?.trim() || "",
+					NoOfProjects: 0,
+					Amount: parseFloat(item.Sum || 0),
+				});
+			});
 
-  const clearFilters = () => {
-    setSearchId("");
-    setSearchName("");
-  };
+			// Add age analysis data
+			ageAnalysisArray.forEach((item: any) => {
+				const key = `${item.Period?.trim()}-${item.CctName?.trim()}`;
+				if (consolidatedMap.has(key)) {
+					consolidatedMap.get(key)!.NoOfProjects = parseInt(
+						item.NoOfProjects || 0
+					);
+				} else {
+					consolidatedMap.set(key, {
+						Period: item.Period?.trim() || "",
+						CctName: item.CctName?.trim() || "",
+						NoOfProjects: parseInt(item.NoOfProjects || 0),
+						Amount: 0,
+					});
+				}
+			});
 
-  // Escape CSV field function
-  const escapeCSVField = (field: string | number): string => {
-    const stringField = String(field);
-    // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
-    if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
-      return '"' + stringField.replace(/"/g, '""') + '"';
-    }
-    return stringField;
-  };
+			// Convert map to array and sort by Period
+			const consolidatedData = Array.from(consolidatedMap.values()).sort(
+				(a, b) => {
+					return a.Period.localeCompare(b.Period);
+				}
+			);
 
-  // Improved Download as CSV function
-  const downloadAsCSV = () => {
-    if (!ageAnalysisData || ageAnalysisData.length === 0) return;
-    
-    // Create headers
-    const headers = [
-      "Period", 
-      "No of Projects", 
-      "Amount (LKR)"
-    ];
-    
-    // Create data rows with proper CSV formatting
-    const dataRows = ageAnalysisData.map(item => [
-      escapeCSVField(item.Period),
-      escapeCSVField(item.NoOfProjects),
-      escapeCSVField(item.Amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-    ]);
-    
-    // Calculate grand totals
-    const totalProjects = ageAnalysisData.reduce((sum, item) => sum + item.NoOfProjects, 0);
-    const totalAmount = ageAnalysisData.reduce((sum, item) => sum + item.Amount, 0);
-    
-    // Add grand total row
-    const grandTotalRow = [
-      escapeCSVField("GRAND TOTAL"),
-      escapeCSVField(totalProjects),
-      escapeCSVField(totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-    ];
-    
-    // Create CSV content with topic section
-    const csvContent = [
-      // Topic section
-      `"Work In Progress - Age Analysis As At ${new Date().toLocaleDateString()}"`,
-      `"Cost Center : ${selectedDepartment?.DeptId} / ${selectedDepartment?.DeptName}"`,
-      "", // Empty line
-      // Data section
-      headers.join(","),
-      ...dataRows.map(row => row.join(",")),
-      grandTotalRow.join(","),
-      "", // Empty line
-      `"Generated: ${new Date().toLocaleString()}"`,
-      `"CEB@${new Date().getFullYear()}"`
-    ].join("\n");
-    
-    // Create download link
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `AgeAnalysis_${selectedDepartment?.DeptId}_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+			setAgeAnalysisData(consolidatedData);
+			// modal already opened when loading started
+		} catch (error: any) {
+			setAgeAnalysisError(
+				error.message.includes("JSON.parse")
+					? "Invalid data format received from server"
+					: error.message
+			);
+		} finally {
+			setAgeAnalysisLoading(false);
+		}
+	};
 
-  // Print PDF function
-  const printPDF = () => {
-    if (!ageAnalysisData || ageAnalysisData.length === 0) return;
+	const handleDepartmentSelect = (department: Department) => {
+		setSelectedDepartment(department);
+		fetchAgeAnalysisData(department.DeptId);
+	};
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+	const closeAgeAnalysisModal = () => {
+		// Close the modal and return to the cost-center list (home)
+		setShowAgeAnalysis(false);
+		// Clear loaded report and selected department so the list view is shown as 'home'
+		setAgeAnalysisData([]);
+		setSelectedDepartment(null);
+		// Ensure any work-in-progress view is closed as well
+		setShowWorkInProgress(false);
+		// Clear any outstanding loading/error state
+		setAgeAnalysisLoading(false);
+		setAgeAnalysisError(null);
+	};
 
-    // Calculate grand totals
-    const grandTotalProjects = ageAnalysisData.reduce((sum, item) => sum + item.NoOfProjects, 0);
-    const grandTotalAmount = ageAnalysisData.reduce((sum, item) => sum + item.Amount, 0);
+	const navigateToWorkInProgress = () => {
+		setShowWorkInProgress(true);
+		setShowAgeAnalysis(false);
+	};
 
-    // Generate table rows HTML
-    let tableRowsHTML = '';
-    ageAnalysisData.forEach((item) => {
-      tableRowsHTML += `
+	// Prepare chart data
+	const chartData = ageAnalysisData.map((item) => ({
+		period: item.Period,
+		noOfProjects: item.NoOfProjects,
+		amount: item.Amount,
+	}));
+
+	// Custom tooltip for the chart
+	const CustomTooltip = ({active, payload, label}: any) => {
+		if (active && payload && payload.length) {
+			return (
+				<div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
+					<p className="font-semibold text-sm">{`Period: ${label}`}</p>
+					{payload.map((entry: any, index: number) => (
+						<p
+							key={index}
+							className="text-xs"
+							style={{color: entry.color}}
+						>
+							{entry.dataKey === "noOfProjects"
+								? "No of Projects (Count)"
+								: "Amount (LKR)"}
+							:{" "}
+							{entry.dataKey === "noOfProjects"
+								? entry.value.toLocaleString()
+								: `Rs. ${entry.value.toLocaleString("en-US", {
+										minimumFractionDigits: 2,
+										maximumFractionDigits: 2,
+								  })}`}
+						</p>
+					))}
+				</div>
+			);
+		}
+		return null;
+	};
+
+	const clearFilters = () => {
+		setSearchId("");
+		setSearchName("");
+	};
+
+	// Escape CSV field function
+	const escapeCSVField = (field: string | number): string => {
+		const stringField = String(field);
+		// If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+		if (
+			stringField.includes(",") ||
+			stringField.includes('"') ||
+			stringField.includes("\n")
+		) {
+			return '"' + stringField.replace(/"/g, '""') + '"';
+		}
+		return stringField;
+	};
+
+	// Improved Download as CSV function
+	const downloadAsCSV = () => {
+		if (!ageAnalysisData || ageAnalysisData.length === 0) return;
+
+		// Create headers
+		const headers = ["Period", "No of Projects", "Amount (LKR)"];
+
+		// Create data rows with proper CSV formatting
+		const dataRows = ageAnalysisData.map((item) => [
+			escapeCSVField(item.Period),
+			escapeCSVField(item.NoOfProjects),
+			escapeCSVField(
+				item.Amount.toLocaleString("en-US", {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+				})
+			),
+		]);
+
+		// Calculate grand totals
+		const totalProjects = ageAnalysisData.reduce(
+			(sum, item) => sum + item.NoOfProjects,
+			0
+		);
+		const totalAmount = ageAnalysisData.reduce(
+			(sum, item) => sum + item.Amount,
+			0
+		);
+
+		// Add grand total row
+		const grandTotalRow = [
+			escapeCSVField("GRAND TOTAL"),
+			escapeCSVField(totalProjects),
+			escapeCSVField(
+				totalAmount.toLocaleString("en-US", {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+				})
+			),
+		];
+
+		// Create CSV content with topic section
+		const csvContent = [
+			// Topic section
+			`"Work In Progress - Age Analysis As At ${new Date().toLocaleDateString()}"`,
+			`"Cost Center : ${selectedDepartment?.DeptId} / ${selectedDepartment?.DeptName}"`,
+			"", // Empty line
+			// Data section
+			headers.join(","),
+			...dataRows.map((row) => row.join(",")),
+			grandTotalRow.join(","),
+			"", // Empty line
+			`"Generated: ${new Date().toLocaleString()}"`,
+			`"CEB@${new Date().getFullYear()}"`,
+		].join("\n");
+
+		// Create download link
+		const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = `AgeAnalysis_${selectedDepartment?.DeptId}_${
+			new Date().toISOString().split("T")[0]
+		}.csv`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+	};
+
+	// Print PDF function
+	const printPDF = () => {
+		if (!ageAnalysisData || ageAnalysisData.length === 0) return;
+
+		const printWindow = window.open("", "_blank");
+		if (!printWindow) return;
+
+		// Calculate grand totals
+		const grandTotalProjects = ageAnalysisData.reduce(
+			(sum, item) => sum + item.NoOfProjects,
+			0
+		);
+		const grandTotalAmount = ageAnalysisData.reduce(
+			(sum, item) => sum + item.Amount,
+			0
+		);
+
+		// Generate table rows HTML
+		let tableRowsHTML = "";
+		ageAnalysisData.forEach((item) => {
+			tableRowsHTML += `
         <tr>
-          <td style="padding: 6px; border: 1px solid #ddd; font-size: 10px;">${item.Period || ""}</td>
+          <td style="padding: 6px; border: 1px solid #ddd; font-size: 10px;">${
+					item.Period || ""
+				}</td>
           <td style="padding: 6px; border: 1px solid #ddd; font-size: 10px; text-align: center; font-family: monospace;">${item.NoOfProjects.toLocaleString()}</td>
-          <td style="padding: 6px; border: 1px solid #ddd; font-size: 10px; text-align: right; font-family: monospace;">${item.Amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="padding: 6px; border: 1px solid #ddd; font-size: 10px; text-align: right; font-family: monospace;">${item.Amount.toLocaleString(
+					"en-US",
+					{minimumFractionDigits: 2, maximumFractionDigits: 2}
+				)}</td>
         </tr>
       `;
-    });
+		});
 
-    // Add grand total row
-    tableRowsHTML += `
+		// Add grand total row
+		tableRowsHTML += `
       <tr style="background-color: #7A0000; color: white; font-weight: bold;">
         <td style="padding: 8px; border: 1px solid #7A0000; font-size: 10px;">GRAND TOTAL</td>
         <td style="padding: 8px; border: 1px solid #7A0000; font-size: 10px; text-align: center; font-family: monospace;">${grandTotalProjects.toLocaleString()}</td>
-        <td style="padding: 8px; border: 1px solid #7A0000; font-size: 10px; text-align: right; font-family: monospace;">${grandTotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td style="padding: 8px; border: 1px solid #7A0000; font-size: 10px; text-align: right; font-family: monospace;">${grandTotalAmount.toLocaleString(
+				"en-US",
+				{minimumFractionDigits: 2, maximumFractionDigits: 2}
+			)}</td>
       </tr>
     `;
 
-    // Create the HTML content for printing
-    const htmlContent = `
+		// Create the HTML content for printing
+		const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -488,26 +604,32 @@ const AgeAnalysisCostCenter = () => {
       </html>
     `;
 
-    // Write content to the new window and print
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    
-    // Wait for content to load then print
-    printWindow.onload = () => {
-      printWindow.print();
-      printWindow.close();
-    };
-  };
+		// Write content to the new window and print
+		printWindow.document.write(htmlContent);
+		printWindow.document.close();
 
-  // Age Analysis Modal Component
-  const AgeAnalysisModal = () => {
-    if (!showAgeAnalysis || !selectedDepartment) return null;
-    
-    // Calculate grand totals
-    const grandTotalProjects = ageAnalysisData.reduce((sum, item) => sum + item.NoOfProjects, 0);
-    const grandTotalAmount = ageAnalysisData.reduce((sum, item) => sum + item.Amount, 0);
-    
-    return (
+		// Wait for content to load then print
+		printWindow.onload = () => {
+			printWindow.print();
+			printWindow.close();
+		};
+	};
+
+	// Age Analysis Modal Component
+	const AgeAnalysisModal = () => {
+		if (!showAgeAnalysis || !selectedDepartment) return null;
+
+		// Calculate grand totals
+		const grandTotalProjects = ageAnalysisData.reduce(
+			(sum, item) => sum + item.NoOfProjects,
+			0
+		);
+		const grandTotalAmount = ageAnalysisData.reduce(
+			(sum, item) => sum + item.Amount,
+			0
+		);
+
+		return (
 			<div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
 				<div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
 					<div className="p-5 border-b">
@@ -526,10 +648,18 @@ const AgeAnalysisCostCenter = () => {
 							</div>
 						</div>
 						{ageAnalysisError && (
-							<div className="text-red-600 text-xs mt-2 text-center">
-								{ageAnalysisError.includes("JSON.parse")
-									? "Data format error"
-									: ageAnalysisError}
+							<div className="flex items-center justify-center gap-3 mt-2">
+								<div className="text-red-600 text-xs text-center">
+									{ageAnalysisError.includes("JSON.parse")
+										? "Data format error"
+										: ageAnalysisError}
+								</div>
+								<button
+									onClick={closeAgeAnalysisModal}
+									className={`px-3 py-1 text-sm ${maroonBg} text-white rounded hover:brightness-110`}
+								>
+									Back To Home
+								</button>
 							</div>
 						)}
 					</div>
@@ -826,42 +956,44 @@ const AgeAnalysisCostCenter = () => {
 				</div>
 			</div>
 		);
-  };
+	};
 
-  // If showing Work in Progress, render that component with the selected department
-  if (showWorkInProgress && selectedDepartment) {
-    return (
-      <div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
-        <div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
-          <div className="p-5 border-b">
-            <div className="flex justify-between items-start">
-              <div className="space-y-2 w-full">
-                <h2 className="text-lg font-bold text-gray-800 text-center">
-                  Cost Center Work in Progress
-                </h2>
-                <div className="border-b border-gray-300 my-2"></div>
-                <h3 className={`text-sm ${maroon} text-center`}>
-                  Cost Center : {selectedDepartment.DeptId} / {selectedDepartment.DeptName}
-                </h3>
-                <div className="border-b border-gray-300 my-2"></div>
-              </div>
-            </div>
-          </div>
-          <div className="px-6 py-5 overflow-y-auto flex-grow">
-            <CostCenterWorkInprogress 
-              preSelectedDepartment={selectedDepartment}
-              onBack={() => {
-                setShowWorkInProgress(false);
-                setShowAgeAnalysis(true);
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
+	// If showing Work in Progress, render that component with the selected department
+	if (showWorkInProgress && selectedDepartment) {
+		return (
+			<div className="fixed inset-0 bg-white flex items-start justify-end z-50 pt-24 pb-8 pl-64">
+				<div className="bg-white w-full max-w-6xl rounded-lg shadow-lg border border-gray-300 max-h-[85vh] flex flex-col mr-4">
+					<div className="p-5 border-b">
+						<div className="flex justify-between items-start">
+							<div className="space-y-2 w-full">
+								<h2 className="text-lg font-bold text-gray-800 text-center">
+									Cost Center Work in Progress
+								</h2>
+								<div className="border-b border-gray-300 my-2"></div>
+								<h3 className={`text-sm ${maroon} text-center`}>
+									Cost Center : {selectedDepartment.DeptId} /{" "}
+									{selectedDepartment.DeptName}
+								</h3>
+								<div className="border-b border-gray-300 my-2"></div>
+							</div>
+						</div>
+					</div>
+					<div className="px-6 py-5 overflow-y-auto flex-grow">
+						<CostCenterWorkInprogress
+							preSelectedDepartment={selectedDepartment}
+							onBack={() => {
+								setShowWorkInProgress(false);
+								setShowAgeAnalysis(true);
+							}}
+							onHome={closeAgeAnalysisModal}
+						/>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
-  return (
+	return (
 		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
 			{/* Header */}
 			<div className="flex justify-between items-center mb-4">
@@ -1027,7 +1159,7 @@ const AgeAnalysisCostCenter = () => {
 			{/* Age Analysis Modal */}
 			<AgeAnalysisModal />
 		</div>
-  );
+	);
 };
 
 export default AgeAnalysisCostCenter;

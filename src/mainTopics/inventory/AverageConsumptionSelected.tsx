@@ -56,18 +56,7 @@ const formatNumber = (num: number | string | null | undefined): string => {
 	});
 };
 
-
-const today = new Date();
-const currentYear = today.getFullYear();
-const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
-const currentDay = String(today.getDate()).padStart(2, "0");
-const maxDate = `${currentYear}-${currentMonth}-${currentDay}`; // Today's date: YYYY-MM-DD
-
-const minYear = currentYear - 20;
-const minDate = `${minYear}-${currentMonth}-${currentDay}`; // 20 years ago, same month/day
-
-
-const AverageConsumption: React.FC = () => {
+const AverageConsumptionSelected: React.FC = () => {
 	const {user} = useUser();
 	const [data, setData] = useState<Department[]>([]);
 	const [searchId, setSearchId] = useState("");
@@ -81,6 +70,7 @@ const AverageConsumption: React.FC = () => {
 		useState<Department | null>(null);
 	const [fromDate, setFromDate] = useState("");
 	const [toDate, setToDate] = useState("");
+	const [materialCode, setMaterialCode] = useState(""); // ← NEW
 	const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 	const [selectedWarehouse, setSelectedWarehouse] = useState("");
 	const [inventoryData, setInventoryData] = useState<AverageConsumption[]>([]);
@@ -93,6 +83,14 @@ const AverageConsumption: React.FC = () => {
 	const maroonGrad = "bg-gradient-to-r from-[#7A0000] to-[#A52A2A]";
 
 	const epfNo = user?.Userno || "";
+	const today = new Date();
+	const currentYear = today.getFullYear();
+	const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
+	const currentDay = String(today.getDate()).padStart(2, "0");
+	const maxDate = `${currentYear}-${currentMonth}-${currentDay}`; // Today's date: YYYY-MM-DD
+
+	const minYear = currentYear - 20;
+	const minDate = `${minYear}-${currentMonth}-${currentDay}`; // 20 years ago, same month/day
 
 	const parseApiResponse = (response: any): any[] => {
 		if (Array.isArray(response)) return response;
@@ -210,8 +208,6 @@ const AverageConsumption: React.FC = () => {
 				)}?costCenterId=${encodeURIComponent(
 					selectedDepartment.DeptId
 				)}&t=${Date.now()}`;
-				console.log("Fetching warehouses from:", url);
-				console.log("Selected Cost Center ID:", selectedDepartment.DeptId);
 				const response = await fetch(url, {
 					method: "GET",
 					headers: {
@@ -240,7 +236,6 @@ const AverageConsumption: React.FC = () => {
 				}
 
 				const result = await response.json();
-				console.log("Raw Warehouse API Response:", result);
 				const rawData = parseApiResponse(result);
 				const data: Warehouse[] = rawData.map(
 					(item: ApiWarehouseResponse) => ({
@@ -249,13 +244,11 @@ const AverageConsumption: React.FC = () => {
 					})
 				);
 
-				// Fallback client-side filter
 				const filteredData = data.filter(
 					(item) =>
 						!item.CostCenterId ||
 						item.CostCenterId === selectedDepartment.DeptId
 				);
-				console.log("Filtered Warehouses:", filteredData);
 
 				setWarehouses(filteredData);
 				if (filteredData.length === 0) {
@@ -274,7 +267,6 @@ const AverageConsumption: React.FC = () => {
 					);
 				}
 			} catch (error: any) {
-				console.error("Warehouse Fetch Error Details:", error);
 				const errorMessage = error.message.includes("Failed to fetch")
 					? "Failed to connect to the server. Please verify the warehouse endpoint exists."
 					: error.message;
@@ -301,8 +293,6 @@ const AverageConsumption: React.FC = () => {
 			toast.error("Please enter a to date.");
 			return;
 		}
-
-		// Prevent same-day range — require a range with at least one day difference
 		if (fromDate === toDate) {
 			toast.error(
 				"From date and To date cannot be the same. Please select a different range."
@@ -326,12 +316,16 @@ const AverageConsumption: React.FC = () => {
 		try {
 			const formattedFromDate = fromDate.replace(/-/g, "");
 			const formattedToDate = toDate.replace(/-/g, "");
+			const matCodeParam = materialCode.trim()
+				? `/${encodeURIComponent(materialCode.trim())}`
+				: "";
+
 			const response = await fetch(
-				`/misapi/api/inventoryaverageconsumption/report/${encodeURIComponent(
-					selectedDepartment.DeptId
+				`/misapi/api/avg-consumption-selected/${encodeURIComponent(
+					selectedDepartment.DeptId,
 				)}/${encodeURIComponent(
-					selectedWarehouse
-				)}/${formattedFromDate}/${formattedToDate}`,
+					selectedWarehouse.trim(),
+				)}/${formattedFromDate}/${formattedToDate}${matCodeParam}`,
 				{
 					method: "GET",
 					headers: {
@@ -339,7 +333,7 @@ const AverageConsumption: React.FC = () => {
 						Accept: "application/json",
 					},
 					credentials: "include",
-				}
+				},
 			);
 
 			if (!response.ok) {
@@ -375,25 +369,18 @@ const AverageConsumption: React.FC = () => {
 				})
 			);
 
-			const filteredData = data.filter(
-				(item) => item.WarehouseCode === selectedWarehouse
-			);
-
-			setInventoryData(filteredData);
-			if (filteredData.length === 0) {
-				toast.warn(
-					`No inventory data found for cost center ${selectedDepartment.DeptId}, warehouse ${selectedWarehouse}, from ${fromDate} to ${toDate}.`
-				);
+			setInventoryData(data);
+			if (data.length === 0) {
+				toast.warn(`No data found for the selected criteria.`);
 			} else {
-				toast.success(`Successfully fetched inventory data.`);
+				toast.success(`Successfully fetched data.`);
 			}
 		} catch (error: any) {
-			console.error("Inventory Data Fetch Error:", error);
 			const errorMessage = error.message.includes("Failed to fetch")
-				? "Failed to connect to the server. Please check if the server is running."
+				? "Failed to connect to the server."
 				: error.message;
 			setInventoryError(errorMessage);
-			toast.error(`Failed to fetch inventory data: ${errorMessage}`);
+			toast.error(`Failed to fetch data: ${errorMessage}`);
 		} finally {
 			setInventoryLoading(false);
 		}
@@ -463,7 +450,8 @@ const AverageConsumption: React.FC = () => {
       </tr>`;
 		});
 
-		const reportTitle = "Inventory Average Consumption Report";
+		const reportTitle =
+			"Inventory Average Consumption Report - Selected Material";
 		const printedOn = new Date().toLocaleString("en-US", {
 			timeZone: "Asia/Colombo",
 		});
@@ -476,89 +464,21 @@ const AverageConsumption: React.FC = () => {
   <title>${reportTitle}</title>
   <style>
     @media print {
+      @page { margin: 8mm 5mm 10mm 5mm; }
+      body { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 8.5px; }
+      .container { width: 100%; padding: 0; }
+      .header { text-align: center; font-weight: bold; color: #7A0000; font-size: 13px; margin: 10px 8px 6px; }
+      .info { margin-bottom: 6px; font-size: 9px; text-align: right; }
+      .summary { margin: 10px 8px 15px; font-size: 9px; }
+      .summary p { margin: 3px 0; }
+      .equation { margin: 8px 8px 12px; font-size: 7.5px; color: #9CA3AF; }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      th, td { border: 1px solid #d1d5db; padding: 4px 6px; word-wrap: break-word; }
+      th { background: linear-gradient(to right, #7A0000, #A52A2A); text-align: center; font-weight: bold; font-size: 8.5px; }
+      .signoff { margin-top: 25px; display: flex; justify-content: space-between; padding: 0 15px; font-size: 9px; }
       @page {
-        margin: 8mm 5mm 10mm 5mm;
-      }
-      body {
-        margin: 0;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 8.5px;
-      }
-      .container {
-        width: 100%;
-        padding: 0;
-      }
-      .header {
-        text-align: center;
-        font-weight: bold;
-        color: #7A0000;
-        font-size: 13px;
-        margin: 10px 8px 6px;
-      }
-      .info {
-        display: flex;
-        justify-content: space-between;
-        margin: 6px 8px;
-        font-size: 9px;
-      }
-      .info .currency {
-        font-weight: 600;
-        color: #4B5563;
-      }
-      .summary {
-        margin: 10px 8px 15px;
-        font-size: 9px;
-      }
-      .summary p {
-        margin: 3px 0;
-      }
-      .equation {
-        margin: 8px 8px 12px;
-        font-size: 7.5px;
-        color: #9CA3AF;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
-      }
-      th, td {
-        border: 1px solid #d1d5db;
-        padding: 4px 6px;
-        word-wrap: break-word;
-      }
-      th {
-        background: linear-gradient(to right, #7A0000, #A52A2A);
-        text-align: center;
-        font-weight: bold;
-        font-size: 8.5px;
-      }
-      td {
-        font-size: 8.5px;
-      }
-      .text-left { text-align: left; }
-      .text-right { text-align: right; }
-      .font-mono { font-family: monospace; }
-      .bg-white { background-color: #fff; }
-      .bg-gray-50 { background-color: #f9fafb; }
-      .signoff {
-        margin-top: 25px;
-        display: flex;
-        justify-content: space-between;
-        padding: 0 15px;
-        font-size: 9px;
-      }
-      @page {
-        @bottom-left {
-          content: "Printed on: ${printedOn}";
-          font-size: 7px;
-          color: gray;
-        }
-        @bottom-right {
-          content: "Page " counter(page) " of " counter(pages);
-          font-size: 7px;
-          color: gray;
-        }
+        @bottom-left { content: "Printed on: ${printedOn}"; font-size: 8px;  }
+        @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 8px;   }
       }
     }
   </style>
@@ -566,21 +486,26 @@ const AverageConsumption: React.FC = () => {
 <body>
   <div class="container">
     <div class="header">${reportTitle}</div>
-    <div class="info">
-      <div>CEYLON ELECTRICITY BOARD</div>
-      <div class="currency">Currency: LKR</div>
-    </div>
+   
 
     <div class="summary">
       <p><strong>Cost Center:</strong> ${
 			selectedDepartment?.DeptId || ""
 		} - ${costCenterName}</p>
       <p><strong>Warehouse:</strong> ${selectedWarehouse}</p>
-      <p><strong>Date Range:</strong> ${fromDate} to ${toDate}</p>
+      ${
+			materialCode.trim()
+				? `<p><strong>Material Code:</strong> ${materialCode.trim()}</p>`
+				: ""
+		}
+      <p><strong>Period:</strong> ${fromDate} to ${toDate}</p>
     </div>
 
     <div class="equation">
       Average Consumption = Σ(Issue + Issue Cancellation within Date Range) ÷ Round(MonthsBetween(ToDate, FromDate))
+    </div>
+	 <div class="info">
+      <div>Currency: LKR</div>
     </div>
 
     <table>
@@ -629,17 +554,15 @@ const AverageConsumption: React.FC = () => {
 		};
 
 		const closeAfterPrint = () => {
-			if (printWindow && !printWindow.closed) {
-				printWindow.close();
-			}
+			if (printWindow && !printWindow.closed) printWindow.close();
 		};
 		printWindow.onafterprint = closeAfterPrint;
 	};
 
-	// === REPLACE handlePrintClick ===
 	const handlePrintClick = () => {
 		printPDF();
 	};
+
 	const handleDownloadCSV = () => {
 		if (inventoryData.length === 0) return;
 
@@ -659,30 +582,26 @@ const AverageConsumption: React.FC = () => {
 		};
 
 		const csvContent = [
-			`Inventory Average Consumption Report`,
+			`Inventory Average Consumption Report - Selected Material`,
 			`Cost Center: ${selectedDepartment?.DeptId || ""} - ${
 				selectedDepartment?.DeptName || ""
 			}`,
 			`Warehouse: ${selectedWarehouse}`,
+			materialCode.trim() ? `Material Code: ${materialCode.trim()}` : "",
 			`Date Range: ${fromDate || ""} to ${toDate || ""}`,
 			`Printed on: ${new Date().toLocaleString("en-US")}`,
 			`Currency: LKR`,
 			"",
 			headers.join(","),
 			...inventoryData.map((item) => {
-				const unitPrice = formatNumber(item.UnitPrice ?? 0);
-				const qtyOnHand = formatNumber(item.QuantityOnHand ?? 0);
-				const txnQty = formatNumber(item.TransactionQuantity ?? 0);
-				const avgCons = formatNumber(item.AverageConsumption ?? 0);
-
 				return [
 					escapeCsv(`\t${item.MaterialCode || ""}`),
 					escapeCsv(item.MaterialName || ""),
 					escapeCsv(item.GradeCode || ""),
-					escapeCsv(unitPrice),
-					escapeCsv(qtyOnHand),
-					escapeCsv(txnQty),
-					escapeCsv(avgCons),
+					escapeCsv(formatNumber(item.UnitPrice ?? 0)),
+					escapeCsv(formatNumber(item.QuantityOnHand ?? 0)),
+					escapeCsv(formatNumber(item.TransactionQuantity ?? 0)),
+					escapeCsv(formatNumber(item.AverageConsumption ?? 0)),
 				].join(",");
 			}),
 		].join("\n");
@@ -691,14 +610,14 @@ const AverageConsumption: React.FC = () => {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement("a");
 		link.href = url;
-		link.download = `inventory_average_consumption_${selectedWarehouse}.csv`;
+		link.download = `inventory_avg_consumption_selected_${selectedWarehouse}${
+			materialCode.trim() ? "_" + materialCode.trim() : ""
+		}.csv`;
 		link.click();
 		URL.revokeObjectURL(url);
 	};
 
-	// ──────────────────────────────────────────────────────────────
 	const handleCostCenterSelect = (department: Department) => {
-		// If clicking the already selected one → clear selection
 		if (selectedDepartment?.DeptId === department.DeptId) {
 			setSelectedDepartment(null);
 			setWarehouses([]);
@@ -709,7 +628,6 @@ const AverageConsumption: React.FC = () => {
 			return;
 		}
 
-		// Normal selection
 		setSelectedDepartment(department);
 		setWarehouses([]);
 		setSelectedWarehouse("");
@@ -726,10 +644,28 @@ const AverageConsumption: React.FC = () => {
 	return (
 		<div className="max-w-[95%] mx-auto p-2 md:p-4 bg-white rounded-xl shadow border border-gray-200 text-sm md:text-base font-sans">
 			<h2 className={`text-lg md:text-xl font-bold mb-4 ${maroon}`}>
-				Inventory Average Consumption
+				Inventory Average Consumption - Selected Material
 			</h2>
 
 			<div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-3 mb-4 justify-end items-end">
+				{/* Material Code - NEW FIELD */}
+				<div className="flex w-full md:w-auto items-center gap-2">
+					<label
+						className={`text-xs md:text-sm font-bold ${maroon} whitespace-nowrap`}
+					>
+						Material Code:
+					</label>
+					<input
+						type="text"
+						value={materialCode}
+						onChange={(e) =>
+							setMaterialCode(e.target.value.toUpperCase())
+						}
+						placeholder="Enter Material Code"
+						className="pl-2 md:pl-3 pr-2 md:pr-3 py-1 md:py-1.5 w-full md:w-44 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-xs md:text-sm "
+					/>
+				</div>
+
 				{/* From Date */}
 				<div className="flex w-full md:w-auto items-center gap-2">
 					<label
@@ -757,21 +693,22 @@ const AverageConsumption: React.FC = () => {
 					<input
 						type="date"
 						value={toDate}
-						onChange={(e) => setToDate(e.target.value)}
 						min={minDate}
 						max={maxDate}
+						onChange={(e) => setToDate(e.target.value)}
 						className="pl-2 md:pl-3 pr-2 md:pr-3 py-1 md:py-1.5 w-full md:w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-xs md:text-sm"
 					/>
 				</div>
 
 				{/* Warehouse Code + View Button */}
 				<div className="flex flex-col md:flex-row w-full md:w-auto gap-2 md:gap-2 items-end">
-					<div className="flex flex-col">
+					<div className="flex items-center gap-2 md:gap-3">
 						<label
-							className={`text-xs md:text-sm font-bold ${maroon} mb-1`}
+							className={`text-xs md:text-sm font-bold ${maroon} whitespace-nowrap`}
 						>
 							Warehouse Code
 						</label>
+
 						<select
 							value={selectedWarehouse}
 							onChange={(e) => setSelectedWarehouse(e.target.value)}
@@ -786,6 +723,7 @@ const AverageConsumption: React.FC = () => {
 							))}
 						</select>
 					</div>
+
 					<button
 						onClick={handleViewClick}
 						disabled={
@@ -803,13 +741,15 @@ const AverageConsumption: React.FC = () => {
 				</div>
 			</div>
 
+			{/* The rest remains exactly the same as your original code */}
+			{/* Search fields */}
 			<div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-3 mb-2 md:mb-4">
 				<div className="relative w-full md:w-auto">
 					<Search className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 md:w-3 h-3 md:h-3" />
 					<input
 						type="text"
 						value={searchId}
-						placeholder="Search by  ID"
+						placeholder="Search by ID"
 						onChange={(e) => setSearchId(e.target.value)}
 						className="pl-8 md:pl-8 pr-2 md:pr-3 py-1 md:py-1.5 w-full md:w-40 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#7A0000] transition text-xs md:text-sm"
 						autoComplete="off"
@@ -939,12 +879,12 @@ const AverageConsumption: React.FC = () => {
               @page { size: A4; margin: 20mm 15mm 25mm 15mm; }
               body { margin: 0; font-family: Arial, sans-serif; }
               .print-container { width: 100%; margin: 0; padding: 0; }
-			  .print-table { border-collapse: collapse; width: 100%; table-layout: auto; }
-			  .print-table th, .print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; white-space: normal; word-break: break-word; }
-			  .print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
-			  .print-table td { text-align: right; }
-			  .print-table td.text-left { text-align: left; }
-			  .print-table tr { page-break-inside: avoid; }
+              .print-table { border-collapse: collapse; width: 100%; table-layout: auto; }
+              .print-table th, .print-table td { border: 1px solid #D1D5DB; padding: 0.25rem; font-size: 0.75rem; white-space: normal; word-break: break-word; }
+              .print-table th { background: linear-gradient(to right, #7A0000, #A52A2A); color: white; text-align: center; }
+              .print-table td { text-align: right; }
+              .print-table td.text-left { text-align: left; }
+              .print-table tr { page-break-inside: avoid; }
               thead { display: table-header-group; }
               @page {
                 @bottom-left { content: "Printed on: ${new Date().toLocaleString(
@@ -979,31 +919,38 @@ const AverageConsumption: React.FC = () => {
 										<X className="w-4 h-4" /> Close
 									</button>
 								</div>
+
 								<h2
 									className={`text-lg md:text-xl font-bold text-center md:mb-6 ${maroon}`}
 								>
-									{`Inventory Average Consumption Report${
+									{`Inventory Average Consumption Report - Selected Material${
 										fromDate && toDate
 											? ` - ${fromDate} to ${toDate}`
 											: ""
 									}`}
 								</h2>
+
 								<div className="flex justify-between md:mb-2 md:text-sm leading-5">
 									<div className="ml-5">
 										<p>
 											<span className="font-bold">
 												Cost Center:{" "}
 											</span>
-											{""}
-											{selectedDepartment?.DeptId || ""}
-											{" - "}
-											{selectedDepartment.DeptName}
+											{selectedDepartment?.DeptId || ""} -{" "}
+											{selectedDepartment?.DeptName}
 										</p>
 										<p>
 											<span className="font-bold">Warehouse:</span>{" "}
 											{selectedWarehouse}
 										</p>
-
+										{materialCode.trim() && (
+											<p>
+												<span className="font-bold">
+													Material Code:
+												</span>{" "}
+												{materialCode.trim()}
+											</p>
+										)}
 										<p>
 											<span className="font-bold">
 												Calculation based on:{" "}
@@ -1016,9 +963,11 @@ const AverageConsumption: React.FC = () => {
 										</p>
 									</div>
 								</div>
+
 								<div className="flex justify-end text-sm md:text-base font-semibold text-gray-600 mr-5">
 									Currency: LKR
 								</div>
+
 								<div className="ml-5 mt-1 border border-gray-200 rounded-lg overflow-x-auto print:ml-12 print:mt-12 print:overflow-visible">
 									<table className="w-full border-collapse text-sm min-w-[700px] print-table">
 										<thead className="bg-gradient-to-r from-[#7A0000] to-[#A52A2A] text-white">
@@ -1050,19 +999,19 @@ const AverageConsumption: React.FC = () => {
 											{inventoryLoading ? (
 												<tr>
 													<td
-														colSpan={8}
+														colSpan={7}
 														className="text-center py-6"
 													>
 														<div className="animate-spin rounded-full h-6 md:h-8 w-6 md:w-8 border-b-2 border-[#7A0000] mx-auto"></div>
 														<p className="mt-1 md:mt-2 text-gray-600 text-xs md:text-sm">
-															Loading inventory data...
+															Loading data...
 														</p>
 													</td>
 												</tr>
 											) : inventoryError ? (
 												<tr>
 													<td
-														colSpan={8}
+														colSpan={7}
 														className="text-center py-6"
 													>
 														<div className="bg-red-100 border border-red-400 text-red-700 px-2 md:px-4 py-2 md:py-3 rounded text-xs md:text-sm">
@@ -1073,12 +1022,12 @@ const AverageConsumption: React.FC = () => {
 											) : inventoryData.length === 0 ? (
 												<tr>
 													<td
-														colSpan={8}
+														colSpan={7}
 														className="text-center py-6"
 													>
 														<div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 md:p-10">
 															<div className="text-gray-400 mb-4 md:mb-6">
-																No inventory data available.
+																No data available.
 															</div>
 														</div>
 													</td>
@@ -1124,6 +1073,7 @@ const AverageConsumption: React.FC = () => {
 										</tbody>
 									</table>
 								</div>
+
 								<div className="hidden print:block text-xs text-gray-500 mt-12 text-center">
 									Printed on:{" "}
 									{new Date().toLocaleString("en-US", {
@@ -1139,4 +1089,4 @@ const AverageConsumption: React.FC = () => {
 	);
 };
 
-export default AverageConsumption;
+export default AverageConsumptionSelected;
