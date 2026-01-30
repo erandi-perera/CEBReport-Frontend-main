@@ -61,7 +61,6 @@ const AnnualVerificationWHwiseSignature: React.FC = () => {
   const [filtered, setFiltered] = useState<CostCentre[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [warehouseError, setWarehouseError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [selectedDept, setSelectedDept] = useState<CostCentre | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -158,9 +157,7 @@ const AnnualVerificationWHwiseSignature: React.FC = () => {
     const fetchWarehouses = async () => {
       setWarehouses([]);
       setSelectedWarehouse("");
-      setWarehouseError(null);
       if (!selectedDept || !epfNo) {
-        setWarehouseError("Please select a cost center to view associated warehouses.");
         return;
       }
       setLoading(true);
@@ -198,7 +195,6 @@ const AnnualVerificationWHwiseSignature: React.FC = () => {
         console.log("Filtered Warehouses:", filteredData);
         setWarehouses(filteredData);
         if (filteredData.length === 0) {
-          setWarehouseError(`No warehouses found for cost center ${selectedDept.DeptId}.`);
           toast.warn(`No warehouses found for cost center ${selectedDept.DeptId}.`);
         } else {
           if (filteredData.length === 1) {
@@ -211,7 +207,6 @@ const AnnualVerificationWHwiseSignature: React.FC = () => {
         const errorMessage = error.message.includes("Failed to fetch")
           ? "Failed to connect to the server. Please verify the warehouse endpoint exists."
           : error.message;
-        setWarehouseError(errorMessage);
         toast.error(`Failed to fetch warehouses: ${errorMessage}`);
       } finally {
         setLoading(false);
