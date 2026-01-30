@@ -231,7 +231,7 @@ const PHVSlowNonMovingWHwise: React.FC = () => {
       : item.Status === "2. Slow-moving"
       ? "SLOW"
       : "",
-  PhvDate: item.PhvDate ?? ""   // ✅ MAP DATE FROM API
+  PhvDate: item.PhvDate ?? ""   
 }));
 
       setReportData(mappedData);
@@ -260,17 +260,15 @@ const handleDownloadCSV = () => {
 
   const rows: string[] = [];
 
-  // CSV Header
   rows.push(`"STATEMENT OF NON-MOVING & SLOW-MOVING MATERIALS"`);
   rows.push(`"Cost Center","${selectedDept?.DeptId} - ${selectedDept?.DeptName}"`);
   rows.push(`"Warehouse","${selectedWarehouse}"`);
-  rows.push(""); // Empty line
+  rows.push(""); 
 
   const formatValue = (v: any) => `"${v ?? ""}"`;
   const formatNumberCSV = (n: number | null | undefined) =>
     `"${(n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}"`;
 
-  // Helper to push items section
   const pushSection = (title: string, items: SlowNonMovingItem[]) => {
     if (!items.length) return;
 
@@ -291,23 +289,18 @@ const handleDownloadCSV = () => {
       ].join(","));
     });
 
-    // Subtotal for this section
     const subtotal = items.reduce((s, x) => s + (x.StockBook || 0), 0);
     rows.push(`"","","","","","","TOTAL",${formatNumberCSV(subtotal)},""`);
-    rows.push(""); // Empty line after subtotal
+    rows.push(""); 
   };
 
-  // Non-moving section
   pushSection("NON-MOVING ITEMS", nonMovingItems);
 
-  // Slow-moving section
   pushSection("SLOW-MOVING ITEMS", slowMovingItems);
 
-  // Grand total
   const grandTotal = reportData.reduce((s, x) => s + (x.StockBook || 0), 0);
   rows.push(`"","", "", "", "", "", GRAND TOTAL,${formatNumberCSV(grandTotal)},""`);
 
-  // Generate CSV
   const blob = new Blob(["\uFEFF" + rows.join("\n")], { type: "text/csv" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
@@ -316,7 +309,6 @@ const handleDownloadCSV = () => {
 };
 
 
-// CORRECTED printPDF function with proper 4-section structure
 
 const printPDF = () => {
   if (!iframeRef.current || !selectedDept || !selectedWarehouse || reportData.length === 0) {
@@ -332,26 +324,23 @@ const printPDF = () => {
       ? new Date(String(reportData[0].PhvDate)).toLocaleDateString("en-GB")
       : "";
 
-  // --- PAGE LAYOUT CONSTANTS ---
   const PAGE_HEIGHT = 277;
   const HEADER_HEIGHT = 42;
   const TABLE_HEADER_HEIGHT = 12;
-  const ROW_HEIGHT = 12; // ✅ INCREASED from 8 to 12mm to accommodate 2-3 line descriptions
-  const NOTE_HEIGHT = 20; // Height for note section
-  const GRAND_TOTAL_HEIGHT = 8; // Height for grand total row
+  const ROW_HEIGHT = 12; 
+  const NOTE_HEIGHT = 20; 
+  const GRAND_TOTAL_HEIGHT = 8; 
   const SIGNATURE_HEIGHT = 52;
   const FOOTER_HEIGHT = 14;
 
-  // Calculate available space for table rows on regular pages
   const AVAILABLE_FOR_ROWS_REGULAR =
     PAGE_HEIGHT - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - SIGNATURE_HEIGHT - FOOTER_HEIGHT;
 
-  // Calculate available space for table rows on the last page (includes note + grand total)
   const AVAILABLE_FOR_ROWS_LAST =
     PAGE_HEIGHT - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - NOTE_HEIGHT - GRAND_TOTAL_HEIGHT - SIGNATURE_HEIGHT - FOOTER_HEIGHT;
 
   const MAX_ROWS_PER_PAGE_REGULAR = Math.floor(AVAILABLE_FOR_ROWS_REGULAR / ROW_HEIGHT);
-  const MAX_ROWS_PER_PAGE_LAST = Math.floor(AVAILABLE_FOR_ROWS_LAST / ROW_HEIGHT) - 1; // -1 for subtotal
+  const MAX_ROWS_PER_PAGE_LAST = Math.floor(AVAILABLE_FOR_ROWS_LAST / ROW_HEIGHT) - 1; 
 
   const tableStyle = `
     @page { size: A4 portrait; margin: 10mm; }
@@ -496,7 +485,6 @@ const printPDF = () => {
     `;
   };
 
-  // Helper to split items into pages
   const paginateItems = (items: SlowNonMovingItem[], isLastSection: boolean) => {
     if (items.length === 0) return [];
     
@@ -514,7 +502,6 @@ const printPDF = () => {
     return pages;
   };
 
-  // Determine which section comes last
   const hasNonMoving = nonMovingItems.length > 0;
   const hasSlowMoving = slowMovingItems.length > 0;
   
@@ -528,7 +515,6 @@ const printPDF = () => {
 
   let serialCounter = 1;
 
-  // Process Non-Moving section
   if (hasNonMoving) {
     const nonMovingPages = paginateItems(nonMovingItems, !hasSlowMoving);
     const nonMovingSubtotal = nonMovingItems.reduce((s, x) => s + (x.StockBook || 0), 0);
@@ -545,9 +531,8 @@ const printPDF = () => {
     });
   }
 
-  // Process Slow-Moving section
   if (hasSlowMoving) {
-    serialCounter = 1; // Reset serial for slow-moving
+    serialCounter = 1; 
     const slowMovingPages = paginateItems(slowMovingItems, true);
     const slowMovingSubtotal = slowMovingItems.reduce((s, x) => s + (x.StockBook || 0), 0);
     
@@ -565,7 +550,6 @@ const printPDF = () => {
 
   const totalPages = allPages.length;
 
-  // Generate HTML
   let html = `<html><head><style>${tableStyle}</style></head><body>`;
 
   allPages.forEach((pageData, pageIdx) => {
