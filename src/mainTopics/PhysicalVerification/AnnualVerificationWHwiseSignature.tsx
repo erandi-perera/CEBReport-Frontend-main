@@ -233,7 +233,7 @@ const AnnualVerificationWHwiseSignature: React.FC = () => {
     setShowReport(true);
     try {
       const res = await fetch(
-        `http://localhost:44381/api/annual-verification-whwise-signature?deptId=${encodeURIComponent(selectedDept.DeptId)}&warehouseCode=${encodeURIComponent(selectedWarehouse)}&repYear=${encodeURIComponent(selectedYear)}&repMonth=${encodeURIComponent(selectedMonth)}`
+        `misapi/api/annual-verification-whwise-signature?deptId=${encodeURIComponent(selectedDept.DeptId)}&warehouseCode=${encodeURIComponent(selectedWarehouse)}&repYear=${encodeURIComponent(selectedYear)}&repMonth=${encodeURIComponent(selectedMonth)}`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
