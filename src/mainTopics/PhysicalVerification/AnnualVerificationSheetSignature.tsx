@@ -80,7 +80,7 @@ const AnnualVerificationSheetSignature: React.FC = () => {
 
     try {
       const res = await fetch(
-        `misapi/api/annual-verification-sheet?deptId=${encodeURIComponent(dept.id)}&repYear=${encodeURIComponent(selectedYear)}&repMonth=${encodeURIComponent(selectedMonth)}`
+        `/misapi/api/annual-verification-sheet?deptId=${encodeURIComponent(dept.id)}&repYear=${encodeURIComponent(selectedYear)}&repMonth=${encodeURIComponent(selectedMonth)}`
       );
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
