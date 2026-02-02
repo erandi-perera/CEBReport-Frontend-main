@@ -343,6 +343,10 @@ export const data = [
 				id: 161,
 				name: "20. PIV Details (Issued and Paid Cost Centers AFMHQ Only)",
 			},
+			{
+				id: 162,
+				name: "21. PIV Details (Paid Cost center: 913.00 and Issued Other Company)",
+			},
 		],
 		path: "/report/PIV",
 	},
@@ -352,39 +356,23 @@ export const data = [
 		name: "Physical Verification",
 		icon: TbReportAnalytics,
 		subtopics: [
-			{id: 130,
-			 name: "1.PHV Entry Form",
+			{id: 130, name: "1.PHV Entry Form"},
 
-			},	
+			{id: 131, name: "2.1 PHV Validation"},
 
-			{id: 131,
-			 name: "2.1 PHV Validation",
+			{id: 132, name: "2.2 PHV Validation (Warehousewise)"},
 
+			{id: 133, name: "3.1 Annual Verification Sheet (Signature) - AV/1/A"},
+
+			{
+				id: 134,
+				name: "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A",
 			},
 
-			{id: 132,
-			 name: "2.2 PHV Validation (Warehousewise)",
-
+			{
+				id: 135,
+				name: "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
 			},
-
-			{id: 133,
-			 name: "3.1 Annual Verification Sheet (Signature) - AV/1/A",
-
-			},	
-
-			{id: 134,
-			 name: "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A",
-
-			},
-
-			{id: 135,
-			 name: "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
-
-			},
-
-
-			
-			
 		],
 
 		path: "/report/PhysicalVerification",
