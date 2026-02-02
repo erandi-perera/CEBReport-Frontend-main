@@ -25,4 +25,3 @@ dist-ssr
 
 #ignore the node modules
 node_modules/
-src/mainTopics/PhysicalVerification/PHVValidationWarehousewise.tsx
