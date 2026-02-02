@@ -106,7 +106,7 @@ const ProvinceManualSetOffReport: React.FC = () => {
 			const apiFrom = fromDate.split("-").join("/");
 			const apiTo = toDate.split("-").join("/");
 
-			const url = `/LedgerCard/api/province-manual-setoff-report/report?fromDate=${apiFrom}&toDate=${apiTo}&compId=${company.compId.trim()}`;
+			const url = `/misapi/api/province-manual-setoff-report/report?fromDate=${apiFrom}&toDate=${apiTo}&compId=${company.compId.trim()}`;
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP error ${res.status}`);
 

@@ -98,7 +98,7 @@ const AccountCodesWisePivReport: React.FC = () => {
 		try {
 			const apiFrom = fromDate.split("-").join("/");
 			const apiTo = toDate.split("-").join("/");
-			const url = `/LedgerCard/api/account-codes-wise-piv/report?fromDate=${apiFrom}&toDate=${apiTo}&costctr=${dept.DeptId.trim()}`;
+			const url = `/misapi/api/account-codes-wise-piv/report?fromDate=${apiFrom}&toDate=${apiTo}&costctr=${dept.DeptId.trim()}`;
 
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP error ${res.status}`);

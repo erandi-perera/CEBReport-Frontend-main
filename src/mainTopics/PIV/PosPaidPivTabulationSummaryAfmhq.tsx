@@ -183,7 +183,7 @@ const PosPaidPivTabulationSummaryAfmhq: React.FC = () => {
 		setRawReportData([]);
 
 		try {
-			const url = `/LedgerCard/api/pos-paid-piv-tabulation-afmhq/get?costCtr=${encodeURIComponent(
+			const url = `/misapi/api/pos-paid-piv-tabulation-afmhq/get?costCtr=${encodeURIComponent(
 				costCenter.id,
 			)}&fromDate=${fromDate.replace(/-/g, "")}&toDate=${toDate.replace(/-/g, "")}`;
 
@@ -270,19 +270,23 @@ const PosPaidPivTabulationSummaryAfmhq: React.FC = () => {
 		let headerFontSize = "10px";
 		let titleFontSize = "14px";
 		let colWidth = "105px";
+		let PaddingT = "5px";
 
 		if (totalCols > 18) {
-			fontSize = "7.5px";
-			headerFontSize = "9px";
-			colWidth = "70px";
+			fontSize = "4px";
+			headerFontSize = "5px";
+			colWidth = "30px";
+			PaddingT= "2px";
 		} else if (totalCols > 12) {
-			fontSize = "8.2px";
+			fontSize = "7px";
+			headerFontSize = "8px";
 			colWidth = "88px";
+			PaddingT = "3px";
 		}
 
 		const tableStyle = `
-      table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: ${fontSize}; }
-      th, td { border: 1px solid #aaa; padding: 5px; }
+      table { width: auto; table-layout: auto;   max-width: 100%;  border-collapse: collapse; font-family: Arial, sans-serif; font-size: ${fontSize}; }
+      th, td { border: 1px solid #aaa; padding: ${PaddingT}; }
       th { font-weight: bold; text-align: center; font-size: ${headerFontSize}; }
       .left { text-align: left !important; padding-left: 8px; }
       .numeric { text-align: right !important; }
