@@ -55,7 +55,6 @@ const formatDate = (dateStr: string | null): string => {
 	}
 };
 
-
 const ProvincePIVProvincial: React.FC = () => {
 	const {user} = useUser();
 	const epfNo = user?.Userno || "";
@@ -164,7 +163,7 @@ const ProvincePIVProvincial: React.FC = () => {
 	};
 
 	const accountCodes = Array.from(
-		new Set(reportData.map((i) => i.Account_Code))
+		new Set(reportData.map((i) => i.Account_Code)),
 	).sort();
 	const groupedData = groupByCostCenterAndDept();
 
@@ -179,7 +178,7 @@ const ProvincePIVProvincial: React.FC = () => {
 			setLoading(true);
 			try {
 				const res = await fetch(
-					`/misapi/api/incomeexpenditure/Usercompanies/${epfNo}/60`
+					`/misapi/api/incomeexpenditure/Usercompanies/${epfNo}/60`,
 				);
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const txt = await res.text();
@@ -207,7 +206,7 @@ const ProvincePIVProvincial: React.FC = () => {
 				(!searchId ||
 					c.compId.toLowerCase().includes(searchId.toLowerCase())) &&
 				(!searchName ||
-					c.CompName.toLowerCase().includes(searchName.toLowerCase()))
+					c.CompName.toLowerCase().includes(searchName.toLowerCase())),
 		);
 		setFiltered(f);
 		setPage(1);
@@ -230,7 +229,7 @@ const ProvincePIVProvincial: React.FC = () => {
 				company.compId
 			}&fromDate=${fromDate.replace(/-/g, "")}&toDate=${toDate.replace(
 				/-/g,
-				""
+				"",
 			)}`;
 			const res = await fetch(url);
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -292,7 +291,7 @@ const ProvincePIVProvincial: React.FC = () => {
 				pivGroups.forEach(({item, accountAmounts}) => {
 					const pivTotal = accountCodes.reduce(
 						(s, acc) => s + (accountAmounts[acc] || 0),
-						0
+						0,
 					);
 
 					const row = [
@@ -304,14 +303,13 @@ const ProvincePIVProvincial: React.FC = () => {
 						csvEscape(`="${item.Bank_Check_No || ""}"`), // Bank Check as STRING
 						csvEscape(formatNumber(pivTotal)),
 						...accountCodes.map((acc) =>
-							csvEscape(formatNumber(accountAmounts[acc] || 0))
+							csvEscape(formatNumber(accountAmounts[acc] || 0)),
 						),
 						csvEscape(formatNumber(pivTotal)),
 					];
 
 					rows.push(row.join(","));
 				});
-
 			});
 
 			// Cost center total
@@ -320,7 +318,7 @@ const ProvincePIVProvincial: React.FC = () => {
 				.reduce((sum, g) => {
 					const pivSum = accountCodes.reduce(
 						(s, acc) => s + (g.accountAmounts[acc] || 0),
-						0
+						0,
 					);
 					return sum + pivSum;
 				}, 0);
@@ -328,7 +326,7 @@ const ProvincePIVProvincial: React.FC = () => {
 			const ccAccTotals = accountCodes.map((acc) =>
 				Object.values(deptGroups)
 					.flat()
-					.reduce((s, g) => s + (g.accountAmounts[acc] || 0), 0)
+					.reduce((s, g) => s + (g.accountAmounts[acc] || 0), 0),
 			);
 
 			rows.push(
@@ -342,7 +340,7 @@ const ProvincePIVProvincial: React.FC = () => {
 					"",
 					...ccAccTotals.map((t) => csvEscape(formatNumber(t))),
 					csvEscape(formatNumber(ccTotal)),
-				].join(",")
+				].join(","),
 			);
 
 			rows.push("");
@@ -355,7 +353,7 @@ const ProvincePIVProvincial: React.FC = () => {
 			.reduce((sum, g) => {
 				const pivSum = accountCodes.reduce(
 					(s, acc) => s + (g.accountAmounts[acc] || 0),
-					0
+					0,
 				);
 				return sum + pivSum;
 			}, 0);
@@ -364,7 +362,7 @@ const ProvincePIVProvincial: React.FC = () => {
 			Object.values(groupedData)
 				.flatMap(Object.values)
 				.flat()
-				.reduce((s, g) => s + (g.accountAmounts[acc] || 0), 0)
+				.reduce((s, g) => s + (g.accountAmounts[acc] || 0), 0),
 		);
 
 		rows.push(
@@ -378,7 +376,7 @@ const ProvincePIVProvincial: React.FC = () => {
 				"",
 				...grandAccTotals.map((t) => csvEscape(formatNumber(t))),
 				csvEscape(formatNumber(grandTotal)),
-			].join(",")
+			].join(","),
 		);
 
 		const blob = new Blob([rows.join("\n")], {
@@ -393,51 +391,51 @@ const ProvincePIVProvincial: React.FC = () => {
 		URL.revokeObjectURL(url);
 	};
 
-
 	// Print PDF
-const printPDF = () => {
-	if (reportData.length === 0 || !iframeRef.current || !selectedCompany)
-		return;
+	const printPDF = () => {
+		if (reportData.length === 0 || !iframeRef.current || !selectedCompany)
+			return;
 
-	const accountCodes = Array.from(
-		new Set(reportData.map((i) => i.Account_Code))
-	).sort();
+		const accountCodes = Array.from(
+			new Set(reportData.map((i) => i.Account_Code)),
+		).sort();
 
-	const totalDynamicColumns = accountCodes.length;
-	const fixedColumns = 7; // Cost Center (rowspan), PIV Date, Paid Date, PIV No, Bank Check No, Paid Amount, Total
-	const totalColumns = fixedColumns + totalDynamicColumns + 1;
+		const totalDynamicColumns = accountCodes.length;
+		const fixedColumns = 7; // Cost Center (rowspan), PIV Date, Paid Date, PIV No, Bank Check No, Paid Amount, Total
+		const totalColumns = fixedColumns + totalDynamicColumns + 1;
 
-	// Dynamic styling based on column count
-	let fontSize = "10px";
-	let headerFontSize = "11px";
-	let titleFontSize = "14px";
-	let padding = "8px";
-	let tightColWidth = "80px";
-	let tightColWidthLong = "90px";
-	let numericColWidth = "80px";
-	let costCenterColWidth = "180px";
+		// Dynamic styling based on column count
+		let fontSize = "10px";
+		let headerFontSize = "11px";
+		let titleFontSize = "14px";
+		let padding = "8px";
+		let tightColWidth = "80px";
+		let tightColWidthLong = "90px";
+		let numericColWidth = "80px";
+		let costCenterColWidth = "180px";
 
-	if (totalColumns > 22) {
-		fontSize = "6px";
-		headerFontSize = "8px";
-		padding = "4px";
-		tightColWidth = "50px";
-		tightColWidthLong = "60px";
-		numericColWidth = "55px";
-		costCenterColWidth = "100px";
-	} else if (totalColumns > 18) {
-		fontSize = "7.5px";
-		headerFontSize = "9px";
-		padding = "5px";
-		tightColWidth = "50px";
-		tightColWidthLong = "60px";
-		numericColWidth = "60px";
-		costCenterColWidth = "150px";
-	}
+		if (totalColumns > 22) {
+			fontSize = "6px";
+			headerFontSize = "6px";
+			padding = "2px";
+			tightColWidth = "20px";
+			tightColWidthLong = "20px";
+			numericColWidth = "20px";
+			costCenterColWidth = "40px";
+		} else if (totalColumns > 18) {
+			fontSize = "7.5px";
+			headerFontSize = "9px";
+			padding = "5px";
+			tightColWidth = "50px";
+			tightColWidthLong = "60px";
+			numericColWidth = "60px";
+			costCenterColWidth = "150px";
+		}
 
-	const tableStyle = `
+		const tableStyle = `
     table { 
-      width: 100%; 
+      width: auto;              
+      max-width: 100%;
       border-collapse: collapse; 
       table-layout: fixed; 
       font-size: ${fontSize}; 
@@ -483,7 +481,7 @@ const printPDF = () => {
     }
   `;
 
-	const colGroupHTML = `
+		const colGroupHTML = `
     <colgroup>
       <col style="width: ${costCenterColWidth};" /> <!-- Paid Cost Center (rowspan) -->
       <col style="width: ${tightColWidth};" />     <!-- PIV Date -->
@@ -498,58 +496,58 @@ const printPDF = () => {
     </colgroup>
   `;
 
-	const escapeHtml = (text: string | undefined | null): string => {
-		if (text == null) return "";
-		const div = document.createElement("div");
-		div.textContent = text;
-		return div.innerHTML;
-	};
+		const escapeHtml = (text: string | undefined | null): string => {
+			if (text == null) return "";
+			const div = document.createElement("div");
+			div.textContent = text;
+			return div.innerHTML;
+		};
 
-	let bodyHTML = "";
+		let bodyHTML = "";
 
-	Object.keys(groupedData).forEach((cc) => {
-		const ccName =
-			reportData.find((i) => i.Cost_Center === cc)?.CCT_NAME || cc;
-		const deptGroups = groupedData[cc];
-		const allDeptIds = Object.keys(deptGroups);
-		const totalPivCount = Object.values(deptGroups).reduce(
-			(s: any, arr: any) => s + arr.length,
-			0
-		);
-		let rowCounter = 0;
+		Object.keys(groupedData).forEach((cc) => {
+			const ccName =
+				reportData.find((i) => i.Cost_Center === cc)?.CCT_NAME || cc;
+			const deptGroups = groupedData[cc];
+			const allDeptIds = Object.keys(deptGroups);
+			const totalPivCount = Object.values(deptGroups).reduce(
+				(s: any, arr: any) => s + arr.length,
+				0,
+			);
+			let rowCounter = 0;
 
-		allDeptIds.forEach((deptId) => {
-			const pivGroups = deptGroups[deptId];
+			allDeptIds.forEach((deptId) => {
+				const pivGroups = deptGroups[deptId];
 
-			pivGroups.forEach(({item, accountAmounts}, idx) => {
-				const isFirstInDept = idx === 0;
-				const isFirstInCC = rowCounter === 0;
-				rowCounter++;
+				pivGroups.forEach(({item, accountAmounts}, idx) => {
+					const isFirstInDept = idx === 0;
+					const isFirstInCC = rowCounter === 0;
+					rowCounter++;
 
-				const pivTotal = accountCodes.reduce(
-					(s, acc) => s + (accountAmounts[acc] || 0),
-					0
-				);
+					const pivTotal = accountCodes.reduce(
+						(s, acc) => s + (accountAmounts[acc] || 0),
+						0,
+					);
 
-				bodyHTML += `<tr class="${
-					rowCounter % 2 === 0 ? "bg-white" : "bg-gray-50"
-				}">
+					bodyHTML += `<tr class="${
+						rowCounter % 2 === 0 ? "bg-white" : "bg-gray-50"
+					}">
           ${
 					isFirstInCC
 						? `<td rowspan="${
 								totalPivCount + allDeptIds.length + 1
-						  }" class="cost-center">${escapeHtml(cc)} - ${escapeHtml(
-								ccName
-						  )}</td>`
+							}" class="cost-center">${escapeHtml(cc)} - ${escapeHtml(
+								ccName,
+							)}</td>`
 						: ""
 				}
           ${
 					isFirstInDept
 						? `<td rowspan="${
 								pivGroups.length + 1
-						  }" class="tight font-semibold bg-blue-50 text-blue-800">${escapeHtml(
-								deptId
-						  )}</td>`
+							}" class="tight font-semibold bg-blue-50 text-blue-800">${escapeHtml(
+								deptId,
+							)}</td>`
 						: ""
 				}
           <td class="tight">${formatDate(item.Piv_Date)}</td>
@@ -561,59 +559,59 @@ const printPDF = () => {
 					.map(
 						(acc) =>
 							`<td class="numeric">${formatNumber(
-								accountAmounts[acc] || 0
-							)}</td>`
+								accountAmounts[acc] || 0,
+							)}</td>`,
 					)
 					.join("")}
           <td class="numeric font-bold">${formatNumber(pivTotal)}</td>
         </tr>`;
-			});
+				});
 
-			// Department Total Row
-			const deptTotal = pivGroups.reduce(
-				(s, g) =>
-					s +
-					accountCodes.reduce(
-						(t, acc) => t + (g.accountAmounts[acc] || 0),
-						0
-					),
-				0
-			);
+				// Department Total Row
+				const deptTotal = pivGroups.reduce(
+					(s, g) =>
+						s +
+						accountCodes.reduce(
+							(t, acc) => t + (g.accountAmounts[acc] || 0),
+							0,
+						),
+					0,
+				);
 
-			bodyHTML += `<tr class="group-total-issued">
+				bodyHTML += `<tr class="group-total-issued">
         <td colspan="4" style="text-align: left; padding-left: 12px;">Total - Issued  Cost Center: ${escapeHtml(
-				deptId
+				deptId,
 			)}</td>
         <td class="numeric"></td>
         ${accountCodes
 				.map((acc) => {
 					const sum = pivGroups.reduce(
 						(s, g) => s + (g.accountAmounts[acc] || 0),
-						0
+						0,
 					);
 					return `<td class="numeric">${formatNumber(sum)}</td>`;
 				})
 				.join("")}
         <td class="numeric font-bold">${formatNumber(deptTotal)}</td>
       </tr>`;
-		});
+			});
 
-		// Cost Center Total Row
-		const ccTotal = Object.values(deptGroups)
-			.flat()
-			.reduce(
-				(s, g) =>
-					s +
-					accountCodes.reduce(
-						(t, acc) => t + (g.accountAmounts[acc] || 0),
-						0
-					),
-				0
-			);
+			// Cost Center Total Row
+			const ccTotal = Object.values(deptGroups)
+				.flat()
+				.reduce(
+					(s, g) =>
+						s +
+						accountCodes.reduce(
+							(t, acc) => t + (g.accountAmounts[acc] || 0),
+							0,
+						),
+					0,
+				);
 
-		bodyHTML += `<tr class="group-total" style="background-color: #d0d0d0;">
+			bodyHTML += `<tr class="group-total" style="background-color: #d0d0d0;">
       <td colspan="6" style="text-align: left; padding-left: 12px;">Total - ${escapeHtml(
-			ccName
+			ccName,
 		)}</td>
       ${accountCodes
 			.map((acc) => {
@@ -626,24 +624,24 @@ const printPDF = () => {
       <td class="numeric font-bold">${formatNumber(ccTotal)}</td>
     </tr>`;
 
-		bodyHTML += `<tr><td colspan="${totalColumns}" style="height: 12px; background: white; border: none;"></td></tr>`;
-	});
+			bodyHTML += `<tr><td colspan="${totalColumns}" style="height: 12px; background: white; border: none;"></td></tr>`;
+		});
 
-	// Grand Total Row
-	const grandTotal = Object.values(groupedData)
-		.flatMap(Object.values)
-		.flat()
-		.reduce(
-			(s, g) =>
-				s +
-				accountCodes.reduce(
-					(t, acc) => t + (g.accountAmounts[acc] || 0),
-					0
-				),
-			0
-		);
+		// Grand Total Row
+		const grandTotal = Object.values(groupedData)
+			.flatMap(Object.values)
+			.flat()
+			.reduce(
+				(s, g) =>
+					s +
+					accountCodes.reduce(
+						(t, acc) => t + (g.accountAmounts[acc] || 0),
+						0,
+					),
+				0,
+			);
 
-	bodyHTML += `<tr class="grand-total">
+		bodyHTML += `<tr class="grand-total">
     <td colspan="6" style="text-align: right; padding-right: 12px; font-size: ${headerFontSize};">GRAND TOTAL</td>
     <td class="numeric"></td>
     ${accountCodes
@@ -656,11 +654,11 @@ const printPDF = () => {
 			})
 			.join("")}
     <td class="numeric font-bold" style="font-size: ${headerFontSize};">${formatNumber(
-		grandTotal
-	)}</td>
+			grandTotal,
+		)}</td>
   </tr>`;
 
-	const headerHTML = `
+		const headerHTML = `
     <thead>
       <tr style="background-color: white;">
         <th>Paid Cost Center</th>
@@ -675,7 +673,7 @@ const printPDF = () => {
       </tr>
     </thead>`;
 
-	const fullHTML = `<!DOCTYPE html>
+		const fullHTML = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -708,8 +706,8 @@ const printPDF = () => {
       margin: 10mm; 
     }
     @page { 
-      @bottom-left { content: "Printed on: ${new Date().toLocaleString()}"; font-size: 9px; color: #666; }
-      @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 9px; color: #666; }
+      @bottom-left { content: "Printed on: ${new Date().toLocaleString()}"; font-size: 9px;  }
+      @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 9px;  }
     }
   </style>
 </head>
@@ -719,7 +717,7 @@ const printPDF = () => {
     <div class="left">
       <div class="line"><strong>Issued Cost Center:</strong> Any Cost Center</div>
       <div class="line"><strong>Paid Branch/Company:</strong> ${escapeHtml(
-			selectedCompany.compId
+			selectedCompany.compId,
 		)} - ${escapeHtml(selectedCompany.CompName)}</div>
       <div class="line"><strong>Period:</strong> ${fromDate} to ${toDate}</div>
     </div>
@@ -733,13 +731,13 @@ const printPDF = () => {
 </body>
 </html>`;
 
-	const doc = iframeRef.current!.contentDocument!;
-	doc.open();
-	doc.write(fullHTML);
-	doc.close();
+		const doc = iframeRef.current!.contentDocument!;
+		doc.open();
+		doc.write(fullHTML);
+		doc.close();
 
-	setTimeout(() => iframeRef.current?.contentWindow?.print(), 1000);
-};
+		setTimeout(() => iframeRef.current?.contentWindow?.print(), 1000);
+	};
 
 	return (
 		<div className="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 text-sm font-sans">
@@ -854,8 +852,8 @@ const printPDF = () => {
 								setPage((p) =>
 									Math.min(
 										Math.ceil(filtered.length / pageSize),
-										p + 1
-									)
+										p + 1,
+									),
 								)
 							}
 							disabled={page >= Math.ceil(filtered.length / pageSize)}
@@ -966,15 +964,15 @@ const printPDF = () => {
 											{Object.keys(groupedData).map((cc) => {
 												const ccName =
 													reportData.find(
-														(i) => i.Cost_Center === cc
+														(i) => i.Cost_Center === cc,
 													)?.CCT_NAME || cc;
 												const deptGroups = groupedData[cc];
 												const allDeptIds = Object.keys(deptGroups);
 												const totalPivCount = Object.values(
-													deptGroups
+													deptGroups,
 												).reduce(
 													(s: any, arr: any) => s + arr.length,
-													0
+													0,
 												);
 												let rowCounter = 0;
 
@@ -988,7 +986,7 @@ const printPDF = () => {
 																	{pivGroups.map(
 																		(
 																			{item, accountAmounts},
-																			idx
+																			idx,
 																		) => {
 																			const isFirstInDept =
 																				idx === 0;
@@ -1002,7 +1000,7 @@ const printPDF = () => {
 																						(accountAmounts[
 																							acc
 																						] || 0),
-																					0
+																					0,
 																				);
 
 																			return (
@@ -1042,12 +1040,12 @@ const printPDF = () => {
 																					)}
 																					<td className="px-2 py-1 border border-gray-200">
 																						{formatDate(
-																							item.Piv_Date
+																							item.Piv_Date,
 																						)}
 																					</td>
 																					<td className="px-2 py-1 border border-gray-200">
 																						{formatDate(
-																							item.Paid_Date
+																							item.Paid_Date,
 																						)}
 																					</td>
 																					<td className="px-2 py-1 border border-gray-200">
@@ -1059,7 +1057,7 @@ const printPDF = () => {
 																					</td>
 																					<td className="px-2 py-1 border border-gray-200 text-right font-mono font-bold">
 																						{formatNumber(
-																							pivTotal
+																							pivTotal,
 																						)}
 																					</td>
 																					{accountCodes.map(
@@ -1074,19 +1072,19 @@ const printPDF = () => {
 																									accountAmounts[
 																										acc
 																									] ||
-																										0
+																										0,
 																								)}
 																							</td>
-																						)
+																						),
 																					)}
 																					<td className="px-2 py-1 border border-gray-200 text-right font-mono font-bold">
 																						{formatNumber(
-																							pivTotal
+																							pivTotal,
 																						)}
 																					</td>
 																				</tr>
 																			);
-																		}
+																		},
 																	)}
 																	<tr className="bg-blue-100 font-bold text-blue-900">
 																		<td
@@ -1109,7 +1107,7 @@ const printPDF = () => {
 																								.accountAmounts[
 																								acc
 																							] || 0),
-																						0
+																						0,
 																					);
 																				return (
 																					<td
@@ -1117,11 +1115,11 @@ const printPDF = () => {
 																						className="px-2 py-1 border border-gray-200 text-right font-mono"
 																					>
 																						{formatNumber(
-																							sum
+																							sum,
 																						)}
 																					</td>
 																				);
-																			}
+																			},
 																		)}
 																		<td className="px-2 py-1 border border-gray-200 text-right font-mono font-bold">
 																			{formatNumber(
@@ -1133,7 +1131,7 @@ const printPDF = () => {
 																							accountCodes.reduce(
 																								(
 																									s,
-																									acc
+																									acc,
 																								) =>
 																									s +
 																									(g
@@ -1141,15 +1139,15 @@ const printPDF = () => {
 																										acc
 																									] ||
 																										0),
-																								0
+																								0,
 																							);
 																						return (
 																							sum +
 																							pivSum
 																						);
 																					},
-																					0
-																				)
+																					0,
+																				),
 																			)}
 																		</td>
 																	</tr>
@@ -1166,7 +1164,7 @@ const printPDF = () => {
 															<td className="px-2 py-1 border border-gray-200 text-right font-mono"></td>
 															{accountCodes.map((acc) => {
 																const sum = Object.values(
-																	deptGroups
+																	deptGroups,
 																)
 																	.flat()
 																	.reduce(
@@ -1175,7 +1173,7 @@ const printPDF = () => {
 																			(g.accountAmounts[
 																				acc
 																			] || 0),
-																		0
+																		0,
 																	);
 																return (
 																	<td
@@ -1199,10 +1197,10 @@ const printPDF = () => {
 																							.accountAmounts[
 																							acc
 																						] || 0),
-																					0
+																					0,
 																				);
 																			return sum + pivSum;
-																		}, 0)
+																		}, 0),
 																)}
 															</td>
 														</tr>
@@ -1241,8 +1239,8 @@ const printPDF = () => {
 																		s +
 																		(g.accountAmounts[acc] ||
 																			0),
-																	0
-																)
+																	0,
+																),
 														)}
 													</td>
 												))}
@@ -1259,10 +1257,10 @@ const printPDF = () => {
 																			(g.accountAmounts[
 																				acc
 																			] || 0),
-																		0
+																		0,
 																	);
 																return sum + pivSum;
-															}, 0)
+															}, 0),
 													)}
 												</td>
 											</tr>

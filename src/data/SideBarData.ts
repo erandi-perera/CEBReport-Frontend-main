@@ -327,10 +327,25 @@ export const data = [
 				id: 157,
 				name: "17. Region wise VAT Report",
 			},
+			{
+				id: 158,
+				name: "18. Province wise System Set-Off PIV Details",
+			},
+			{
+				id: 159,
+				name: "18.1 Province wise Manual Set-Off PIV Details",
+			},
+			{
+				id: 160,
+				name: "19. POS Paid PIV Tabulation Summary Report (AFMHQ)",
+			},
+			{
+				id: 161,
+				name: "20. PIV Details (Issued and Paid Cost Centers AFMHQ Only)",
+			},
 		],
 		path: "/report/PIV",
 	},
-
 
 	{
 		id: 16,
@@ -376,5 +391,4 @@ export const data = [
 	},
 
 	// id = 17 is used above for Solar Information - Jobs
-
 ];
