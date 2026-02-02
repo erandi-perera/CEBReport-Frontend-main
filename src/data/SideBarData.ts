@@ -348,7 +348,22 @@ export const data = [
 			},
 
 			{id: 132,
-			 name: "PHV Validation Warehousewise",
+			 name: "2.2 PHV Validation (Warehousewise)",
+
+			},
+
+			{id: 133,
+			 name: "3.1 Annual Verification Sheet (Signature) - AV/1/A",
+
+			},	
+
+			{id: 134,
+			 name: "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A",
+
+			},
+
+			{id: 135,
+			 name: "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
 
 			},
 
