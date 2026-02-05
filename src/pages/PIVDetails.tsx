@@ -25,6 +25,8 @@ import ProvinceManualSetOffReport from "../mainTopics/PIV/ProvinceManualSetOffRe
 import PosPaidPivTabulationSummaryAfmhq from "../mainTopics/PIV/PosPaidPivTabulationSummaryAfmhq";
 import AccountCodesWisePivReport from "../mainTopics/PIV/AccountCodesWisePivReport";
 import AccCodeWisePivNotAfmhqReport from "../mainTopics/PIV/AccCodeWisePivNotAfmhqReport";
+import RefundedPivReport from "../mainTopics/PIV/RefundedPivReport";
+import RegionPivFromOtherCC from "../mainTopics/PIV/RegionPivFromOtherCC";
 
 type Subtopic = {
 	id: number;
@@ -100,6 +102,10 @@ const PIVDetails = () => {
 				return <AccountCodesWisePivReport />;
 			case "21. PIV Details (Paid Cost center: 913.00 and Issued Other Company)":
 				return <AccCodeWisePivNotAfmhqReport />;
+			case "22. Refunded PIV Details":
+				return <RefundedPivReport />;
+			case "23. Region wise PIV Collections by Provincial POS relevant to Other Cost Centers":
+				return <RegionPivFromOtherCC />;
 
 			default:
 				return (

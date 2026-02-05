@@ -347,6 +347,14 @@ export const data = [
 				id: 162,
 				name: "21. PIV Details (Paid Cost center: 913.00 and Issued Other Company)",
 			},
+			{
+				id: 163,
+				name: "22. Refunded PIV Details",
+			},
+			{
+				id: 164,
+				name: "23. Region wise PIV Collections by Provincial POS relevant to Other Cost Centers",
+			},
 		],
 		path: "/report/PIV",
 	},
