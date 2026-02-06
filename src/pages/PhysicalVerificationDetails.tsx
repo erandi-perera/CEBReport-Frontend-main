@@ -7,6 +7,7 @@ import PHVValidationWarehousewise from "../mainTopics/PhysicalVerification/PHVVa
 import AnnualVerificationSheetSignature from "../mainTopics/PhysicalVerification/AnnualVerificationSheetSignature";
 import AnnualVerificationWHwiseSignature from "../mainTopics/PhysicalVerification/AnnualVerificationWHwiseSignature";
 import PHVSlowNonMovingWHwise from "../mainTopics/PhysicalVerification/PHVSlowNonMovingWHwise";
+import PHVShortageSurplusWHwise from "../mainTopics/PhysicalVerification/PHVShortageSurplusWHwise";
 
 
 
@@ -37,7 +38,7 @@ const PhysicalVerificationDetails = () => {
 
     const renderSubtopicContent = (subtopicName: string) => {
         switch (subtopicName) {
-            case "1.PHV Entry Form":
+            case "1. PHV Entry Form":
                 return <PHVEntryForm />;
 
             case "2.1 PHV Validation":
@@ -53,8 +54,11 @@ const PhysicalVerificationDetails = () => {
             case "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A":
                 return <AnnualVerificationWHwiseSignature/>;
          
-            case "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6":
+            case "4. Physical Verification Non-Moving / Slow-Moving WH wise AV/6":
                 return <PHVSlowNonMovingWHwise/>;
+
+            case "5. Physical Verification Shortage / Surplus WH wise AV/1/B":
+                return <PHVShortageSurplusWHwise/>;
          
 
 

@@ -338,7 +338,7 @@ export const data = [
 		icon: TbReportAnalytics,
 		subtopics: [
 			{id: 130,
-			 name: "1.PHV Entry Form",
+			 name: "1. PHV Entry Form",
 
 			},	
 
@@ -363,9 +363,15 @@ export const data = [
 			},
 
 			{id: 135,
-			 name: "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
+			 name: "4. Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
 
 			},
+
+				{id: 136,
+			 name: "5. Physical Verification Shortage / Surplus WH wise AV/1/B",
+
+			},
+
 
 
 			
