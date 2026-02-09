@@ -367,8 +367,13 @@ export const data = [
 
 			},
 
-				{id: 136,
+			{id: 136,
 			 name: "5. Physical Verification Shortage / Surplus WH wise AV/1/B",
+
+			},
+
+			{id: 137,
+			 name: "6.1. Physical Verification Obsolete / Idle(GRADE Code) AV/7A",
 
 			},
 

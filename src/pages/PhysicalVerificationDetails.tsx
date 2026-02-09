@@ -8,6 +8,7 @@ import AnnualVerificationSheetSignature from "../mainTopics/PhysicalVerification
 import AnnualVerificationWHwiseSignature from "../mainTopics/PhysicalVerification/AnnualVerificationWHwiseSignature";
 import PHVSlowNonMovingWHwise from "../mainTopics/PhysicalVerification/PHVSlowNonMovingWHwise";
 import PHVShortageSurplusWHwise from "../mainTopics/PhysicalVerification/PHVShortageSurplusWHwise";
+import PHVObsoleteIdle from "../mainTopics/PhysicalVerification/PHVObsoleteIdle";
 
 
 
@@ -59,6 +60,9 @@ const PhysicalVerificationDetails = () => {
 
             case "5. Physical Verification Shortage / Surplus WH wise AV/1/B":
                 return <PHVShortageSurplusWHwise/>;
+
+            case "6.1. Physical Verification Obsolete / Idle(GRADE Code) AV/7A":
+                return <PHVObsoleteIdle/>;
          
 
 
