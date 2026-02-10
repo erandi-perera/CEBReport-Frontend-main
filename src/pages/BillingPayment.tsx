@@ -35,6 +35,13 @@ const BillingPayment = () => {
     switch (subtopicName) {
       case "Customer Information":
         return <CustomerDetails />;
+      case "Transaction History":
+      case "Bill Information":
+      case "Payment Inquires": 
+      case "Bill SMS Inquiry": 
+      case "Arrears Position – Single customer": 
+      case "Suspense Payment":     
+        return <div>{subtopicName} Content</div>;
       default:
         return (
           <div className="text-red-500 text-xs">
