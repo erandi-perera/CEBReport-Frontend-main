@@ -47,6 +47,12 @@ const General = () => {
       case "Standing order report":
       case "Illicit tapping of electricity":
       case "Registered consumers for SMS alerts":
+      case "Transformer wise Consumption Analysis":
+      case "Finalized Accounts":
+      case "Outstanding Dues":
+      case "Largest Consumption": 
+      case "Security deposit & Contract Demand - Bulk":
+      case "Arrears Position":  
         return <div>{subtopicName} Content</div>;
       default:
         return (
