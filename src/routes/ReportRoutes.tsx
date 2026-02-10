@@ -20,6 +20,7 @@ import CashBookDetails from "../pages/CashBookDetails";
 import PIVDetails from "../pages/PIVDetails";
 import SolarJobsDetails from "../pages/SolarJobsDetails";
 import PhysicalVerificationDetails from "../pages/PhysicalVerificationDetails";
+import BillingFinanceReports from "../pages/BillingFinanceReports";
 
 const ReportRoutes = () => (
 	<>
@@ -186,6 +187,14 @@ const ReportRoutes = () => (
 			element={
 				<Layout>
 					<PhysicalVerificationDetails />
+				</Layout>
+			}
+		/>
+		<Route
+			path="/report/billing-finance-reports"
+			element={
+				<Layout>
+					<BillingFinanceReports />
 				</Layout>
 			}
 		/>

@@ -1,6 +1,6 @@
 import {MdPayment} from "react-icons/md";
 import {RiBankLine} from "react-icons/ri";
-import {FaBoxes} from "react-icons/fa";
+import {FaBoxes, FaFileInvoiceDollar} from "react-icons/fa";
 import {BsFolder2Open} from "react-icons/bs";
 import {MdAssignmentTurnedIn} from "react-icons/md";
 import {GiSolarPower} from "react-icons/gi";
@@ -34,12 +34,12 @@ export const data = [
 			{id: 15, name: "Standing order report"},
 			{id: 16, name: "Illicit tapping of electricity"},
 			{id: 17, name: "Registered consumers for SMS alerts"},
-			{id: 18, name: "Transformer wise Consumption Analysis"},
-			{id: 19, name: "Finalized Accounts"},
-			{id: 20, name: "Outstanding Dues"},
-			{id: 21, name: "Largest Consumption"},
-			{id: 22, name: "Security deposit & Contract Demand - Bulk"},
-			{id: 23, name: "Arrears Position"},
+			{id: 1018, name: "Transformer wise Consumption Analysis"},
+			{id: 1019, name: "Finalized Accounts"},
+			{id: 1020, name: "Outstanding Dues"},
+			{id: 1021, name: "Largest Consumption"},
+			{id: 1022, name: "Security deposit & Contract Demand - Bulk"},
+			{id: 1023, name: "Arrears Position"},
 		],
 		path: "/report/general",
 	},
@@ -49,12 +49,12 @@ export const data = [
 		icon: RiBankLine,
 		subtopics: [
 			{id: 19, name: "Customer Information"},
-			{id: 20, name: "Transaction History" },
-			{id: 21, name: "Bill Information" },
-			{id: 22, name: "Payment inquiries" },
-			{id: 23, name: "Bill SMS Inquiry" },
-			{id: 24, name: "Arrears Position – Single customer" },
-			{id: 25, name: "Suspense Payment" },
+			{id: 1020, name: "Transaction History" },
+			{id: 1021, name: "Bill Information" },
+			{id: 1022, name: "Payment inquiries" },
+			{id: 1023, name: "Bill SMS Inquiry" },
+			{id: 1024, name: "Arrears Position – Single customer" },
+			{id: 1025, name: "Suspense Payment" },
 		],
 		path: "/report/billing-payment",
 	},
@@ -329,5 +329,15 @@ export const data = [
 	},
 
 	// id = 17 is used above for Solar Information - Jobs
+	{
+		id: 18,
+		name: "Billing Finance Reports",
+		icon: FaFileInvoiceDollar,
+		subtopics: [
+			{id: 1032, name: "Financial statement Reports"},
+			{id: 1033, name: "Financial Reports"},
+		],
+		path: "/report/billing-finance-reports",
+	},
 
 ];
