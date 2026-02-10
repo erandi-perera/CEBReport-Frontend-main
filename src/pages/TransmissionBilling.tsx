@@ -1,0 +1,64 @@
+import { useState, useEffect } from "react";
+import { data as sidebarData } from "../data/SideBarData";
+import { Outlet } from "react-router-dom";
+import SubtopicCard from "../components/shared/SubtopicCard";
+
+type Subtopic = {
+  id: number;
+  name: string;
+};
+
+const TransmissionBilling = () => {
+  const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
+  const [expandedCard, setExpandedCard] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Get Billing & Payment topic's subtopics directly from sidebarData
+    const transmissionTopic = sidebarData.find(
+      (topic) => topic.name === "Transmission Billing"
+    );
+    if (transmissionTopic) {
+      setSubtopics(transmissionTopic.subtopics);
+    }
+  }, []);
+
+  const toggleCard = (id: number) => {
+    if (expandedCard === id) {
+      setExpandedCard(null);
+    } else {
+      setExpandedCard(id);
+    }
+  };
+
+  const renderSubtopicContent = (subtopicName: string) => {
+    switch (subtopicName) {
+      case "Monthly Energy Sales (Assessed units taken from consolidated data)": 
+      case "Monthly Energy Sales (Assessed units taken from provincial data)":     
+        return <div>{subtopicName} Content</div>;
+      default:
+        return (
+          <div className="text-red-500 text-xs">
+            No content available for {subtopicName}
+          </div>
+        );
+    }
+  };
+  return (
+    <div className="flex flex-col gap-4 pt-5">
+      {subtopics.map((subtopic) => (
+        <SubtopicCard
+          key={subtopic.id}
+          id={subtopic.id}
+          title={subtopic.name}
+          expanded={expandedCard === subtopic.id}
+          onToggle={toggleCard}
+        >
+          {renderSubtopicContent(subtopic.name)}
+        </SubtopicCard>
+      ))}
+      <Outlet />
+    </div>
+  );
+};
+
+export default TransmissionBilling;

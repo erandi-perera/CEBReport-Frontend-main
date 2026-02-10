@@ -1,4 +1,4 @@
-import {MdPayment} from "react-icons/md";
+import {MdPayment, MdPower} from "react-icons/md";
 import {RiBankLine} from "react-icons/ri";
 import {FaBoxes, FaFileInvoiceDollar} from "react-icons/fa";
 import {BsFolder2Open} from "react-icons/bs";
@@ -338,6 +338,16 @@ export const data = [
 			{id: 1033, name: "Financial Reports"},
 		],
 		path: "/report/billing-finance-reports",
+	},
+	{
+		id: 19,
+		name: "Transmission Billing",
+		icon: MdPower,
+		subtopics: [
+			{id: 1034, name: "Monthly Energy Sales (Assessed units taken from consolidated data)"},
+			{id: 1035, name: "Monthly Energy Sales (Assessed units taken from provincial data)"},
+		],
+		path: "/report/transmission-billing",
 	},
 
 ];
