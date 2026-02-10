@@ -60,9 +60,9 @@ const UserNavBar = () => {
     >
       {/* Left Side - Logo & Branding */}
       <div className="absolute left-4 sm:left-6 top-1/2 transform -translate-y-1/2">
-        <Link 
-          to="/home" 
-          className="flex items-center group transition-all duration-300 hover:scale-105" 
+        <Link
+          to="/home"
+          className="flex items-center group transition-all duration-300 hover:scale-105"
           aria-label="Go to Home"
         >
           <div className="relative">
@@ -74,10 +74,16 @@ const UserNavBar = () => {
               />
             </div>
           </div>
-          
-          <div className="ml-3 sm:ml-4">
+
+          <div className="ml-3 sm:ml-4 flex items-center gap-2">
             <div className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-wide">
               CEB REPORTING
+            </div>
+            {/* <div className="text-xs sm:text-sm md:text-base font-semibold text-white/80">
+    Version 1.1
+  </div> */}
+            <div className="text-[11px] px-2 py-0.5 rounded-full bg-white/20 text-white">
+              v1.1
             </div>
           </div>
         </Link>
@@ -98,7 +104,7 @@ const UserNavBar = () => {
         <div className="hidden sm:block text-right text-white/90">
           <div className="text-xs font-medium">{user.Name}</div>
         </div>
-        
+
         <div
           className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-2 cursor-pointer hover:bg-white/20 transition-all duration-200 border border-white/20"
           onClick={handleToggle}
@@ -124,7 +130,7 @@ const UserNavBar = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="py-2">
               <button
                 className="w-full px-4 py-3 text-left hover:bg-gray-50 text-sm flex items-center gap-3 transition-colors border-b border-gray-100"
@@ -135,7 +141,7 @@ const UserNavBar = () => {
               </button>
               <button
                 className="w-full px-4 py-3 text-left hover:bg-gray-50 text-sm flex items-center gap-3 transition-colors border-b border-gray-100"
-                onClick={() => {/* Add settings functionality */}}
+                onClick={() => {/* Add settings functionality */ }}
               >
                 <FaCog className="w-4 h-4 text-gray-600" />
                 <span>Settings</span>
@@ -148,7 +154,7 @@ const UserNavBar = () => {
                 <span>Logout</span>
               </button>
             </div>
-            
+
             <div className="p-3 bg-gray-50 border-t border-gray-100">
               <div className="text-xs text-gray-500 text-center">
                 CEB Reporting Portal v2.1

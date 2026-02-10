@@ -145,7 +145,7 @@ const SolarPVBilling: React.FC = () => {
       setIsLoadingAreas(true);
       setAreaError(null);
       try {
-        const areaData = await fetchWithErrorHandling("/misapi/solarapi/areas");
+        const areaData = await fetchWithErrorHandling("/misapi/api/bulk/areas");
         setAreas(areaData.data || []);
       } catch (err: any) {
         console.error("Error fetching areas:", err);
@@ -166,7 +166,7 @@ const SolarPVBilling: React.FC = () => {
       setIsLoadingProvinces(true);
       setProvinceError(null);
       try {
-        const provinceData = await fetchWithErrorHandling("/misapi/solarapi/province");
+        const provinceData = await fetchWithErrorHandling("/misapi/api/bulk/province");
         setProvinces(provinceData.data || []);
       } catch (err: any) {
         console.error("Error fetching provinces:", err);
@@ -187,7 +187,7 @@ const SolarPVBilling: React.FC = () => {
       setIsLoadingDivisions(true);
       setDivisionError(null);
       try {
-        const divisionData = await fetchWithErrorHandling("/misapi/solarapi/region");
+        const divisionData = await fetchWithErrorHandling("/misapi/api/bulk/region");
         setDivisions(divisionData.data || []);
       } catch (err: any) {
         console.error("Error fetching divisions:", err);
@@ -221,7 +221,7 @@ const SolarPVBilling: React.FC = () => {
 
       try {
         // Use the same endpoint for both bill cycle and calc cycle
-        const cycleData = await fetchWithErrorHandling("/misapi/solarapi/bill-cycle");
+        const cycleData = await fetchWithErrorHandling("/misapi/api/bulk/netmtcons/billcycle/max");
         if (cycleData.data && cycleData.data.BillCycles?.length > 0) {
           const options = generateCycleOptions(
             cycleData.data.BillCycles,

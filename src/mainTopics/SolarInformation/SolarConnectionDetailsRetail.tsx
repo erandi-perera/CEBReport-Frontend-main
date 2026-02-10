@@ -522,7 +522,7 @@ const SolarConnectionDetailsRetail: React.FC = () => {
             setAreaError(null);
             try {
                 const data = await fetchWithErrorHandling(
-                    "/misapi/api/areas"
+                    "/misapi/api/ordinary/areas"
                 );
                 if (data.errorMessage) {
                     setAreaError(data.errorMessage);
@@ -550,7 +550,7 @@ const SolarConnectionDetailsRetail: React.FC = () => {
             setProvinceError(null);
             try {
                 const data = await fetchWithErrorHandling(
-                    "/misapi/solarapi/ordinary/province"
+                    "/misapi/api/ordinary/province"
                 );
                 if (data.errorMessage) {
                     setProvinceError(data.errorMessage);
@@ -578,7 +578,7 @@ const SolarConnectionDetailsRetail: React.FC = () => {
             setDivisionError(null);
             try {
                 const data = await fetchWithErrorHandling(
-                    "/misapi/solarapi/ordinary/region"
+                    "/misapi/api/ordinary/region"
                 );
                 if (data.errorMessage) {
                     setDivisionError(data.errorMessage);
@@ -611,7 +611,7 @@ const SolarConnectionDetailsRetail: React.FC = () => {
             setCycleError(null);
             try {
                 const data = await fetchWithErrorHandling(
-                    "/misapi/solarapi/retail/billcycle"
+                    "/misapi/api/ordinary/netmtcons/billcycle/max"
                 );
 
                 if (data.errorMessage) {

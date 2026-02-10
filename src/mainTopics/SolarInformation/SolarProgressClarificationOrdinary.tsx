@@ -132,7 +132,7 @@ const SolarProgressClarificationOrdinary: React.FC = () => {
       setAreaError(null);
       try {
         // Using the same API endpoint pattern as AgeAnalysis
-        const areaData = await fetchWithErrorHandling("/misapi/api/areas");
+        const areaData = await fetchWithErrorHandling("/misapi/api/ordinary/areas");
         setAreas(areaData.data || []);
       } catch (err: any) {
         console.error("Error fetching areas:", err);
@@ -154,7 +154,7 @@ const SolarProgressClarificationOrdinary: React.FC = () => {
       setProvinceError(null);
       try {
         const provinceData = await fetchWithErrorHandling(
-          "/misapi/solarapi/ordinary/province"
+          "/misapi/api/ordinary/province"
         );
         setProvinces(provinceData.data || []);
       } catch (err: any) {
@@ -177,7 +177,7 @@ const SolarProgressClarificationOrdinary: React.FC = () => {
       setDivisionError(null);
       try {
         const divisionData = await fetchWithErrorHandling(
-          "/misapi/solarapi/ordinary/region"
+          "/misapi/api/ordinary/region"
         );
         setDivisions(divisionData.data || []);
       } catch (err: any) {
@@ -200,7 +200,7 @@ const SolarProgressClarificationOrdinary: React.FC = () => {
       setBillCycleError(null);
       try {
         const maxCycleData = await fetchWithErrorHandling(
-          "/misapi/solarapi/ordinary/bill-cycle"
+          "/misapi/api/ordinary/netmtchg/billcycle/max"
         );
         if (maxCycleData.data && maxCycleData.data.BillCycles?.length > 0) {
           const options = generateBillCycleOptions(
