@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
-import TariffBlockWiseConsumption from "../mainTopics/general/TariffBlockWiseConsumption";
 import SubtopicCard from "../components/shared/SubtopicCard";
 
 
@@ -31,8 +30,7 @@ const General = () => {
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-      case "Tariff Block Wise Consumption Report":
-        return <TariffBlockWiseConsumption />;
+      
       case "Bill calculation":
       case "Listing of customers":
       case "List of government accounts":

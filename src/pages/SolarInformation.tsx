@@ -60,7 +60,8 @@ const SolarInformation = () => {
         return <SolarConnectionDetailsBulk />;
       case "Solar customer information":
         return <SolarCustomerInformation />;
-
+      case "Rooftop Solar Input Data portal for T and D Loss Calculation":     
+        return <div>{subtopicName} Content</div>;
       default:
         return (
           <div className="text-red-500 text-xs">

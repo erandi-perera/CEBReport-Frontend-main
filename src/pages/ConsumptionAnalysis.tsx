@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
+import TariffBlockWiseConsumption from "../mainTopics/general/TariffBlockWiseConsumption";
 
 type Subtopic = {
   id: number;
@@ -14,7 +15,7 @@ const ConsumptionAnalysis = () => {
   useEffect(() => {
     // Get Consumption analysis topic's subtopics directly from sidebarData
     const consumptionTopic = sidebarData.find(
-      (topic) => topic.name === "Consumption analysis"
+      (topic) => topic.name === "Consumption Analysis"
     );
     if (consumptionTopic) {
       setSubtopics(consumptionTopic.subtopics);
@@ -31,13 +32,11 @@ const ConsumptionAnalysis = () => {
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-      case "Consumer consumption analysis":
-      case "Tariff category wise consumption analysis":
-      case "Business category wise consumption analysis":
-      case "Transformer wise consumption analysis":
-      case "Consumption pattern analysis":
-      case "Assessed meter reading details":
-      case "Zero consumption details":
+      case "Tariff Block Wise Consumption Report":
+        return <TariffBlockWiseConsumption />;
+      case "Tariff and Block wise Consumption Analysis":
+      case "Transformer wise Consumption Analysis":
+      case "Business Category wise Consumption Analysis":
         return <div>{subtopicName} Content</div>;
       default:
         return (
