@@ -43,7 +43,6 @@ const General = () => {
       case "Shakthi LED distribution summary":
       case "Active customers and sales by tariff":
       case "Standing order report":
-      case "Illicit tapping of electricity":
       case "Registered consumers for SMS alerts":
       case "Transformer wise Consumption Analysis":
       case "Finalized Accounts":

@@ -37,13 +37,12 @@ const Analysis = () => {
     switch (subtopicName) {
      
       case "Total Debtors Analysis":
-     
         return <DebtorsAnalysis/>;
-        case "Debtors Age Analysis (Individual Customers)":
+      case "Debtors Age Analysis (Individual Customers)":
         return <AgeAnalysis/>;
-        
-       
-        
+      case "Age Analysis – Bulk":  
+      case "Consumption Pattern Analysis":   
+        return <div>{subtopicName} Content</div>;  
       default:
         return (
           <div className="text-red-500 text-xs">
