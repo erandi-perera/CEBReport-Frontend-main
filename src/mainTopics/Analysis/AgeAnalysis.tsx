@@ -393,6 +393,7 @@ const AgeAnalysis: React.FC = () => {
 
       // Increased timeout for Active customer reports
       const timeout = formData.custType === "A" ? 120000 : 60000; // 2 minutes for Active, 1 minute for others
+      
       const data = await fetchWithErrorHandling(url, timeout);
 
       if (data.errorMessage) {

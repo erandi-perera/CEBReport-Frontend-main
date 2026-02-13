@@ -3,6 +3,7 @@ import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import DebtorsAnalysis from "../mainTopics/Analysis/DebtorsAnalysis";
 import AgeAnalysis from "../mainTopics/Analysis/AgeAnalysis";
+import SolaAgeAnalysisForm from "../components/mainTopics/SolaAgeAnalysis/SolaAgeAnalysisForm";
 
 
 
@@ -40,6 +41,11 @@ const Analysis = () => {
         return <DebtorsAnalysis/>;
       case "Debtors Age Analysis (Individual Customers)":
         return <AgeAnalysis/>;
+        case "Age analysis for solar customer":
+        return <SolaAgeAnalysisForm/>;
+        
+       
+        
       case "Age Analysis – Bulk":  
       case "Consumption Pattern Analysis":   
         return <div>{subtopicName} Content</div>;  
