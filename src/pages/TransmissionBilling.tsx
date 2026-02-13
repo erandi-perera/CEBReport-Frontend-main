@@ -1,28 +1,24 @@
 import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
+import { Outlet } from "react-router-dom";
 import SubtopicCard from "../components/shared/SubtopicCard";
-import DebtorsAnalysis from "../mainTopics/Analysis/DebtorsAnalysis";
-import AgeAnalysis from "../mainTopics/Analysis/AgeAnalysis";
-import SolaAgeAnalysisForm from "../components/mainTopics/SolaAgeAnalysis/SolaAgeAnalysisForm";
-
-
 
 type Subtopic = {
   id: number;
   name: string;
 };
 
-const Analysis = () => {
+const TransmissionBilling = () => {
   const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
   useEffect(() => {
-    // Get Analysis topic's subtopics directly from sidebarData
-    const analysisTopic = sidebarData.find(
-      (topic) => topic.name === "Analysis"
+    // Get Billing & Payment topic's subtopics directly from sidebarData
+    const transmissionTopic = sidebarData.find(
+      (topic) => topic.name === "Transmission Billing"
     );
-    if (analysisTopic) {
-      setSubtopics(analysisTopic.subtopics);
+    if (transmissionTopic) {
+      setSubtopics(transmissionTopic.subtopics);
     }
   }, []);
 
@@ -36,19 +32,9 @@ const Analysis = () => {
 
   const renderSubtopicContent = (subtopicName: string) => {
     switch (subtopicName) {
-     
-      case "Total Debtors Analysis":
-        return <DebtorsAnalysis/>;
-      case "Debtors Age Analysis (Individual Customers)":
-        return <AgeAnalysis/>;
-        case "Age analysis for solar customer":
-        return <SolaAgeAnalysisForm/>;
-        
-       
-        
-      case "Age Analysis – Bulk":  
-      case "Consumption Pattern Analysis":   
-        return <div>{subtopicName} Content</div>;  
+      case "Monthly Energy Sales (Assessed units taken from consolidated data)": 
+      case "Monthly Energy Sales (Assessed units taken from provincial data)":     
+        return <div>{subtopicName} Content</div>;
       default:
         return (
           <div className="text-red-500 text-xs">
@@ -57,7 +43,6 @@ const Analysis = () => {
         );
     }
   };
-
   return (
     <div className="flex flex-col gap-4 pt-5">
       {subtopics.map((subtopic) => (
@@ -71,8 +56,9 @@ const Analysis = () => {
           {renderSubtopicContent(subtopic.name)}
         </SubtopicCard>
       ))}
+      <Outlet />
     </div>
   );
 };
 
-export default Analysis;
+export default TransmissionBilling;

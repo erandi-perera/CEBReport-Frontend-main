@@ -1,6 +1,6 @@
-import {MdPayment} from "react-icons/md";
+import {MdPayment, MdPower} from "react-icons/md";
 import {RiBankLine} from "react-icons/ri";
-import {FaBoxes} from "react-icons/fa";
+import {FaBoxes, FaFileInvoiceDollar} from "react-icons/fa";
 import {BsFolder2Open} from "react-icons/bs";
 import {MdAssignmentTurnedIn} from "react-icons/md";
 import {GiSolarPower} from "react-icons/gi";
@@ -19,7 +19,6 @@ export const data = [
 		name: "General",
 		icon: MdPayment,
 		subtopics: [
-			{id: 18, name: "Tariff Block Wise Consumption Report"},
 			{id: 1, name: "Bill calculation"},
 			{id: 3, name: "Listing of customers"},
 			{id: 4, name: "List of government accounts"},
@@ -32,20 +31,28 @@ export const data = [
 			{id: 13, name: "Shakthi LED distribution summary"},
 			{id: 14, name: "Active customers and sales by tariff"},
 			{id: 15, name: "Standing order report"},
-			{id: 16, name: "Illicit tapping of electricity"},
 			{id: 17, name: "Registered consumers for SMS alerts"},
+			{id: 1018, name: "Transformer wise Consumption Analysis"},
+			{id: 1019, name: "Finalized Accounts"},
+			{id: 1020, name: "Outstanding Dues"},
+			{id: 1021, name: "Largest Consumption"},
+			{id: 1022, name: "Security deposit & Contract Demand - Bulk"},
+			{id: 1023, name: "Arrears Position"},
 		],
 		path: "/report/general",
 	},
 	{
 		id: 2,
-		name: "Billing & Payment",
+		name: "Customer Details",
 		icon: RiBankLine,
 		subtopics: [
 			{id: 19, name: "Customer Information"},
-			// { id: 20, name: "Printed bill information" },
-			// { id: 21, name: "Payment inquiries" },
-			// { id: 22, name: "Customer balance with latest transactions" },
+			{id: 1020, name: "Transaction History" },
+			{id: 1021, name: "Bill Information" },
+			{id: 1022, name: "Payment inquiries" },
+			{id: 1023, name: "Bill SMS Inquiry" },
+			{id: 1024, name: "Arrears Position – Single customer" },
+			{id: 1025, name: "Suspense Payment" },
 		],
 		path: "/report/billing-payment",
 	},
@@ -64,6 +71,8 @@ export const data = [
 			{id: 29, name: "Financial analysis"},
 			{id: 30, name: "Assessed unit analysis"},
 			// { id: 32, name: "unit analysis" },
+			{id: 1028, name: "Age Analysis – Bulk"},
+			{id: 1029, name: "Consumption Pattern Analysis"},
 		],
 		path: "/report/analysis",
 	},
@@ -76,7 +85,7 @@ export const data = [
 			{id: 32, name: "Sales and collection"},
 			{id: 33, name: "Stamp duty for payment collections"},
 			{id: 34, name: "Monthly revenue collection of different channels"},
-			{id: 35, name: "Kiosk payment collection"},
+			{id: 35, name: "Kiosk 	payment collection"},
 			{id: 36, name: "Payment collection"},
 			{id: 37, name: "Suspense payment details"},
 			{id: 38, name: "Finalized account details"},
@@ -92,13 +101,15 @@ export const data = [
 		name: "Consumption Analysis",
 		icon: MdAssignmentTurnedIn,
 		subtopics: [
-			{id: 43, name: "Consumer consumption analysis"},
-			{id: 44, name: "Tariff category wise consumption analysis"},
-			{id: 45, name: "Business category wise consumption analysis"},
-			{id: 46, name: "Transformer wise consumption analysis"},
-			{id: 47, name: "Consumption pattern analysis"},
-			{id: 48, name: "Assessed meter reading details"},
-			{id: 49, name: "Zero consumption details"},
+			//{id: 43, name: "Consumer consumption analysis"},
+			//{id: 44, name: "Tariff category wise consumption analysis"},
+			//{id: 47, name: "Consumption pattern analysis"},
+			//{id: 48, name: "Assessed meter reading details"},
+			//{id: 49, name: "Zero consumption details"},
+			{id: 1026, name: "Tariff Block Wise Consumption Report"},
+			{id: 43, name: "Tariff and Block wise Consumption Analysis"},
+			{id: 44, name: "Transformer wise Consumption Analysis"},
+			{id: 45, name: "Business Category wise Consumption Analysis"},
 		],
 		path: "/report/consumption-analysis",
 	},
@@ -122,6 +133,7 @@ export const data = [
 				name: "Solar connection details (incl. Reading and usage) - bulk",
 			},
 			{id: 58, name: "Solar customer information"},
+			{id: 1027, name: "Rooftop Solar Input Data portal for T and D Loss Calculation"},
 		],
 		path: "/report/solar-information",
 	},
@@ -155,7 +167,8 @@ export const data = [
 		subtopics: [
 			{id: 59, name: "Material Details"},
 			{id: 101, name: "Cost Center wise Quantity on Hand"},
-			{id: 100, name: "Average Consumptions"},
+			{id: 100, name: "Average Consumptions - All Material Codes"},
+			{id: 102, name: "Average Consumptions - Selected Maerial Codes"},
 		],
 		path: "/report/inventory",
 	},
@@ -294,9 +307,121 @@ export const data = [
 				id: 129,
 				name: "9. Province wise PIV Stamp Duty",
 			},
+			{
+				id: 150,
+				name: "10. Regional PIV Stamp Duty",
+			},
+			{
+				id: 151,
+				name: "11. PIV Details for Cheque Deposits",
+			},
+			{
+				id: 152,
+				name: "12. PIV Search",
+			},
+			{
+				id: 153,
+				name: "13. PIV Type wise PIV Details",
+			},
+			{
+				id: 154,
+				name: "14. Consolidated Output VAT Schedule",
+			},
+			{
+				id: 155,
+				name: "15. PIV Stamp Duty Detail Report",
+			},
+			{
+				id: 156,
+				name: "16. Province wise VAT Report",
+			},
+			{
+				id: 157,
+				name: "17. Region wise VAT Report",
+			},
+			{
+				id: 158,
+				name: "18. Province wise System Set-Off PIV Details",
+			},
+			{
+				id: 159,
+				name: "18.1 Province wise Manual Set-Off PIV Details",
+			},
+			{
+				id: 160,
+				name: "19. POS Paid PIV Tabulation Summary Report (AFMHQ)",
+			},
+			{
+				id: 161,
+				name: "20. PIV Details (Issued and Paid Cost Centers AFMHQ Only)",
+			},
 		],
 		path: "/report/PIV",
 	},
 
+	{
+		id: 16,
+		name: "Physical Verification",
+		icon: TbReportAnalytics,
+		subtopics: [
+			{id: 130,
+			 name: "1.PHV Entry Form",
+
+			},	
+
+			{id: 131,
+			 name: "2.1 PHV Validation",
+
+			},
+
+			{id: 132,
+			 name: "2.2 PHV Validation (Warehousewise)",
+
+			},
+
+			{id: 133,
+			 name: "3.1 Annual Verification Sheet (Signature) - AV/1/A",
+
+			},	
+
+			{id: 134,
+			 name: "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A",
+
+			},
+
+			{id: 135,
+			 name: "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
+
+			},
+
+
+			
+			
+		],
+
+		path: "/report/PhysicalVerification",
+	},
+
 	// id = 17 is used above for Solar Information - Jobs
+	{
+		id: 18,
+		name: "Billing Finance Reports",
+		icon: FaFileInvoiceDollar,
+		subtopics: [
+			{id: 1032, name: "Financial statement Reports"},
+			{id: 1033, name: "Financial Reports"},
+		],
+		path: "/report/billing-finance-reports",
+	},
+	{
+		id: 19,
+		name: "Transmission Billing",
+		icon: MdPower,
+		subtopics: [
+			{id: 1034, name: "Monthly Energy Sales (Assessed units taken from consolidated data)"},
+			{id: 1035, name: "Monthly Energy Sales (Assessed units taken from provincial data)"},
+		],
+		path: "/report/transmission-billing",
+	},
+
 ];

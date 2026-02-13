@@ -19,6 +19,9 @@ import LedgerCardDetails from "../pages/LedgerCardDetails";
 import CashBookDetails from "../pages/CashBookDetails";
 import PIVDetails from "../pages/PIVDetails";
 import SolarJobsDetails from "../pages/SolarJobsDetails";
+import PhysicalVerificationDetails from "../pages/PhysicalVerificationDetails";
+import BillingFinanceReports from "../pages/BillingFinanceReports";
+import TransmissionBilling from "../pages/TransmissionBilling";
 
 const ReportRoutes = () => (
 	<>
@@ -176,6 +179,31 @@ const ReportRoutes = () => (
 			element={
 				<Layout>
 					<SolarJobsDetails />
+				</Layout>
+			}
+		/>
+
+		<Route
+			path="/report/PhysicalVerification"
+			element={
+				<Layout>
+					<PhysicalVerificationDetails />
+				</Layout>
+			}
+		/>
+		<Route
+			path="/report/billing-finance-reports"
+			element={
+				<Layout>
+					<BillingFinanceReports />
+				</Layout>
+			}
+		/>
+		<Route
+			path="/report/transmission-billing"
+			element={
+				<Layout>
+					<TransmissionBilling />
 				</Layout>
 			}
 		/>

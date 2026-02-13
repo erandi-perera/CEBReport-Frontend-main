@@ -54,8 +54,6 @@ const formatDate = (dateStr: string | null): string => {
 	}
 };
 
-
-
 const ProvincePIV: React.FC = () => {
 	const {user} = useUser();
 	const epfNo = user?.Userno || "";
@@ -222,14 +220,14 @@ const ProvincePIV: React.FC = () => {
 
 		const headers = [
 			"Issued Cost Center",
-			"CC Name",
-			"PIV No",
 			"PIV Date",
 			"Paid Date",
-			"Bank Chq No",
-			"Mode",
-			...accountCodes,
 			"Paid Amount",
+			"PIV No",
+			"Bank Chq No",
+			"Payment Mode",
+			...accountCodes,
+			"Total",
 		];
 
 		const rows: string[] = [
@@ -253,12 +251,12 @@ const ProvincePIV: React.FC = () => {
 					0
 				);
 				const row = [
-					csvEscape(cc),
-					csvEscape(ccName),
-					csvEscape(item.PivNo),
+					csvEscape(`${cc} - ${ccName}`),
 					csvEscape(formatDate(item.PivDate)),
 					csvEscape(formatDate(item.PaidDate)),
-					csvEscape(item.BankCheckNo || ""),
+					csvEscape(item.Amount),
+					csvEscape(item.PivNo),
+					csvEscape(`="${item.BankCheckNo ?? ""}"`),
 					csvEscape(item.PaymentMode),
 					...accountCodes.map((acc) =>
 						csvEscape(formatNumber(accountAmounts[acc] || 0))
@@ -283,15 +281,14 @@ const ProvincePIV: React.FC = () => {
 
 			rows.push(
 				[
-					csvEscape("TOTAL"),
-					csvEscape(`Issued Cost Center: ${cc} - ${ccName}`),
+					csvEscape(`TOTAL: Issued Cost Center: ${cc} - ${ccName}`),
 					"",
 					"",
 					"",
 					"",
 					"",
 					"",
-					"",
+
 					...ccAccTotals.map((t) => csvEscape(formatNumber(t))),
 					csvEscape(formatNumber(ccTotal)),
 				].join(",")
@@ -319,8 +316,6 @@ const ProvincePIV: React.FC = () => {
 		rows.push(
 			[
 				csvEscape("GRAND TOTAL"),
-				"",
-				"",
 				"",
 				"",
 				"",
@@ -516,7 +511,7 @@ const ProvincePIV: React.FC = () => {
 				<th width="8%"> Paid Amount </th>
 				<th width="8%">PIV No</th>
 				<th width="7%">Bank Chq No</th>
-				<th width="5%">Mode</th>
+				<th width="5%">Payment Mode</th>
 				${accountCodes.map((acc) => `<th width="4.8%">${acc}</th>`).join("")}
 				<th width="9%">Total</th>
 			</tr>
@@ -741,7 +736,9 @@ const ProvincePIV: React.FC = () => {
 												<th className="px-2 py-1.5">
 													Bank Cheque No
 												</th>
-												<th className="px-2 py-1.5">Mode</th>
+												<th className="px-2 py-1.5">
+													Payment Mode
+												</th>
 												{accountCodes.map((acc) => (
 													<th
 														key={acc}
