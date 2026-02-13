@@ -938,7 +938,7 @@ const AgeAnalysis: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ width: "100%", height: "400px" }}>
+        <div className="w-full h-[400px]">
           {chartType === "bar" ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -1131,15 +1131,17 @@ const AgeAnalysis: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Customer Type Dropdown */}
           <div className="flex flex-col">
-            <label className={`${maroon} text-xs font-medium mb-1`}>
-              Select Customer Type:
-            </label>
-            <select
-              name="custType"
-              value={formData.custType}
-              onChange={handleInputChange}
-              className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-[#7A0000] focus:border-transparent mb-1"
-            >
+              <label htmlFor="custTypeSelect" className={`${maroon} text-xs font-medium mb-1`}>
+                Select Customer Type:
+              </label>
+              <select
+                id="custTypeSelect"
+                title="Select Customer Type"
+                name="custType"
+                value={formData.custType}
+                onChange={handleInputChange}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-[#7A0000] focus:border-transparent mb-1"
+              >
               {customerTypeOptions.map((type) => (
                 <option
                   key={type.value}
@@ -1154,10 +1156,12 @@ const AgeAnalysis: React.FC = () => {
 
           {/* Bill Cycle Dropdown */}
           <div className="flex flex-col">
-            <label className={`${maroon} text-xs font-medium mb-1`}>
+            <label htmlFor="billCycleSelect" className={`${maroon} text-xs font-medium mb-1`}>
               Select Bill Cycle:
             </label>
             <select
+              id="billCycleSelect"
+              title="Select Bill Cycle"
               name="billCycle"
               value={formData.billCycle}
               onChange={handleInputChange}
@@ -1178,10 +1182,12 @@ const AgeAnalysis: React.FC = () => {
 
           {/* Area Dropdown */}
           <div className="flex flex-col">
-            <label className={`${maroon} text-xs font-medium mb-1`}>
+            <label htmlFor="areaCodeSelect" className={`${maroon} text-xs font-medium mb-1`}>
               Select Area:
             </label>
             <select
+              id="areaCodeSelect"
+              title="Select Area"
               name="areaCode"
               value={formData.areaCode}
               onChange={handleInputChange}
@@ -1202,10 +1208,12 @@ const AgeAnalysis: React.FC = () => {
 
           {/* Time Period Dropdown */}
           <div className="flex flex-col">
-            <label className={`${maroon} text-xs font-medium mb-1`}>
+            <label htmlFor="timePeriodSelect" className={`${maroon} text-xs font-medium mb-1`}>
               Select Time Period:
             </label>
             <select
+              id="timePeriodSelect"
+              title="Select Time Period"
               name="timePeriod"
               value={formData.timePeriod}
               onChange={handleInputChange}
@@ -1721,11 +1729,10 @@ const AgeAnalysis: React.FC = () => {
 
       {/* Report container with scrollable content */}
       {showReport && (
-        <div
-          ref={reportContainerRef}
-          className="mt-4 border border-gray-300 rounded-lg overflow-hidden"
-          style={{ maxHeight: "calc(100vh - 200px)", overflowY: "auto" }}
-        >
+          <div
+            ref={reportContainerRef}
+            className="mt-4 border border-gray-300 rounded-lg overflow-hidden max-h-[calc(100vh-200px)] overflow-y-auto"
+          >
           {renderReportTable()}
         </div>
       )}

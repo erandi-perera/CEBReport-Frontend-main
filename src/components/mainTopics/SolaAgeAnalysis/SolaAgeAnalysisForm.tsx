@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import CustomButton from "../../shared/Button";
 import SolaAgeAnalysisTable from "./SolaAgeAnalysisTable";
-import { SOLAR_AGE_ANALYSIS_SUMMARY_API, SOLAR_AGE_CATEGORY_API } from "../../../services/BackendServices";
+import { SOLAR_AGE_ANALYSIS_SUMMARY_API } from "../../../services/BackendServices";
 
 // Interfaces
 interface Area {
@@ -29,18 +28,7 @@ interface AgeCategoryData {
   ErrorMessage: string | null;
 }
 
-interface SolarCustomer {
-  AccountNumber: string;
-  FirstName: string;
-  LastName: string;
-  Address1: string;
-  Address2: string;
-  Address3: string;
-  TariffCode: string;
-  AgreementDate: string | null;
-  OutstandingBalance: number;
-  ErrorMessage?: string | null;
-}
+// SolarCustomer interface removed (unused)
 
 interface SolarAgeCategoryData {
   AccountNumber: string;
@@ -437,16 +425,17 @@ const SolaAgeAnalysisForm: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Bill Cycle Dropdown */}
           <div className="flex flex-col">
-            <label className="text-[#7A0000] text-xs font-medium mb-1">
+            <label htmlFor="billCycleSelectForm" className="text-[#7A0000] text-xs font-medium mb-1">
               Select Bill Cycle:
             </label>
             <select
+              id="billCycleSelectForm"
+              title="Select Bill Cycle"
               name="billCycle"
               value={formData.billCycle}
               onChange={handleInputChange}
               className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-[#7A0000] focus:border-transparent"
               required
-              title="Select Bill Cycle"
             >
               {billCycleOptions.map((option) => (
                 <option key={option.code} value={option.code} className="text-xs py-1">
@@ -458,16 +447,17 @@ const SolaAgeAnalysisForm: React.FC = () => {
 
           {/* Area Dropdown */}
           <div className="flex flex-col">
-            <label className="text-[#7A0000] text-xs font-medium mb-1">
+            <label htmlFor="areaCodeSelectForm" className="text-[#7A0000] text-xs font-medium mb-1">
               Select Area:
             </label>
             <select
+              id="areaCodeSelectForm"
+              title="Select Area"
               name="areaCode"
               value={formData.areaCode}
               onChange={handleInputChange}
               className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-[#7A0000] focus:border-transparent"
               required
-              title="Select Area"
             >
               {areas.map((area) => (
                 <option key={area.AreaCode} value={area.AreaCode} className="text-xs py-1">

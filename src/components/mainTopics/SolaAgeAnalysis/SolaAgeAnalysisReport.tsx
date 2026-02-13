@@ -20,7 +20,6 @@ interface AgeCategoryData {
 
 interface SolaAgeAnalysisTableProps {
   ageCategoryData: AgeCategoryData | null;
-  onViewCategory: (category: string) => void;
   areaName?: string;
 }
 
@@ -34,20 +33,6 @@ interface BillCycleOption {
   display: string;
   code: string;
 }
-
-interface SolarCustomer {
-  AccountNumber: string;
-  FirstName: string;
-  LastName: string;
-  Address1: string;
-  Address2: string;
-  Address3: string;
-  TariffCode: string;
-  AgreementDate: string | null;
-  OutstandingBalance: number;
-  ErrorMessage?: string | null;
-}
-
 interface SolarAgeCategoryData {
   AccountNumber: string;
   Name: string;
@@ -58,7 +43,6 @@ interface SolarAgeCategoryData {
 
 const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
   ageCategoryData,
-  onViewCategory,
   areaName,
 }) => {
   // State
@@ -365,6 +349,23 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
     { label: "Actions", accessor: "actions", align: "center" as const },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-32">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#7A0000]"></div>
+        <span className="ml-3 text-sm text-gray-600">Loading...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-500 text-center p-4">
+        <p>{error}</p>
+      </div>
+    );
+  }
+
   if (!ageCategoryDataState) {
     return (
       <div className="p-6">
@@ -374,10 +375,12 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Bill Cycle Dropdown */}
             <div className="flex flex-col">
-              <label className="text-[#7A0000] text-xs font-medium mb-1">
+              <label htmlFor="billCycleSelect" className="text-[#7A0000] text-xs font-medium mb-1">
                 Select Bill Cycle:
               </label>
               <select
+                id="billCycleSelect"
+                title="Select Bill Cycle"
                 name="billCycle"
                 value={formData.billCycle}
                 onChange={handleInputChange}
@@ -394,10 +397,12 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
 
             {/* Area Dropdown */}
             <div className="flex flex-col">
-              <label className="text-[#7A0000] text-xs font-medium mb-1">
+              <label htmlFor="areaCodeSelect" className="text-[#7A0000] text-xs font-medium mb-1">
                 Select Area:
               </label>
               <select
+                id="areaCodeSelect"
+                title="Select Area"
                 name="areaCode"
                 value={formData.areaCode}
                 onChange={handleInputChange}
@@ -454,10 +459,12 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Bill Cycle Dropdown */}
           <div className="flex flex-col">
-            <label className="text-[#7A0000] text-xs font-medium mb-1">
+            <label htmlFor="billCycleSelectMain" className="text-[#7A0000] text-xs font-medium mb-1">
               Select Bill Cycle:
             </label>
             <select
+              id="billCycleSelectMain"
+              title="Select Bill Cycle"
               name="billCycle"
               value={formData.billCycle}
               onChange={handleInputChange}
@@ -474,10 +481,12 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
 
           {/* Area Dropdown */}
           <div className="flex flex-col">
-            <label className="text-[#7A0000] text-xs font-medium mb-1">
+            <label htmlFor="areaCodeSelectMain" className="text-[#7A0000] text-xs font-medium mb-1">
               Select Area:
             </label>
             <select
+              id="areaCodeSelectMain"
+              title="Select Area"
               name="areaCode"
               value={formData.areaCode}
               onChange={handleInputChange}
