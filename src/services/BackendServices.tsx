@@ -7,5 +7,3 @@ export const Ordinary_Reading_History_API =
 export const Bulk_Billing_Report_API = "/CEBINFO_API_2025/api/bulkBreakup5";
 export const Ordinary_CusTransaction_API =
   "/CEBINFO_API_2025/api/OrdinaryCusTransaction";
-export const SOLAR_AGE_ANALYSIS_SUMMARY_API = "/api/solar-age-analysis/GetSummary";
-export const SOLAR_AGE_CATEGORY_API = "/api/solar-age-analysis/GetCategory";
