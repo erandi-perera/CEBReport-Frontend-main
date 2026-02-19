@@ -22,7 +22,7 @@ export default defineConfig({
 				secure: false,
 			},
 			"/api": {
-				target: "http://localhost:44381",
+				target: "http://10.128.1.126",
 				changeOrigin: true,
 				secure: false,
 			},
@@ -50,7 +50,6 @@ export default defineConfig({
 				target: "http://localhost:44381",
 				changeOrigin: true,
 				secure: false,
-				rewrite: (path) => path.replace(/^\/solarapi/, ""),
 			},
 			"/workprogress": {
 				target: "http://localhost:44381",
