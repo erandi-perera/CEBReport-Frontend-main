@@ -35,6 +35,19 @@ interface BillCycleOption {
   code: string;
 }
 
+interface SolarCustomer {
+  AccountNumber: string;
+  FirstName: string;
+  LastName: string;
+  Address1: string;
+  Address2: string;
+  Address3: string;
+  TariffCode: string;
+  AgreementDate: string | null;
+  OutstandingBalance: number;
+  ErrorMessage?: string | null;
+}
+
 interface SolarAgeCategoryData {
   AccountNumber: string;
   Name: string;
@@ -45,6 +58,7 @@ interface SolarAgeCategoryData {
 
 const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
   ageCategoryData,
+  onViewCategory,
   areaName,
 }) => {
   // State
@@ -69,11 +83,6 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
     areaCode: "",
   });
   const [ageCategoryDataState, setAgeCategoryDataState] = useState<AgeCategoryData | null>(ageCategoryData);
-
-  // Suppress unused state warnings — these are used for side effects / future use
-  void loading;
-  void error;
-  void showReport;
 
   // Helper functions
   const generateBillCycleOptions = (
@@ -108,7 +117,7 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
           if (errorData.errorMessage) {
             errorMsg = errorData.errorMessage;
           }
-        } catch {
+        } catch (e) {
           errorMsg = response.statusText;
         }
         throw new Error(errorMsg);
@@ -163,9 +172,8 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
           setBillCycleOptions([]);
           setFormData((prev) => ({ ...prev, billCycle: "" }));
         }
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        setError("Error loading data: " + message);
+      } catch (err: any) {
+        setError("Error loading data: " + (err.message || err.toString()));
       } finally {
         setLoading(false);
       }
@@ -213,15 +221,14 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
       }
       
       setShowReport(true);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+    } catch (err: any) {
       let errorMessage = "Error fetching report: ";
 
-      if (message.includes("timed out")) {
+      if (err.message.includes("timed out")) {
         errorMessage +=
           "The request timed out. This usually happens when there are too many records. Try selecting a smaller area.";
       } else {
-        errorMessage += message;
+        errorMessage += err.message || err.toString();
       }
 
       setReportError(errorMessage);
@@ -271,31 +278,29 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
       console.log("Customers data:", customers);
       
       // Transform API response to match SolarAgeCategoryData interface
-      const transformedCustomers: SolarAgeCategoryData[] = customers.map((customer: Record<string, unknown>) => ({
-        AccountNumber: (customer.AccountNumber as string) || "",
-        Name: (customer.CustomerName as string) || "",
-        Address: `${(customer.Address1 as string) || ""}${customer.Address2 ? `, ${customer.Address2}` : ""}${customer.Address3 ? `, ${customer.Address3}` : ""}`,
-        NetType: (customer.NetTypeName as string) || "",
-        InitialAgreementDate: (customer.AgreementDate as string) || "N/A",
+      const transformedCustomers: SolarAgeCategoryData[] = customers.map((customer: any) => ({
+        AccountNumber: customer.AccountNumber || "",
+        Name: customer.CustomerName || "", // Use correct API key
+        Address: `${customer.Address1 || ""}${customer.Address2 ? `, ${customer.Address2}` : ""}${customer.Address3 ? `, ${customer.Address3}` : ""}`,
+        NetType: customer.NetTypeName || "", // Use correct API key
+        InitialAgreementDate: customer.AgreementDate || "N/A",
       }));
       
       console.log("Transformed customers:", transformedCustomers);
       setDetailedCustomers(transformedCustomers);
       setDetailedLoading(false);
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error("Error fetching detailed data:", err);
-      const message = err instanceof Error ? err.message : String(err);
       let errorMessage = "Error fetching detailed data: ";
-      if (message.includes("timed out")) {
+      if (err.message.includes("timed out")) {
         errorMessage += "The request timed out. This usually happens when there are too many records.";
       } else {
-        errorMessage += message;
+        errorMessage += err.message || err.toString();
       }
       setDetailedError(errorMessage);
       setDetailedLoading(false);
     }
   };
-
   const totals = React.useMemo(() => {
     if (!ageCategoryDataState) return null;
 
@@ -518,29 +523,32 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
         </div>
       )}
 
-      {ageCategoryDataState && tableData.length > 1 ? (
-        <div className="mt-6 bg-white rounded-xl shadow border border-gray-200 p-6">
-          <h3 className="text-lg font-bold text-[#7A0000] mb-1">
-            Solar Age Analysis Summary
-          </h3>
-          {areaName && (
-            <p className="text-sm text-gray-600 mb-4">
-              Area : <span className="font-semibold">{areaName}</span>
-            </p>
-          )}
-          <ReportTable
-            columns={tableColumns}
-            data={tableData}
-            emptyMessage="No data available for Age Analysis for solar customers."
-          />
-        </div>
-      ) : (
-        <div className="mt-6 bg-white rounded-xl shadow border border-gray-200 p-6 text-center text-gray-500">
-          <h3 className="text-lg font-bold text-[#7A0000] mb-1">
-            Solar Age Analysis Summary
-          </h3>
-          <p className="my-8">No data available for Age Analysis for solar customers.</p>
-        </div>
+
+      {showReport && (
+        ageCategoryDataState && tableData.length > 1 ? (
+          <div className="mt-6 bg-white rounded-xl shadow border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-[#7A0000] mb-1">
+              Solar Age Analysis Summary
+            </h3>
+            {areaName && (
+              <p className="text-sm text-gray-600 mb-4">
+                Area : <span className="font-semibold">{areaName}</span>
+              </p>
+            )}
+            <ReportTable
+              columns={tableColumns}
+              data={tableData}
+              emptyMessage="No data available for Age Analysis for solar customers."
+            />
+          </div>
+        ) : (
+          <div className="mt-6 bg-white rounded-xl shadow border border-gray-200 p-6 text-center text-gray-500">
+            <h3 className="text-lg font-bold text-[#7A0000] mb-1">
+              Solar Age Analysis Summary
+            </h3>
+            <p className="my-8">No data available for Age Analysis for solar customers.</p>
+          </div>
+        )
       )}
 
       {/* Detailed View Modal */}
@@ -561,4 +569,5 @@ const SolaAgeAnalysisTable: React.FC<SolaAgeAnalysisTableProps> = ({
   );
 };
 
+// Change the export to use the correct form with area and bill cycle selection
 export default SolaAgeAnalysisTable;
