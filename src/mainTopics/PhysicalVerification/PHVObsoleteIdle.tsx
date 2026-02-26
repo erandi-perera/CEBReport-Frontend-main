@@ -37,12 +37,6 @@ const formatNumber = (num: number | null | undefined): string => {
   });
 };
 
-const escapeHtml = (text: string | null | undefined): string => {
-  if (text == null) return "";
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-};
 
 const PHVObsoleteIdleWHwise: React.FC = () => {
   const { user } = useUser();
@@ -261,198 +255,504 @@ const PHVObsoleteIdleWHwise: React.FC = () => {
   };
 
   const handleDownloadCSV = () => {
-    if (reportData.length === 0 || !selectedDept) return;
+  if (reportData.length === 0 || !selectedDept) return;
 
-    const csvSafe = (value: any) => {
-      if (value == null) return '""';
-      const str = String(value).replace(/"/g, '""');
-      return `"${str}"`;
-    };
-
-    const headers = [
-      "Serial No",
-      "Code No",
-      "Description",
-      "Grade Code",
-      "UOM",
-      "Quantity (Stock Book)",
-      "Unit Price",
-      "Cost (Rs.) (Stock Book)",
-      "Reasons",
-      "Recommended action to be taken",
-    ];
-
-    const csvRows: string[] = [
-      csvSafe(`STATEMENT OF OBSOLETE AND IDLE MATERIALS IN STOCKS - ${selectedYear}`),
-      csvSafe(`COST CENTRE : ${selectedDept.DeptId} WARE HOUSE - ${selectedWarehouse}`),
-      "",
-      csvSafe("1.ORIGINAL : Deputy General Manager"),
-      csvSafe("2.DUPLICATE : Engineer-in-charge"),
-      csvSafe("3.TRIPLCATE : Store-kepper/E.S.(C.S.C)"),
-      csvSafe(`Date of Verification : ${reportData[0]?.PhvDate || ".............."}`),
-      csvSafe("Form - AV/7A"),
-      "",
-    ];
-
-    csvRows.push(headers.map(csvSafe).join(","));
-
-    reportData.forEach((item, idx) => {
-      const row = [
-        idx + 1,
-        "\t" + (item.MaterialCode || ""),
-        item.MaterialName || "",
-        item.GradeCode || "",
-        item.UomCode || "",
-        formatNumber(item.QtyOnHand),
-        formatNumber(item.UnitPrice),
-        formatNumber(item.StockBook),
-        item.Reason || "",
-        "",
-      ];
-      csvRows.push(row.map(csvSafe).join(","));
-    });
-
-    const totalStockBook = reportData.reduce((sum, item) => sum + (item.StockBook || 0), 0);
-    csvRows.push("");
-    csvRows.push([
-      '""', '""', '"Total Stocks"', '""', '""', '""', '""',
-      formatNumber(totalStockBook),
-      '""', '""'
-    ].join(","));
-
-    const csvContent = csvRows.join("\n");
-    const blob = new Blob(["\uFEFF" + csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `PHV_Obsolete_Idle_WHwise_${selectedDept.DeptId}_${selectedWarehouse}_${selectedYear}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const csvSafe = (value: any) => {
+    if (value == null) return '""';
+    const str = String(value).replace(/"/g, '""');
+    return `"${str}"`;
   };
 
-  const printPDF = () => {
-    if (reportData.length === 0 || !iframeRef.current || !selectedDept) return;
+  const headers = [
+    "Serial No",
+    "Code No",
+    "Description",
+    "Grade Code",
+    "UOM",
+    "Quantity (Stock Book)",
+    "Unit Price",
+    "Cost (Rs.) (Stock Book)",
+    "Reasons",
+    "Recommended action to be taken",
+  ];
 
-    const tableStyle = `
-      @page { size: A4 portrait; margin: 10mm; }
-      body { margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 10px; }
-      .page { page-break-after: always; min-height: 277mm; position: relative; display: flex; flex-direction: column; }
-      .header { text-align: center; margin-bottom: 8px; }
-      .header h2 { color: #7A0000; font-size: 14px; margin: 0; }
-      .header h3 { font-size: 12px; margin: 4px 0; }
-      .subtitles { font-size: 10px; display: flex; justify-content: space-between; margin: 2px 0; }
-      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-      th, td { border: 1px solid #000; padding: 4px; text-align: center; }
-      th { background: #f8f8f8; font-weight: bold; }
-      .right { text-align: right; }
-      .left { text-align: left; }
-      .signature { margin-top: 20px; font-size: 10px; }
-      .signature table { border: none; width: 100%; }
-      .signature td { border: none; padding: 4px; }
-      .footer { position: absolute; bottom: 10px; left: 10mm; right: 10mm; font-size: 9px; display: flex; justify-content: space-between; }
-      .total-row { font-weight: bold; background: #f0f0f0; }
-    `;
+  const csvRows: string[] = [
+    csvSafe(`STATEMENT OF OBSOLETE AND IDLE MATERIALS IN STOCKS - ${selectedYear}`),
+    csvSafe(`COST CENTRE : ${selectedDept.DeptId} WARE HOUSE - ${selectedWarehouse}`),
+    "",
+    csvSafe("1.ORIGINAL : Deputy General Manager"),
+    csvSafe("2.DUPLICATE : Engineer-in-charge"),
+    csvSafe("3.TRIPLCATE : Store-kepper/E.S.(C.S.C)"),
+    csvSafe(`Date of Verification : ${reportData[0]?.PhvDate || ".............."}`),
+    csvSafe("Form - AV/7A"),
+    "",
+  ];
 
-    let pagesHTML = "";
+  csvRows.push(headers.map(csvSafe).join(","));
 
-    const now = new Date();
-    const timestamp = now.toLocaleDateString("en-GB") + " " +
-      now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }).replace(":", ".");
+  reportData.forEach((item, idx) => {
+    const row = [
+      idx + 1,
+      "\t" + (item.MaterialCode || ""),
+      item.MaterialName || "",
+      item.GradeCode || "",
+      item.UomCode || "",
+      formatNumber(item.QtyOnHand),
+      formatNumber(item.UnitPrice),
+      formatNumber(item.StockBook),
+      item.Reason || "",
+      "",
+    ];
+    csvRows.push(row.map(csvSafe).join(","));
+  });
 
-    const totalStockBook = reportData.reduce((sum, item) => sum + (item.StockBook || 0), 0);
+const totalStockBook = reportData.reduce((sum, item) => sum + (item.StockBook || 0), 0);
 
-    pagesHTML += `
+csvRows.push([
+  '""',                          
+  '""',                          
+  '"Total Stocks"',              
+  '""',                          
+  '""',                          
+  '""',                          
+  '""',                          
+  `"${formatNumber(totalStockBook)}"`,  
+  '""',                          
+  '""'                           
+].join(","));
+
+  const csvContent = csvRows.join("\n");
+  const blob = new Blob(["\uFEFF" + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `PHV_Obsolete_Idle_WHwise_${selectedDept.DeptId}_${selectedWarehouse}_${selectedYear}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const printPDF = () => {
+  if (reportData.length === 0 || !iframeRef.current || !selectedDept || !selectedWarehouse) {
+    toast.error("Please select Cost Center, Warehouse, Year/Month and click 'View' first");
+    return;
+  }
+
+  // ── PAGE LAYOUT CONSTANTS (Portrait A4) ────────────────────────────────
+  const PAGE_H        = 297;
+  const MARGIN_TOP    = 10;
+  const MARGIN_BOTTOM = 10;
+  const MARGIN_LR     = 10;
+
+  const USABLE_H = PAGE_H - MARGIN_TOP - MARGIN_BOTTOM; // 277mm
+
+  const FULL_HEADER_H  = 40;  // full header repeated on every page
+  const TABLE_HEADER_H = 12;  // thead row height
+  const SIGNATURE_H    = 40;  // cert text + sig table + agreed line
+  const FOOTER_H       = 7;
+  const ROW_HEIGHT     = 6.5;
+  const ROW_BUFFER     = 2;
+
+  const DATA_H     = USABLE_H - FULL_HEADER_H - TABLE_HEADER_H - SIGNATURE_H - FOOTER_H;
+  const ROWS_PER_PAGE = Math.floor(DATA_H / ROW_HEIGHT) - ROW_BUFFER;
+
+  // ── HELPERS ────────────────────────────────────────────────────────────
+  const esc = (v: any) =>
+    String(v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+  const formatNum = (n: number | null | undefined) =>
+    (n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const now = new Date().toLocaleString("en-GB", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  });
+
+  const phvDate = reportData[0]?.PhvDate?.split("T")[0] || "..............";
+
+  // ── TOTALS ─────────────────────────────────────────────────────────────
+  const totalStockBook = reportData.reduce((s, x) => s + (x.StockBook || 0), 0);
+
+  // ── DATA ROWS ──────────────────────────────────────────────────────────
+  const dataRows = reportData.map((item, idx) => `
+    <tr>
+      <td class="center">${idx + 1}</td>
+      <td class="center">${esc(item.MaterialCode)}</td>
+      <td class="left">${esc(item.MaterialName)}</td>
+      <td class="center">${esc(item.GradeCode)}</td>
+      <td class="center">${esc(item.UomCode)}</td>
+      <td class="right">${formatNum(item.QtyOnHand)}</td>
+      <td class="right">${formatNum(item.UnitPrice)}</td>
+      <td class="right">${formatNum(item.StockBook)}</td>
+      <td class="center">${esc(item.Reason || "")}</td>
+      <td class="center"></td>
+    </tr>`);
+
+  const totalRow = `
+    <tr class="total-row">
+      <td colspan="7" class="right" style="font-weight:bold;">Total Stocks</td>
+      <td class="right" style="font-weight:bold;">${formatNum(totalStockBook)}</td>
+      <td colspan="2"></td>
+    </tr>`;
+
+  // ── PAGINATE ───────────────────────────────────────────────────────────
+  const pages: string[][] = [];
+  let remaining = [...dataRows];
+
+  while (remaining.length > 0) pages.push(remaining.splice(0, ROWS_PER_PAGE));
+
+  if (pages.length === 0) {
+    pages.push([totalRow]);
+  } else {
+    const lastPage = pages[pages.length - 1];
+    lastPage.length < ROWS_PER_PAGE
+      ? lastPage.push(totalRow)
+      : pages.push([totalRow]);
+  }
+
+  const totalPages = pages.length;
+
+  // ── THEAD ──────────────────────────────────────────────────────────────
+  const theadHTML = `
+    <thead>
+      <tr>
+        <th class="sn">Serial No</th>
+        <th class="code">Code No</th>
+        <th class="desc">Description</th>
+        <th class="grade">Grade Code</th>
+        <th class="uom">UOM</th>
+        <th class="qty">Quantity (Stock Book)</th>
+        <th class="price">Unit Price</th>
+        <th class="cost">Cost (Rs.) (Stock Book)</th>
+        <th class="reason">Reasons</th>
+        <th class="action">Recommended action to be taken</th>
+      </tr>
+    </thead>`;
+
+  // ── FULL HEADER — repeated on every page to match PDF ─────────────────
+  const fullHeaderHTML = `
+    <div class="header" style="height:${FULL_HEADER_H}mm;">
+      <h1>CEYLON ELECTRICITY BOARD</h1>
+      <h2>STATEMENT OF OBSOLETE AND IDLE MATERIALS IN STOCKS - ${selectedYear}</h2>
+      <h3>COST CENTRE : ${esc(selectedDept.DeptId)} &nbsp; WARE HOUSE - ${esc(selectedWarehouse)}</h3>
+      <div class="subtitles-row">
+        <span>1.ORIGINAL &nbsp;&nbsp;:&nbsp; Deputy General Manager</span>
+        <span>Form - AV/7A</span>
+      </div>
+      <div class="subtitles-row">
+        <span>2.DUPLICATE :&nbsp; Engineer-in-charge</span>
+        <span>Date of Verification : ${esc(phvDate)}</span>
+      </div>
+      <div class="subtitles-row">
+        <span>3.TRIPLCATE :&nbsp; Store-kepper/E.S.(C.S.C)</span>
+        <span></span>
+      </div>
+    </div>`;
+
+  // ── SIGNATURE — matches PDF layout exactly ─────────────────────────────
+  // Left: "We do hereby certify..." + numbered table
+const signatureHTML = `
+  <div class="sig-section">
+    <div class="sig-left">
+      <p class="sig-cert">We do hereby certify that Stocks were physically verified as per that given statement.</p>
+      <table class="sig-table">
+        <thead>
+          <tr>
+            <th style="width:25%">Board of Verifications</th>
+            <th style="width:25%">Name</th>
+            <th style="width:25%">Designation</th>
+            <th style="width:25%">Signature</th>
+          </tr>
+        </thead>
+       <tbody>
+  <tr>
+    <td></td>
+    <td>1. .....................</td>
+    <td>.....................</td>
+    <td>.....................</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>2. .....................</td>
+    <td>.....................</td>
+    <td>.....................</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>3. .....................</td>
+    <td>.....................</td>
+    <td>.....................</td>
+  </tr>
+</tbody>
+      </table>
+    </div>
+    <div class="sig-right">
+      <p>Agreed and certified correct.</p>
+      <div class="sig-line">......................................</div>
+      <p>Store-keeper/Elect. Superintendent (C.S.C.)</p>
+    </div>
+  </div>`;
+
+  // ── STYLES ─────────────────────────────────────────────────────────────
+  const styles = `
+    @page {
+      size: A4 portrait;
+      margin: ${MARGIN_TOP}mm ${MARGIN_LR}mm ${MARGIN_BOTTOM}mm ${MARGIN_LR}mm;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 8pt; }
+
+    .page {
+      position: relative;
+      width: 100%;
+      height: ${USABLE_H}mm;
+      overflow: hidden;
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; }
+
+    .page-top {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+    }
+
+    /* Always pinned to bottom regardless of row count */
+    .page-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: ${SIGNATURE_H + FOOTER_H}mm;
+    }
+
+    /* ── HEADER ── */
+    .header { overflow: hidden; padding-bottom: 1mm; }
+    h1 { font-size: 12pt; color: #7A0000; font-weight: bold; text-align: center; margin: 0 0 0.5mm; line-height: 1.2; }
+    h2 { font-size: 10pt; color: #7A0000; font-weight: bold; text-align: center; margin: 0 0 0.5mm; line-height: 1.2; }
+    h3 { font-size:  9pt; color: #333;    font-weight: 600;  text-align: center; margin: 0 0 1.5mm; line-height: 1.2; }
+
+    .subtitles-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 7.5pt;
+      margin-bottom: 0.7mm;
+      line-height: 1.3;
+    }
+
+    /* ── MAIN TABLE ── */
+    .table-wrapper { overflow: hidden; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 7pt;
+    }
+    th, td {
+      border: 0.5pt solid #333;
+      padding: 0.7mm 1mm;
+      overflow: hidden;
+      word-wrap: break-word;
+      vertical-align: middle;
+    }
+    th {
+      background: #e8e8e8;
+      font-weight: bold;
+      text-align: center;
+      font-size: 7pt;
+      line-height: 1.15;
+    }
+    thead tr { height: ${TABLE_HEADER_H}mm; }
+    tbody tr { height: ${ROW_HEIGHT}mm; }
+
+    /* Column widths */
+    .sn     { width: 5%;  text-align: center; }
+    .code   { width: 9%;  text-align: center; font-size: 6.5pt; }
+    .desc   { width: 28%; text-align: left;   font-size: 6.5pt; line-height: 1.2; }
+    .grade  { width: 6%;  text-align: center; }
+    .uom    { width: 5%;  text-align: center; }
+    .qty    { width: 9%;  text-align: right; }
+    .price  { width: 10%; text-align: right; }
+    .cost   { width: 11%; text-align: right; }
+    .reason { width: 9%;  text-align: center; font-size: 6.5pt; }
+    .action { width: 8%;  text-align: center; font-size: 6.5pt; }
+
+    .center { text-align: center; }
+    .right  { text-align: right; }
+    .left   { text-align: left; }
+    .total-row { background: #f0f0f0; font-size: 7.5pt; }
+
+    /* ── SIGNATURE SECTION ── */
+    .sig-section {
+      height: ${SIGNATURE_H}mm;
+      display: flex;
+      flex-direction: row;
+      gap: 4mm;
+      overflow: hidden;
+      padding: 1.5mm 0 0;
+    }
+
+    /* Left column: ~65% — cert text + numbered verification table */
+    .sig-left {
+      flex: 0 0 64%;
+      overflow: hidden;
+    }
+    .sig-cert {
+      font-size: 7.5pt;
+      margin-bottom: 1.5mm;
+      line-height: 1.3;
+    }
+
+   /* ── SIGNATURE SECTION ── */
+.sig-section {
+  height: ${SIGNATURE_H}mm;
+  display: flex;
+  flex-direction: row;
+  gap: 4mm;
+  overflow: hidden;
+  padding: 1.5mm 0 0;
+}
+
+.sig-left {
+  flex: 0 0 64%;
+  overflow: hidden;
+}
+.sig-cert {
+  font-size: 7.5pt;
+  margin-bottom: 2mm;
+  line-height: 1.4;
+}
+
+/* Signature table */
+.sig-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 7pt;
+}
+  
+.sig-table th,
+.sig-table td {
+  border: none;
+  padding: 0.5mm 1mm;
+  font-size: 7pt;
+  height: 5.5mm;
+  vertical-align: middle;
+  background: none;
+  text-align: left;
+}
+
+.sig-table thead th {
+  font-weight: bold;
+  text-align: left;
+}
+  
+/* The "Board of Verifications" row-label cell */
+.sig-label-cell {
+  width: 18%;
+}
+.sig-row-label {
+  width: 18%;
+  font-weight: normal;
+  vertical-align: middle;
+  font-size: 7pt;
+  line-height: 1.4;
+}
+.sig-table thead th:not(.sig-label-cell),
+.sig-table tbody td:not(.sig-row-label) {
+  width: 27%;
+}
+
+/* Right column */
+.sig-right {
+  flex: 0 0 34%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  font-size: 7.5pt;
+  line-height: 1.6;
+  overflow: hidden;
+}
+.sig-agreed {
+  text-align: right;
+  font-size: 7.5pt;
+  margin-bottom: 6mm;
+}
+.sig-line {
+  text-align: right;
+  margin-bottom: 1mm;
+  font-size: 7.5pt;
+}
+.sig-right p:last-child {
+  text-align: right;
+}
+
+
+
+
+    /* ── FOOTER ── */
+    .footer-section {
+      height: ${FOOTER_H}mm;
+      display: flex;
+      align-items: center;
+      padding: 0 0.5mm;
+      overflow: hidden;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      font-size: 6.5pt;
+    }
+  `;
+
+  // ── ASSEMBLE PAGES ─────────────────────────────────────────────────────
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${styles}</style></head><body>`;
+
+  pages.forEach((pageRows, idx) => {
+    const pageNum    = idx + 1;
+    const tableWrapH = USABLE_H - FULL_HEADER_H - SIGNATURE_H - FOOTER_H;
+
+    html += `
       <div class="page">
-        <div class="header">
-          <h2>CEYLON ELECTRICITY BOARD</h2>
-          <h3>STATEMENT OF OBSOLETE AND IDLE MATERIALS IN STOCKS - ${selectedYear}</h3>
-          <h3>COST CENTRE : ${selectedDept.DeptId} WARE HOUSE - ${selectedWarehouse}</h3>
-        </div>
 
-        <div class="subtitles"><div>1.ORIGINAL  :  Deputy General Manager</div><div>Form - AV/7A</div></div>
-        <div class="subtitles"><div>2.DUPLICATE :  Engineer-in-charge</div><div>Date of Verification : ${reportData[0]?.PhvDate || ".............."}</div></div>
-        <div class="subtitles"><div>3.TRIPLCATE :   Store-kepper/E.S.(C.S.C)</div><div></div></div>
-
-        <table>
-          <thead>
-            <tr>
-              <th style="width:5%">Serial</th>
-              <th style="width:10%">Code No</th>
-              <th style="width:35%">Description</th>
-              <th style="width:8%">Grade Code</th>
-              <th style="width:6%">UOM</th>
-              <th style="width:10%">Quantity (Stock Book)</th>
-              <th style="width:8%">Unit Price</th>
-              <th style="width:10%">Cost (Rs.) (Stock Book)</th>
-              <th style="width:8%">Reasons</th>
-              <th style="width:10%">Recommended action to be taken</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${reportData.map((item, idx) => `
-              <tr>
-                <td class="center">${idx + 1}</td>
-                <td class="center">${escapeHtml(item.MaterialCode)}</td>
-                <td class="left">${escapeHtml(item.MaterialName)}</td>
-                <td class="center">${escapeHtml(item.GradeCode)}</td>
-                <td class="center">${escapeHtml(item.UomCode)}</td>
-                <td class="right">${formatNumber(item.QtyOnHand)}</td>
-                <td class="right">${formatNumber(item.UnitPrice)}</td>
-                <td class="right">${formatNumber(item.StockBook)}</td>
-                <td class="left">${escapeHtml(item.Reason)}</td>
-                <td></td>
-              </tr>
-            `).join("")}
-            <tr class="total-row">
-              <td colspan="7" class="right">Total Stocks</td>
-              <td class="right">${formatNumber(totalStockBook)}</td>
-              <td colspan="2"></td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="signature">
-          <div class="left">
-            <p>We do hereby certify that Stocks were physically verified as per that given statement.</p>
+        <div class="page-top">
+          ${fullHeaderHTML}
+          <div class="table-wrapper" style="height:${tableWrapH}mm;">
             <table>
-              <tr><td>Board of Verifications</td><td>Name</td><td>Designation</td><td>Signature</td></tr>
-              <tr><td>1................</td><td>...................</td><td>...................</td><td>...................</td></tr>
-              <tr><td>2................</td><td>...................</td><td>...................</td><td>...................</td></tr>
-              <tr><td>3................</td><td>...................</td><td>...................</td><td>...................</td></tr>
+              ${theadHTML}
+              <tbody>
+                ${pageRows.join("")}
+              </tbody>
             </table>
           </div>
-          <div class="right">
-            <p>Agreed and certified correct.</p>
-            <p>......................................</p>
-            <p>Store-keeper/Elect. Superintendent (C.S.C.)</p>
+        </div>
+
+        <div class="page-bottom">
+          ${signatureHTML}
+          <div class="footer-section">
+            <div class="footer">
+              <span>Date &amp; time of the Report Generated : ${now}</span>
+              <span>Page ${pageNum} of ${totalPages}</span>
+            </div>
           </div>
-          <div class="clear"></div>
         </div>
 
-        <div class="footer">
-          <div>Date & time of the Report Generated : ${timestamp}</div>
-          <div>Page 1 of 1</div>
-        </div>
-      </div>
-    `;
+      </div>`;
+  });
 
-    const fullHTML = `
-      <html>
-        <head><style>${tableStyle}</style></head>
-        <body>${pagesHTML}</body>
-      </html>
-    `;
+  html += `</body></html>`;
 
-    const doc = iframeRef.current.contentDocument!;
-    doc.open();
-    doc.write(fullHTML);
-    doc.close();
-
-    setTimeout(() => iframeRef.current?.contentWindow?.print(), 800);
-  };
-
+  const doc = iframeRef.current.contentDocument!;
+  doc.open();
+  doc.write(html);
+  doc.close();
+  setTimeout(() => iframeRef.current?.contentWindow?.print(), 800);
+};
   return (
     <div className="max-w-[95%] mx-auto p-2 md:p-4 bg-white rounded-xl shadow border border-gray-200 text-sm md:text-base font-sans">
       <iframe

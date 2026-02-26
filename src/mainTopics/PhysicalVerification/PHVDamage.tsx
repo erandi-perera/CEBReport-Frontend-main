@@ -15,21 +15,17 @@ interface Warehouse {
   CostCenterId?: string;
 }
 
-interface ShortageSurplusItem {
-  DocumentNo: string;
+interface PHVDamageItem {
+  PhvDate: string;
   MaterialCode: string;
   MaterialName: string;
-  GradeCode: string;
   UomCode: string;
+  GradeCode: string;
   UnitPrice: number;
   QtyOnHand: number;
-  CountedQty: number;
-  SurplusQty: number | null;
-  ShortageQty: number | null;
+  DocumentNo: string;
   StockBook: number;
-  PhysicalBook: number;
-  SurplusAmount: number | null;
-  ShortageAmount: number | null;
+  Reason: string;
   [key: string]: any;
 }
 
@@ -41,9 +37,7 @@ const formatNumber = (num: number | null | undefined): string => {
   });
 };
 
-
-
-const PHVShortageSurplusWHwise: React.FC = () => {
+const PHVDamage: React.FC = () => {
   const { user } = useUser();
   const epfNo = user?.Userno || "";
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -60,7 +54,7 @@ const PHVShortageSurplusWHwise: React.FC = () => {
   const [selectedWarehouse, setSelectedWarehouse] = useState("");
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-  const [reportData, setReportData] = useState<ShortageSurplusItem[]>([]);
+  const [reportData, setReportData] = useState<PHVDamageItem[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
   const [showReport, setShowReport] = useState(false);
 
@@ -123,8 +117,8 @@ const PHVShortageSurplusWHwise: React.FC = () => {
         const errorMessage = e.message.includes("JSON.parse")
           ? "Invalid data format received from server."
           : e.message.includes("Failed to fetch")
-            ? "Failed to connect to the server. Please check if the server is running."
-            : e.message;
+          ? "Failed to connect to the server. Please check if the server is running."
+          : e.message;
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {
@@ -201,8 +195,16 @@ const PHVShortageSurplusWHwise: React.FC = () => {
   }, [selectedDept, epfNo]);
 
   const handleViewReport = async () => {
-    if (!selectedDept || !selectedWarehouse || !selectedMonth || !selectedYear) {
-      toast.error("Please select all required fields");
+    if (!selectedDept) {
+      toast.error("Please select a cost center.");
+      return;
+    }
+    if (!selectedWarehouse) {
+      toast.error("Please select a warehouse code.");
+      return;
+    }
+    if (!selectedMonth || !selectedYear) {
+      toast.error("Please select both Month and Year");
       return;
     }
     setReportLoading(true);
@@ -210,7 +212,7 @@ const PHVShortageSurplusWHwise: React.FC = () => {
     setReportData([]);
     try {
       const res = await fetch(
-        `http://localhost:44381/api/phv-shortage-surplus-whwise/list?deptId=${encodeURIComponent(
+        `http://localhost:44381/api/phv-damage/list?deptId=${encodeURIComponent(
           selectedDept.DeptId
         )}&repYear=${selectedYear}&repMonth=${selectedMonth}&warehouseCode=${encodeURIComponent(
           selectedWarehouse
@@ -221,7 +223,7 @@ const PHVShortageSurplusWHwise: React.FC = () => {
         throw new Error(`HTTP ${res.status}: ${errorText}`);
       }
       const json = await res.json();
-      const items: ShortageSurplusItem[] = Array.isArray(json) ? json : json.data || [];
+      const items: PHVDamageItem[] = Array.isArray(json) ? json : json.data || [];
       setReportData(items);
       items.length === 0
         ? toast.warn("No records found")
@@ -244,379 +246,483 @@ const PHVShortageSurplusWHwise: React.FC = () => {
   };
 
   const handleDownloadCSV = () => {
-    if (!reportData.length || !selectedDept) return;
+    if (reportData.length === 0 || !selectedDept) return;
 
-    const rows: string[] = [];
-    rows.push(`"ANNUAL VERIFICATION SHORTAGE/SURPLUS OF STORES - ${selectedWarehouse} YEAR :-${selectedYear}"`);
-    rows.push(`"Cost Center","${selectedDept?.DeptId} - ${selectedDept?.DeptName}"`);
-    rows.push(`"Warehouse","${selectedWarehouse}"`);
-    rows.push("");
+    const csvSafe = (value: any) => {
+      if (value == null) return '""';
+      const str = String(value).replace(/"/g, '""');
+      return `"${str}"`;
+    };
 
     const headers = [
       "Serial No",
-      "Document No",
       "Code No",
       "Description",
       "Grade Code",
       "UOM",
-      "S/ Price",
-      "Stock Book Qty",
-      "Physical Qty",
-      "Surplus Qty",
-      "Shortage Qty",
-      "Stock Book Value (Rs.)",
-      "Physical Val. (Rs.)",
-      "Surplus Val. (Rs.)",
-      "Shortage Val. (Rs.)",
+      "Quantity (Stock Book)",
+      "Unit Price",
+      "Cost (Rs.) (Stock Book)",
+      "Reasons",
+      "Recommended action to be taken",
     ];
 
-    rows.push(headers.map(h => `"${h}"`).join(","));
+    const csvRows: string[] = [
+      csvSafe(`STATEMENT OF DAMAGED MATERIALS IN STOCKS - ${selectedYear}`),
+      csvSafe(`COST CENTRE : ${selectedDept.DeptId} WARE HOUSE - ${selectedWarehouse}`),
+      "",
+      csvSafe("1.ORIGINAL : Deputy General Manager"),
+      csvSafe("2.DUPLICATE : Engineer-in-charge"),
+      csvSafe("3.TRIPLCATE : Store-kepper/E.S.(C.S.C)"),
+      csvSafe(`Date of Verification : ${reportData[0]?.PhvDate?.split("T")[0]|| ".............."}`),
+
+      csvSafe("Form - AV/7B"),
+      "",
+    ];
+
+    csvRows.push(headers.map(csvSafe).join(","));
 
     reportData.forEach((item, idx) => {
       const row = [
         idx + 1,
-        item.DocumentNo || "",
-`\t${item.MaterialCode || ""}`,  
+        "\t" + (item.MaterialCode || ""),
+        item.MaterialName || "",
         item.GradeCode || "",
         item.UomCode || "",
-        formatNumber(item.UnitPrice),
         formatNumber(item.QtyOnHand),
-        formatNumber(item.CountedQty),
-        formatNumber(item.SurplusQty),
-        formatNumber(item.ShortageQty),
+        formatNumber(item.UnitPrice),
         formatNumber(item.StockBook),
-        formatNumber(item.PhysicalBook),
-        formatNumber(item.SurplusAmount),
-        formatNumber(item.ShortageAmount),
+        item.Reason || "",
+        "",
       ];
-      rows.push(row.map(v => `"${v}"`).join(","));
+      csvRows.push(row.map(csvSafe).join(","));
     });
 
-    // Totals
     const totalStockBook = reportData.reduce((sum, item) => sum + (item.StockBook || 0), 0);
-    const totalPhysical = reportData.reduce((sum, item) => sum + (item.PhysicalBook || 0), 0);
-    const totalSurplus = reportData.reduce((sum, item) => sum + (item.SurplusAmount || 0), 0);
-    const totalShortage = reportData.reduce((sum, item) => sum + (item.ShortageAmount || 0), 0);
 
-    rows.push("");
-    rows.push([
-      '""', '""', '""', '"Total"', '""', '""', '""', '""', '""', '""', '""',
+    csvRows.push([
+      '""',
+      '""',
+      '"Total of Damaged Stocks"',
+      '""',
+      '""',
+      '""',
+      '""',
       `"${formatNumber(totalStockBook)}"`,
-      `"${formatNumber(totalPhysical)}"`,
-      `"${formatNumber(totalSurplus)}"`,
-      `"${formatNumber(totalShortage)}"`,
+      '""',
+      '""'
     ].join(","));
 
-    const blob = new Blob(["\uFEFF" + rows.join("\n")], { type: "text/csv" });
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `PHV_Shortage_Surplus_WHwise_${selectedDept.DeptId}_${selectedWarehouse}_${selectedYear}.csv`;
+    link.href = url;
+    link.download = `PHV_Damage_WHwise_${selectedDept.DeptId}_${selectedWarehouse}_${selectedYear}.csv`;
     link.click();
+    URL.revokeObjectURL(url);
   };
+
+// ── REPLACE your entire printPDF function with this ──────────────────────────
+// Key improvements:
+//   • ROWS_PER_PAGE calculated to fill all available vertical space (≥15 rows)
+//   • Signature section pinned ABOVE footer via position:absolute
+//   • Table data rows fill the entire space between header and signature
+//   • No empty gaps — every page uses maximum rows
+//   • Footer (date + page X of Y) pinned to very bottom of each page
+//   • Board of Verifications: empty in data rows, 1/2/3 next to Name dotted lines
 
 const printPDF = () => {
-    if (!iframeRef.current || !selectedDept || !selectedWarehouse || reportData.length === 0) {
-      toast.error("Please load the report before printing");
-      return;
-    }
+  if (reportData.length === 0 || !iframeRef.current || !selectedDept || !selectedWarehouse) {
+    toast.error("Please select Cost Center, Warehouse, Year/Month and click 'View' first");
+    return;
+  }
 
-    const PAGE_H        = 210;
-    const MARGIN_TOP    = 8;
-    const MARGIN_BOTTOM = 8;
-    const MARGIN_LEFT   = 6;
-    const MARGIN_RIGHT  = 6;
+  // ── PAGE LAYOUT CONSTANTS ───────────────────────────────────────────────
+  const PAGE_HEIGHT = 210;           // A4 landscape height
+  const MARGIN_TB = 8;               // Top/bottom margin
+  const MARGIN_LR = 10;              // Left/right margin
+  const HEADER_HEIGHT = 22;          // Header section height
+  const TABLE_HEADER_HEIGHT = 7;     // Table header row height
+  const SIGNATURE_HEIGHT = 22;       // Signature section height
+  const FOOTER_HEIGHT = 4;           // Footer height
+  const GAP_BEFORE_SIGNATURE = 2;    // Gap between table and signature
 
-    const USABLE_H = PAGE_H - MARGIN_TOP - MARGIN_BOTTOM; // 194mm
+  const USABLE_HEIGHT = PAGE_HEIGHT - (2 * MARGIN_TB);
+  const AVAILABLE_FOR_ROWS = USABLE_HEIGHT - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - SIGNATURE_HEIGHT - FOOTER_HEIGHT - GAP_BEFORE_SIGNATURE;
 
-    const FULL_HEADER_H   = 22;
-    const REPEAT_HEADER_H = 16;
-    const TABLE_HEADER_H  = 9;
-    const SIGNATURE_H     = 16;
-    const FOOTER_H        = 6;
-    const ROW_HEIGHT      = 5.5;
-    const ROW_BUFFER      = 2;
+  // Dynamic row height based on description length
+  const CHARS_PER_LINE = 80;         // Approx chars per line in Description column
+  const LINE_HEIGHT_MM = 3.5;        // Height per line
+  const ROW_PADDING_MM = 1.5;        // Padding per row
 
-    const FIRST_DATA_H      = USABLE_H - FULL_HEADER_H - TABLE_HEADER_H - SIGNATURE_H - FOOTER_H;
-    const SUBSEQUENT_DATA_H = USABLE_H - REPEAT_HEADER_H - TABLE_HEADER_H - SIGNATURE_H - FOOTER_H;
-
-    const ROWS_FIRST      = Math.floor(FIRST_DATA_H / ROW_HEIGHT) - ROW_BUFFER;
-    const ROWS_SUBSEQUENT = Math.floor(SUBSEQUENT_DATA_H / ROW_HEIGHT) - ROW_BUFFER;
-
-    const esc = (v: any) =>
-      String(v ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-
-    const now = new Date().toLocaleString("en-GB", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-      hour: "2-digit", minute: "2-digit", second: "2-digit",
-      hour12: false,
-    });
-
-    const totalStockBook = reportData.reduce((s, x) => s + (x.StockBook || 0), 0);
-    const totalPhysical  = reportData.reduce((s, x) => s + (x.PhysicalBook || 0), 0);
-    const totalSurplus   = reportData.reduce((s, x) => s + (x.SurplusAmount || 0), 0);
-    const totalShortage  = reportData.reduce((s, x) => s + (x.ShortageAmount || 0), 0);
-
-    const dataRows = reportData.map((item, idx) => `
-      <tr>
-        <td class="sn">${idx + 1}</td>
-        <td class="doc-no">${esc(item.DocumentNo)}</td>
-        <td class="code">${esc(item.MaterialCode)}</td>
-        <td class="desc">${esc(item.MaterialName)}</td>
-        <td class="grade">${esc(item.GradeCode)}</td>
-        <td class="uom">${esc(item.UomCode)}</td>
-        <td class="price">${formatNumber(item.UnitPrice)}</td>
-        <td class="stock-qty">${formatNumber(item.QtyOnHand)}</td>
-        <td class="phys-qty">${formatNumber(item.CountedQty)}</td>
-        <td class="surplus-qty">${formatNumber(item.SurplusQty)}</td>
-        <td class="short-qty">${formatNumber(item.ShortageQty)}</td>
-        <td class="stock-val">${formatNumber(item.StockBook)}</td>
-        <td class="phys-val">${formatNumber(item.PhysicalBook)}</td>
-        <td class="surplus-val">${formatNumber(item.SurplusAmount)}</td>
-        <td class="short-val">${formatNumber(item.ShortageAmount)}</td>
-      </tr>`);
-
-    const totalRow = `
-      <tr class="total-row">
-        <td colspan="11" style="text-align:center;font-weight:bold;">TOTAL</td>
-        <td class="stock-val">${formatNumber(totalStockBook)}</td>
-        <td class="phys-val">${formatNumber(totalPhysical)}</td>
-        <td class="surplus-val">${formatNumber(totalSurplus)}</td>
-        <td class="short-val">${formatNumber(totalShortage)}</td>
-      </tr>`;
-
-    // ── paginate ───────────────────────────────────────────────────────────────
-    const pages: string[][] = [];
-    let remaining = [...dataRows];
-
-    if (remaining.length > 0) pages.push(remaining.splice(0, ROWS_FIRST));
-    while (remaining.length > 0) pages.push(remaining.splice(0, ROWS_SUBSEQUENT));
-
-    if (pages.length === 0) {
-      pages.push([totalRow]);
-    } else {
-      const lastPage = pages[pages.length - 1];
-      const cap = pages.length === 1 ? ROWS_FIRST : ROWS_SUBSEQUENT;
-      lastPage.length < cap ? lastPage.push(totalRow) : pages.push([totalRow]);
-    }
-
-    const totalPages = pages.length;
-
-    // Single unified thead — used inside every page's single table
-    const theadHTML = `
-      <thead>
-        <tr>
-          <th class="sn">Serial No</th>
-          <th class="doc-no">Document No</th>
-          <th class="code">Code No</th>
-          <th class="desc">Description</th>
-          <th class="grade">Grade Code</th>
-          <th class="uom">UOM</th>
-          <th class="price">S/Price</th>
-          <th class="stock-qty">Stock Book Qty</th>
-          <th class="phys-qty">Physical Qty</th>
-          <th class="surplus-qty">Surplus Qty</th>
-          <th class="short-qty">Shortage Qty</th>
-          <th class="stock-val">Stock Book Val (Rs.)</th>
-          <th class="phys-val">Physical Val (Rs.)</th>
-          <th class="surplus-val">Surplus Val (Rs.)</th>
-          <th class="short-val">Shortage Val (Rs.)</th>
-        </tr>
-      </thead>`;
-
-    const styles = `
-      @page {
-        size: A4 landscape;
-        margin: ${MARGIN_TOP}mm ${MARGIN_RIGHT}mm ${MARGIN_BOTTOM}mm ${MARGIN_LEFT}mm;
-      }
-
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: Arial, sans-serif; font-size: 7pt; }
-
-      .page {
-        position: relative;
-        width: 100%;
-        height: ${USABLE_H}mm;
-        overflow: hidden;
-        page-break-after: always;
-      }
-      .page:last-child { page-break-after: auto; }
-
-      .page-top {
-        position: absolute;
-        top: 0; left: 0; right: 0;
-      }
-
-      /* Always pinned to page bottom regardless of row count */
-      .page-bottom {
-        position: absolute;
-        bottom: 0; left: 0; right: 0;
-        height: ${SIGNATURE_H + FOOTER_H}mm;
-      }
-
-      .header {
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        overflow: hidden;
-        padding-bottom: 1mm;
-      }
-      h1 { font-size: 13pt; color: #7A0000; font-weight: bold; margin: 1mm 0 0.5mm; line-height: 1.2; }
-      h2 { font-size: 11pt; color: #7A0000; font-weight: bold; margin: 0 0 0.5mm;   line-height: 1.2; }
-      h3 { font-size:  9pt; color: #333;    font-weight: 600;  margin: 0;           line-height: 1.2; }
-
-      /* ONE table per page — thead and tbody together, no gap */
-      .table-wrapper {
-        overflow: hidden;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
-        font-size: 6.5pt;
-      }
-      th, td {
-        border: 0.25pt solid #333;
-        padding: 0.5mm 1mm;
-        overflow: hidden;
-        word-wrap: break-word;
-        vertical-align: middle;
-      }
-      th {
-        background: #e8e8e8;
-        font-weight: bold;
-        text-align: center;
-        font-size: 6.5pt;
-        line-height: 1.1;
-      }
-      /* thead row fixed height */
-      thead tr { height: ${TABLE_HEADER_H}mm; }
-      /* data rows fixed height */
-      tbody tr { height: ${ROW_HEIGHT}mm; }
-
-      .sn          { width: 3%;    text-align: center; font-size: 6.5pt; }
-      .doc-no      { width: 8%;    text-align: center; font-size: 5.5pt; }
-      .code        { width: 6%;    text-align: center; font-size: 6pt; }
-      .desc        { width: 20%;   text-align: left;   font-size: 6pt; line-height: 1.15; }
-      .grade       { width: 4%;    text-align: center; font-size: 6pt; }
-      .uom         { width: 3.5%;  text-align: center; font-size: 6pt; }
-      .price       { width: 5.5%;  text-align: right;  font-size: 6pt; }
-      .stock-qty   { width: 5.5%;  text-align: right;  font-size: 6pt; }
-      .phys-qty    { width: 5.5%;  text-align: right;  font-size: 6pt; }
-      .surplus-qty { width: 5%;    text-align: right;  font-size: 6pt; }
-      .short-qty   { width: 5%;    text-align: right;  font-size: 6pt; }
-      .stock-val   { width: 6.5%;  text-align: right;  font-size: 6pt; }
-      .phys-val    { width: 6.5%;  text-align: right;  font-size: 6pt; }
-      .surplus-val { width: 6%;    text-align: right;  font-size: 6pt; }
-      .short-val   { width: 6%;    text-align: right;  font-size: 6pt; }
-
-      .total-row { font-weight: bold; background: #f5f5f5; font-size: 7pt; }
-
-      .sig-section {
-        height: ${SIGNATURE_H}mm;
-        display: flex;
-        align-items: flex-start;
-        padding: 1.5mm 3mm 0;
-        overflow: hidden;
-      }
-      .sig-row {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-        font-size: 6.5pt;
-        line-height: 1.8;
-      }
-      .sig-row > div { width: 48%; }
-
-      .footer-section {
-        height: ${FOOTER_H}mm;
-        display: flex;
-        align-items: center;
-        padding: 0 1mm;
-        overflow: hidden;
-      }
-      .footer {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-        font-size: 6pt;
-      }
-    `;
-
-    // ── assemble pages ─────────────────────────────────────────────────────────
-    let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${styles}</style></head><body>`;
-
-    pages.forEach((pageRows, idx) => {
-      const isFirst    = idx === 0;
-      const pageNum    = idx + 1;
-      const headerH    = isFirst ? FULL_HEADER_H : REPEAT_HEADER_H;
-      // Total table height = thead height + all data rows height
-      const tableWrapH = USABLE_H - headerH - SIGNATURE_H - FOOTER_H;
-
-      const headerHTML = isFirst
-        ? `<div class="header" style="height:${FULL_HEADER_H}mm;">
-             <h1>CEYLON ELECTRICITY BOARD</h1>
-             <h2>ANNUAL VERIFICATION SHORTAGE/SURPLUS OF STORES - ${selectedYear}</h2>
-             <h3>COST CENTRE: ${esc(selectedDept.DeptId)} - ${esc(selectedDept.DeptName)} | WAREHOUSE: ${esc(selectedWarehouse)}</h3>
-           </div>`
-        : `<div class="header" style="height:${REPEAT_HEADER_H}mm;">
-             <h2>ANNUAL VERIFICATION SHORTAGE/SURPLUS OF STORES - ${selectedYear}</h2>
-             <h3>COST CENTRE: ${esc(selectedDept.DeptId)} - ${esc(selectedDept.DeptName)} | WAREHOUSE: ${esc(selectedWarehouse)}</h3>
-           </div>`;
-
-      html += `
-        <div class="page">
-
-          <div class="page-top">
-            ${headerHTML}
-
-            <!-- Single table: thead + tbody together = no gap -->
-            <div class="table-wrapper" style="height:${tableWrapH}mm;">
-              <table>
-                ${theadHTML}
-                <tbody>
-                  ${pageRows.join("")}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="page-bottom">
-            <div class="sig-section">
-              <div class="sig-row">
-                <div>
-                  Store Keeper / Electrical Superintendent : .........................<br/>
-                  Date : .............................
-                </div>
-                <div>
-                  Engineer-in-charge : .........................<br/>
-                  Date : .............................
-                </div>
-              </div>
-            </div>
-            <div class="footer-section">
-              <div class="footer">
-                <span>Date &amp; time of the Report Generated: ${now}</span>
-                <span>Page ${pageNum} of ${totalPages}</span>
-              </div>
-            </div>
-          </div>
-
-        </div>`;
-    });
-
-    html += `</body></html>`;
-
-    const doc = iframeRef.current.contentDocument!;
-    doc.open();
-    doc.write(html);
-    doc.close();
-    setTimeout(() => { iframeRef.current?.contentWindow?.print(); }, 900);
+  const getRowHeight = (desc: string): number => {
+    const lines = Math.max(1, Math.ceil(desc.length / CHARS_PER_LINE));
+    return ROW_PADDING_MM + lines * LINE_HEIGHT_MM;
   };
+
+  // ── DYNAMIC CHUNKING LOGIC ──────────────────────────────────────────────
+  const chunks: PHVDamageItem[][] = [];
+  let currentChunk: PHVDamageItem[] = [];
+  let currentHeight = 0;
+
+  for (const item of reportData) {
+    const rowHeight = getRowHeight(item.MaterialName || '');
+
+    if (currentHeight + rowHeight > AVAILABLE_FOR_ROWS && currentChunk.length > 0) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentHeight = 0;
+    }
+
+    currentChunk.push(item);
+    currentHeight += rowHeight;
+  }
+
+  if (currentChunk.length > 0) {
+    chunks.push(currentChunk);
+  }
+
+  // Handle total row on last page with dynamic height
+  const totalRowHeight = getRowHeight('Total of Damaged Stocks');
+
+  if (chunks.length > 0) {
+    const lastChunk = chunks.pop()!;
+    let heightOfLastChunk = 0;
+    lastChunk.forEach(item => heightOfLastChunk += getRowHeight(item.MaterialName || ''));
+
+    if (heightOfLastChunk + totalRowHeight > AVAILABLE_FOR_ROWS) {
+      let heightFromEnd = totalRowHeight;
+      let splitIndex = lastChunk.length;
+      for (let j = lastChunk.length - 1; j >= 0; j--) {
+        heightFromEnd += getRowHeight(lastChunk[j].MaterialName || '');
+        if (heightFromEnd > AVAILABLE_FOR_ROWS) {
+          splitIndex = j;
+          break;
+        }
+      }
+
+      if (splitIndex < lastChunk.length) {
+        if (splitIndex > 0) {
+          chunks.push(lastChunk.slice(0, splitIndex));
+        }
+        chunks.push(lastChunk.slice(splitIndex));
+      } else {
+        chunks.push(lastChunk);
+      }
+    } else {
+      chunks.push(lastChunk);
+    }
+  }
+
+  // ── STYLES ──────────────────────────────────────────────────────────────
+  const tableStyle = `
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      font-size: 9.5px; 
+      margin-top: 2mm;
+    }
+    
+    th, td { 
+      border: 0.8px solid #000; 
+      padding: 3px 4px; 
+      word-wrap: break-word; 
+      line-height: 1.2;
+    }
+    
+    th { 
+      background-color: #ffffff; 
+      color: #000000; 
+      font-weight: bold; 
+      text-align: center; 
+      line-height: 1.1;
+      padding: 2px 3px;
+    }
+    
+    .right { text-align: right; }
+    .center { text-align: center; }
+    .left { text-align: left; }
+
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 0;
+      padding: ${MARGIN_TB}mm ${MARGIN_LR}mm;
+      font-size: 9.5px;
+      position: relative;
+      height: ${PAGE_HEIGHT}mm;
+    }
+.page-wrapper {
+  min-height: ${PAGE_HEIGHT - (2 * MARGIN_TB)}mm;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+    .header-section {
+      margin-top: ${MARGIN_TB}mm;
+      margin-bottom: 2mm;
+    }
+
+    h2 { 
+      text-align: center; 
+      color: #7A0000; 
+      margin: 0 0 1mm 0; 
+      font-size: 12.5px;
+      line-height: 1.1;
+    }
+
+    h3 { 
+      text-align: center; 
+      margin: 0.5mm 0 1.5mm 0; 
+      font-size: 10px;
+      line-height: 1.1;
+    }
+
+    .subtitles { 
+      margin-bottom: 1.5mm; 
+      font-size: 8.5px; 
+      display: flex; 
+      justify-content: space-between;
+      line-height: 1.2;
+    }
+
+    .table-section {
+      flex: 1;
+    }
+
+    @page { 
+      margin: 0;
+      size: A4 landscape;
+    }
+
+.footer {
+  position: absolute;               /* ← Changed to absolute for per-page uniqueness */
+  bottom: 0mm;                      /* Distance from page-wrapper bottom */
+  left: 0mm;
+  right: 0mm;
+  height: ${FOOTER_HEIGHT}mm;
+  font-size: 7.5pt;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5mm 0 0 0;             /* Minimal top padding */
+  background: white;
+  z-index: 10;                      /* Ensure it's above content if needed */
+  page-break-inside: avoid;
+}
+
+    .total-row { 
+      background: #e8e8e8; 
+      font-weight: bold; 
+    }
+
+    .signature-section { 
+      margin-top: ${GAP_BEFORE_SIGNATURE}mm;
+      margin-bottom: ${FOOTER_HEIGHT + 2}mm;
+      font-size: 8px; 
+      page-break-inside: avoid;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .signature-left { 
+      width: 58%; 
+      float: left;
+    }
+
+    .signature-right { 
+      width: 38%; 
+      float: right; 
+      text-align: right;
+    }
+
+    .signature-section p { 
+      margin: 1mm 0; 
+      line-height: 1.2;
+    }
+
+    .signature-section table { 
+      border: none; 
+      width: 100%; 
+      font-size: 7.5px; 
+      margin-top: 1.5mm; 
+      margin-bottom: 1.5mm; 
+
+    }
+
+    .signature-section td { 
+      border: none; 
+      padding: 1mm; 
+    }
+
+    .clear { clear: both; }
+  `;
+
+  const escapeHtml = (text: string | null | undefined): string => {
+    if (!text) return "";
+    const cleaned = text.replace(/[-\u001F\u007F]/g, "");
+    const div = document.createElement("div");
+    div.textContent = cleaned;
+    return div.innerHTML;
+  };
+
+  const formatNum = (n: number | null | undefined) =>
+    (n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const totalPages = chunks.length || 1;
+  let html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PHV Damage Report</title>
+<style>${tableStyle}</style>
+</head>
+<body>`;
+
+  let serial = 1;
+
+  chunks.forEach((chunk, idx) => {
+    const pageNum = idx + 1;
+    const isLastPage = idx === chunks.length - 1;
+
+    html += `
+<div class="page-wrapper">
+<div class="header-section">
+<h2>CEYLON ELECTRICITY BOARD</h2>
+<h3>STATEMENT OF DAMAGED MATERIALS IN STOCKS - ${selectedYear}</h3>
+<h3>COST CENTRE : ${selectedDept.DeptId} WARE HOUSE - ${selectedWarehouse}</h3>
+
+<div class="subtitles">
+  <div>1.ORIGINAL  :  Deputy General Manager</div>
+  <div>Form - AV/7B</div>
+</div>
+<div class="subtitles">
+  <div>2.DUPLICATE :  Engineer-in-charge</div>
+  <div>Date of Verification : ${reportData[0]?.PhvDate?.split("T")[0] || ".............."}</div>
+</div>
+<div class="subtitles">
+  <div>3.TRIPLICATE :  Store-keeper/E.S.(C.S.C)</div>
+  <div></div>
+</div>
+</div>
+
+<div class="table-section">
+<table>
+  <thead>
+    <tr>
+      <th style="width:4%">Serial<br>No</th>
+      <th style="width:9%">Code No</th>
+      <th style="width:30%">Description</th>
+      <th style="width:7%">Grade<br>Code</th>
+      <th style="width:5%">UOM</th>
+      <th style="width:9%">Quantity<br>(Stock Book)</th>
+      <th style="width:10%">Unit Price</th>
+      <th style="width:10%">Cost (Rs.)<br>(Stock Book)</th>
+      <th style="width:8%">Reasons</th>
+      <th style="width:8%">Recommended<br>action</th>
+    </tr>
+  </thead>
+  <tbody>`;
+
+    chunk.forEach((item, i) => {
+      html += `
+    <tr>
+      <td class="center">${serial + i}</td>
+      <td class="center">${escapeHtml(item.MaterialCode || "")}</td>
+      <td class="left">${escapeHtml(item.MaterialName || "")}</td>
+      <td class="center">${escapeHtml(item.GradeCode || "")}</td>
+      <td class="center">${escapeHtml(item.UomCode || "")}</td>
+      <td class="right">${formatNum(item.QtyOnHand)}</td>
+      <td class="right">${formatNum(item.UnitPrice)}</td>
+      <td class="right">${formatNum(item.StockBook)}</td>
+      <td class="center">${escapeHtml(item.Reason || "DAM")}</td>
+      <td class="center"></td>
+    </tr>`;
+    });
+
+    if (isLastPage) {
+      const totalStockBook = reportData.reduce((sum, item) => sum + (item.StockBook || 0), 0);
+      html += `
+    <tr class="total-row">
+      <td colspan="7" class="right">Total of Damaged Stocks</td>
+      <td class="right">${formatNum(totalStockBook)}</td>
+      <td colspan="2"></td>
+    </tr>`;
+    }
+
+    html += `
+  </tbody>
+</table>
+</div>
+
+<div class="signature-section">
+  <div class="signature-left">
+    <p>We do hereby certify that Stocks were physically verified as per that given statement.</p>
+    <table>
+      <tr>
+        <td style="width:25%">Board of<br>Verifications</td>
+        <td style="width:25%">Name</td>
+        <td style="width:25%">Designation</td>
+        <td style="width:25%">Signature</td>
+      </tr>
+      <tr>
+        <td class="right">1.</td>
+        <td>...........................</td>
+        <td>...........................</td>
+        <td>...........................</td>
+      </tr>
+      <tr>
+        <td class="right">2.</td>
+        <td>...........................</td>
+        <td>...........................</td>
+        <td>...........................</td>
+      </tr>
+      <tr>
+        <td class="right">3.</td>
+        <td>...........................</td>
+        <td>...........................</td>
+        <td>...........................</td>
+      </tr>
+    </table>
+  </div>
+  <div class="signature-right">
+    <p>Agreed and certified correct.</p>
+    <p style="margin-top: 6mm;">......................................</p>
+    <p style="margin-top: 1.5mm;">Store-keeper/Elect. Superintendent (C.S.C.)</p>
+  </div>
+  <div class="clear"></div>
+</div>
+
+<div class="footer">
+  <div>Date & time of the Report Generated : ${new Date().toLocaleString()}</div>
+  <div>Page ${pageNum} of ${totalPages}</div>
+</div>
+</div>
+
+${idx < chunks.length - 1 ? '<div style="page-break-after: always;"></div>' : ''}
+`;
+
+    serial += chunk.length;
+  });
+
+  html += `
+</body>
+</html>`;
+
+  const doc = iframeRef.current.contentDocument!;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  setTimeout(() => iframeRef.current?.contentWindow?.print(), 800);
+};
+
+
   return (
     <div className="max-w-[95%] mx-auto p-2 md:p-4 bg-white rounded-xl shadow border border-gray-200 text-sm md:text-base font-sans">
       <iframe
@@ -624,9 +730,11 @@ const printPDF = () => {
         style={{ display: "none" }}
         title="print-frame"
       />
+
       <h2 className={`text-lg md:text-xl font-bold mb-4 ${maroon}`}>
-        PHV Shortage/Surplus WHwise
+        6.2. Physical Verification Damage (GRADE Code) AV/7B
       </h2>
+
       <div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-3 mb-4 justify-end items-end">
         <div className="flex items-center gap-2">
           <YearMonthDropdowns
@@ -637,6 +745,7 @@ const printPDF = () => {
             className="gap-4"
           />
         </div>
+
         <div className="flex flex-col md:flex-row gap-2 md:gap-2 items-end">
           <div className="flex flex-col">
             <label className={`text-xs md:text-sm font-bold ${maroon} mb-1`}>
@@ -656,6 +765,7 @@ const printPDF = () => {
               ))}
             </select>
           </div>
+
           <button
             onClick={handleViewReport}
             disabled={!selectedDept || !selectedWarehouse || loading}
@@ -667,6 +777,7 @@ const printPDF = () => {
           </button>
         </div>
       </div>
+
       <div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-3 mb-2 md:mb-4">
         <div className="relative w-full md:w-auto">
           <Search className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 md:w-3 h-3 md:h-3" />
@@ -699,6 +810,7 @@ const printPDF = () => {
           </button>
         )}
       </div>
+
       {loading && !warehouses.length && (
         <div className="text-center py-4 md:py-8">
           <div className="animate-spin rounded-full h-6 md:h-8 w-6 md:w-8 border-b-2 border-[#7A0000] mx-auto"></div>
@@ -707,16 +819,19 @@ const printPDF = () => {
           </p>
         </div>
       )}
+
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-2 md:px-4 py-2 md:py-3 rounded mb-2 md:mb-4 text-xs md:text-sm">
           Error: {error}
         </div>
       )}
+
       {!loading && !error && filtered.length === 0 && (
         <div className="text-gray-600 bg-gray-100 p-2 md:p-4 rounded text-xs md:text-sm">
           No cost centers found.
         </div>
       )}
+
       {!loading && !error && filtered.length > 0 && (
         <>
           <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -739,9 +854,7 @@ const printPDF = () => {
                       onClick={() => setSelectedDept(department)}
                       className={`cursor-pointer ${selectedDept?.DeptId === department.DeptId
                           ? "bg-[#7A0000] text-white"
-                          : i % 2
-                            ? "bg-white hover:bg-gray-100"
-                            : "bg-gray-50 hover:bg-gray-100"
+                          : i % 2 ? "bg-white hover:bg-gray-100" : "bg-gray-50 hover:bg-gray-100"
                         }`}
                     >
                       <td className="px-2 md:px-4 py-1 md:py-2 truncate min-w-0">
@@ -756,6 +869,7 @@ const printPDF = () => {
               </table>
             </div>
           </div>
+
           <div className="flex flex-col md:flex-row justify-end items-center gap-2 md:gap-3 mt-2 md:mt-3">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -779,11 +893,12 @@ const printPDF = () => {
           </div>
         </>
       )}
+
       {showReport && selectedDept && (
         <ReportViewer
-          title={`PHV SHORTAGE/SURPLUS WH WISE - ${selectedYear}`}
-          subtitlebold2="Cost Center :"
-          subtitlenormal2={`${selectedDept.DeptId} - ${selectedDept.DeptName} - Warehouse: ${selectedWarehouse}`}
+          title={`STATEMENT OF DAMAGED MATERIALS IN STOCKS - ${selectedYear}`}
+          subtitlebold2="COST CENTRE :"
+          subtitlenormal2={`${selectedDept.DeptId} - ${selectedDept.DeptName} - WARE HOUSE - ${selectedWarehouse}`}
           loading={reportLoading}
           hasData={reportData.length > 0}
           handleDownloadCSV={handleDownloadCSV}
@@ -794,58 +909,40 @@ const printPDF = () => {
             <thead className={`${maroonGrad} text-white`}>
               <tr>
                 <th className="border border-gray-400 px-2 py-2 text-center">Serial No</th>
-                <th className="border border-gray-400 px-2 py-2 text-center">Document No</th>
                 <th className="border border-gray-400 px-2 py-2 text-center">Code No</th>
                 <th className="border border-gray-400 px-2 py-2 text-left">Description</th>
                 <th className="border border-gray-400 px-2 py-2 text-center">Grade Code</th>
                 <th className="border border-gray-400 px-2 py-2 text-center">UOM</th>
-                <th className="border border-gray-400 px-2 py-2 text-right">S/ Price</th>
-                <th className="border border-gray-400 px-2 py-2 text-right">Stock Book Qty</th>
-                <th className="border border-gray-400 px-2 py-2 text-right">Physical Qty</th>
-                <th className="border border-gray-400 px-2 py-2 text-right">Surplus Qty</th>
-                <th className="border border-gray-400 px-2 py-2 text-right">Shortage Qty</th>
-                <th className="border border-gray-400 px-2 py-2 text-right">Stock Book Value (Rs.)</th>
-                <th className="border border-gray-400 px-2 py-2 text-right">Physical Val. (Rs.)</th>
-                <th className="border border-gray-400 px-2 py-2 text-right">Surplus Val. (Rs.)</th>
-                <th className="border border-gray-400 px-2 py-2 text-right">Shortage Val. (Rs.)</th>
+                <th className="border border-gray-400 px-2 py-2 text-right">Quantity (Stock Book)</th>
+                <th className="border border-gray-400 px-2 py-2 text-right">Unit Price</th>
+                <th className="border border-gray-400 px-2 py-2 text-right">Cost (Rs.) (Stock Book)</th>
+                <th className="border border-gray-400 px-2 py-2 text-center">Reasons</th>
+                <th className="border border-gray-400 px-2 py-2 text-center">Recommended action to be taken</th>
               </tr>
             </thead>
             <tbody>
               {reportData.map((item, idx) => (
                 <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                   <td className="border border-gray-300 px-2 py-2 text-center">{idx + 1}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-center">{item.DocumentNo}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-center">{item.MaterialCode}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-left">{item.MaterialName}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-center">{item.GradeCode}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-center">{item.UomCode}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">{formatNumber(item.UnitPrice)}</td>
+                  <td className="border border-gray-300 px-2 py-2 text-center">{item.MaterialCode || ""}</td>
+                  <td className="border border-gray-300 px-2 py-2 text-left">{item.MaterialName || ""}</td>
+                  <td className="border border-gray-300 px-2 py-2 text-center">{item.GradeCode || ""}</td>
+                  <td className="border border-gray-300 px-2 py-2 text-center">{item.UomCode || ""}</td>
                   <td className="border border-gray-300 px-2 py-2 text-right">{formatNumber(item.QtyOnHand)}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">{formatNumber(item.CountedQty)}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">{formatNumber(item.SurplusQty)}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">{formatNumber(item.ShortageQty)}</td>
+                  <td className="border border-gray-300 px-2 py-2 text-right">{formatNumber(item.UnitPrice)}</td>
                   <td className="border border-gray-300 px-2 py-2 text-right">{formatNumber(item.StockBook)}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">{formatNumber(item.PhysicalBook)}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">{formatNumber(item.SurplusAmount)}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">{formatNumber(item.ShortageAmount)}</td>
+                  <td className="border border-gray-300 px-2 py-2 text-center">{item.Reason || "DAM"}</td>
+                  <td className="border border-gray-300 px-2 py-2 text-center"></td>
                 </tr>
               ))}
               <tr className="bg-yellow-50 font-bold">
-                <td colSpan={11} className="border border-gray-300 px-2 py-2 text-center">
-                  Total
+                <td colSpan={7} className="border border-gray-300 px-2 py-2 text-right">
+                  Total of Damaged Stocks
                 </td>
                 <td className="border border-gray-300 px-2 py-2 text-right">
                   {formatNumber(reportData.reduce((sum, item) => sum + (item.StockBook || 0), 0))}
                 </td>
-                <td className="border border-gray-300 px-2 py-2 text-right">
-                  {formatNumber(reportData.reduce((sum, item) => sum + (item.PhysicalBook || 0), 0))}
-                </td>
-                <td className="border border-gray-300 px-2 py-2 text-right">
-                  {formatNumber(reportData.reduce((sum, item) => sum + (item.SurplusAmount || 0), 0))}
-                </td>
-                <td className="border border-gray-300 px-2 py-2 text-right">
-                  {formatNumber(reportData.reduce((sum, item) => sum + (item.ShortageAmount || 0), 0))}
-                </td>
+                <td colSpan={2} className="border border-gray-300"></td>
               </tr>
             </tbody>
           </table>
@@ -855,4 +952,4 @@ const printPDF = () => {
   );
 };
 
-export default PHVShortageSurplusWHwise;
+export default PHVDamage;

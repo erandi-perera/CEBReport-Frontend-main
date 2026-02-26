@@ -9,6 +9,8 @@ import AnnualVerificationWHwiseSignature from "../mainTopics/PhysicalVerificatio
 import PHVSlowNonMovingWHwise from "../mainTopics/PhysicalVerification/PHVSlowNonMovingWHwise";
 import PHVShortageSurplusWHwise from "../mainTopics/PhysicalVerification/PHVShortageSurplusWHwise";
 import PHVObsoleteIdle from "../mainTopics/PhysicalVerification/PHVObsoleteIdle";
+import PHVDamage from "../mainTopics/PhysicalVerification/PHVDamage";
+import PHVNonMovingWHwiseBOS from "../mainTopics/PhysicalVerification/PHVNonMovingWHwiseBOS";
 
 
 
@@ -61,9 +63,14 @@ const PhysicalVerificationDetails = () => {
             case "5. Physical Verification Shortage / Surplus WH wise AV/1/B":
                 return <PHVShortageSurplusWHwise/>;
 
-            case "6.1. Physical Verification Obsolete / Idle(GRADE Code) AV/7A":
+            case "6.1 Physical Verification Obsolete / Idle(GRADE Code) AV/7A":
                 return <PHVObsoleteIdle/>;
+
+            case "6.2 Physical Verification Damage AV/7B":
+                return <PHVDamage/>;
          
+            case "7. Physical Verification Non-Moving WH wise.BOS - AV/6/BOS":
+                return <PHVNonMovingWHwiseBOS/>;
 
 
             default:

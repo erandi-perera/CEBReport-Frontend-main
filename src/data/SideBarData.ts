@@ -373,7 +373,17 @@ export const data = [
 			},
 
 			{id: 137,
-			 name: "6.1. Physical Verification Obsolete / Idle(GRADE Code) AV/7A",
+			 name: "6.1 Physical Verification Obsolete / Idle(GRADE Code) AV/7A",
+
+			},
+
+			{id: 138,
+			name: "6.2 Physical Verification Damage AV/7B",
+
+			},
+
+			{id: 139,
+			name: "7. Physical Verification Non-Moving WH wise.BOS - AV/6/BOS",
 
 			},
 
