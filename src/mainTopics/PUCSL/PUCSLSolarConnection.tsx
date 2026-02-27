@@ -197,7 +197,7 @@ const PUCSLSolarConnection: React.FC = () => {
             setIsLoadingProvinces(true);
             setProvinceError(null);
             try {
-                const response = await fetchWithErrorHandling("/misapi/api/ordinary/province");
+                const response = await fetchWithErrorHandling("/api/ordinary/province");
                 if (response?.data && Array.isArray(response.data)) {
                     setProvinces(response.data);
                 } else {
