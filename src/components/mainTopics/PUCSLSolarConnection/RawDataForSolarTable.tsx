@@ -6,7 +6,7 @@ interface Props {
     data: RawDataForSolarResponse;
 }
 
-const thBase = "border border-gray-300 px-2 py-1 text-center whitespace-nowrap";
+const thBase = "border border-gray-300 px-2 py-1 text-center";
 const tdBase = "border border-gray-300 px-2 py-1";
 const tdRight = "border border-gray-300 px-2 py-1 text-right";
 
@@ -31,7 +31,7 @@ const RawSolarTable: React.FC<{
             <thead className="bg-gray-200 sticky top-0">
                 {/* Row 1 — group headers */}
                 <tr>
-                    <th className={thBase} rowSpan={2}>Category</th>
+                    <th className={thBase} rowSpan={2}>Tariff Category</th>
                     <th className={thBase} rowSpan={2}>Year</th>
                     <th className={thBase} rowSpan={2}>Month</th>
                     <th className={thBase} colSpan={3}>Import</th>

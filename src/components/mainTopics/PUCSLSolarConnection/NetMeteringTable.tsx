@@ -19,7 +19,7 @@ const NetMeteringTable: React.FC<Props> = ({ data }) => {
         <table className="w-full border-collapse text-xs">
             <thead className="bg-gray-200 sticky top-0">
                 <tr>
-                    <th className={thBase}>Category</th>
+                    <th className={thBase}>Tariff Category</th>
                     <th className={thBase}>Year</th>
                     <th className={thBase}>Month</th>
                     <th className={thBase}>No of Consumers</th>
@@ -37,7 +37,7 @@ const NetMeteringTable: React.FC<Props> = ({ data }) => {
                     </tr>
                 ))}
             </tbody>
-            {data.Total && (
+            {/* {data.Total && (
                 <tfoot>
                     <tr className="bg-gray-200">
                         <td className={tdBase} colSpan={2}></td>
@@ -46,7 +46,7 @@ const NetMeteringTable: React.FC<Props> = ({ data }) => {
                         <td className={`${tdRight} font-bold`}>{formatNumber(data.Total.UnitsDayKwh, 0)}</td>
                     </tr>
                 </tfoot>
-            )}
+            )} */}
         </table>
     );
 };

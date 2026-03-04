@@ -204,17 +204,17 @@ export const buildRawDataForSolarCSV = (
 ) => {
     // Two-row header matching the table exactly
     const headerRow1 = [
-        "Category", "Year", "Month",
+        "", "", "",
         "Import", "", "",
         "Export", "", "",
-        "Brought Forward kWh (Only in Net Metering)",
-        "Carry Forward kWh (Only in Net Metering)",
+        "",
+        "",
     ];
     const headerRow2 = [
-        "", "", "",
+        "Tariff Category", "Year", "Month",
         "Day", "Peak", "Off Peak",
         "Day", "Peak", "Off Peak",
-        "", "",
+        "Brought Forward kWh (Only in Net Metering)", "Carry Forward kWh (Only in Net Metering)",
     ];
 
     const dataRow = (r: RawSolarData, isTotal = false) => [
@@ -292,7 +292,6 @@ export const buildNetMeteringCSV = (
         [],
         header,
         ...data.Data.map((r) => dataRow(r)),
-        ...(data.Total ? [dataRow(data.Total, true)] : []),
     ];
 
     const csvContent = allRows
@@ -334,7 +333,7 @@ export const printReportPDF = (
             <style>
                 body { font-family: Arial; font-size: 10px; margin: 10mm; }
                 table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                th, td { padding: 4px 6px; border: 0.1px solid #ddd; font-size: 10px; vertical-align: top; }
+                th, td { padding: 4px 6px; border: 0.1px solid #ddd; font-size: 10px; vertical-align: middle; }
                 .text-right { text-align: right; }
                 .header { font-weight: bold; margin-bottom: 5px; color: #7A0000; font-size: 12px; }
                 .subheader { margin-bottom: 12px; font-size: 11px; }
