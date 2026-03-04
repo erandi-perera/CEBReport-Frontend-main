@@ -1067,7 +1067,7 @@ const PUCSLSolarConnection: React.FC = () => {
             setIsLoadingBillCycles(true);
             setBillCycleError(null);
             try {
-                const response = await fetchWithErrorHandling("/api/areas/billcycle/max");
+                const response = await fetchWithErrorHandling("/misapi/api/areas/billcycle/max");
                 const { BillCycles, MaxBillCycle } = response?.data ?? {};
                 if (!Array.isArray(BillCycles) || !MaxBillCycle)
                     throw new Error("Invalid bill cycle data format");
@@ -1094,7 +1094,7 @@ const PUCSLSolarConnection: React.FC = () => {
             setIsLoadingProvinces(true);
             setProvinceError(null);
             try {
-                const response = await fetchWithErrorHandling("/api/ordinary/province");
+                const response = await fetchWithErrorHandling("/misapi/api/ordinary/province");
                 if (!Array.isArray(response?.data)) throw new Error("Invalid provinces data format");
                 setProvinces(response.data);
             } catch (err: any) {
@@ -1143,7 +1143,7 @@ const PUCSLSolarConnection: React.FC = () => {
                 solarType: hideSolarType ? "" : getSolarTypeValue(solarType),
             };
 
-            const response = await fetch("/api/pucsl/solarConnections", {
+            const response = await fetch("/misapi/api/pucsl/solarConnections", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Accept: "application/json" },
                 body: JSON.stringify(requestBody),
