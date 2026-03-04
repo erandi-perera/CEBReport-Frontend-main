@@ -992,18 +992,19 @@ import { FaFileDownload, FaPrint } from "react-icons/fa";
 import {
     BillCycleOption, Province, Division,
     FixedSolarDataModel, VariableSolarDataModel, TotalSolarCustomersResponse,
-    RawDataForSolarResponse,
+    RawDataForSolarResponse, NetMeteringResponse,
 } from "../../components/mainTopics/PUCSLSolarConnection/pucslTypes.ts";
 import {
     NET_METERING_SUPPORTED_REPORTS, NO_SOLAR_TYPE_REPORTS,
     getReportTitle, getSolarTypeValue, getReportCategoryValue,
     fetchWithErrorHandling, buildAndDownloadCSV, buildTotalSolarCSV,
-    buildRawDataForSolarCSV, printReportPDF,
+    buildRawDataForSolarCSV, buildNetMeteringCSV, printReportPDF,
 } from "../../components/mainTopics/PUCSLSolarConnection/pucslUtils.ts";
 import FixedSolarTable from "../../components/mainTopics/PUCSLSolarConnection/FixedSolarTable.tsx";
 import VariableSolarTable from "../../components/mainTopics/PUCSLSolarConnection/VariableSolarTable.tsx";
 import TotalSolarCustomersTable from "../../components/mainTopics/PUCSLSolarConnection/TotalSolarCustomersTable.tsx";
 import RawDataForSolarTable from "../../components/mainTopics/PUCSLSolarConnection/RawDataForSolarTable.tsx";
+import NetMeteringTable from "../../components/mainTopics/PUCSLSolarConnection/NetMeteringTable.tsx";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1038,6 +1039,7 @@ const PUCSLSolarConnection: React.FC = () => {
     const [variableReportData, setVariableReportData] = useState<VariableSolarDataModel[]>([]);
     const [totalSolarData, setTotalSolarData] = useState<TotalSolarCustomersResponse | null>(null);
     const [rawSolarData, setRawSolarData] = useState<RawDataForSolarResponse | null>(null);
+    const [netMeteringData, setNetMeteringData] = useState<NetMeteringResponse | null>(null);
     const [reportVisible, setReportVisible] = useState(false);
     const [reportError, setReportError] = useState<string | null>(null);
     const [selectedCategoryName, setSelectedCategoryName] = useState<string>("");
@@ -1071,7 +1073,7 @@ const PUCSLSolarConnection: React.FC = () => {
             setIsLoadingBillCycles(true);
             setBillCycleError(null);
             try {
-                const response = await fetchWithErrorHandling("/misapi/api/areas/billcycle/max");
+                const response = await fetchWithErrorHandling("/api/areas/billcycle/max");
                 const { BillCycles, MaxBillCycle } = response?.data ?? {};
                 if (!Array.isArray(BillCycles) || !MaxBillCycle)
                     throw new Error("Invalid bill cycle data format");
@@ -1098,7 +1100,7 @@ const PUCSLSolarConnection: React.FC = () => {
             setIsLoadingProvinces(true);
             setProvinceError(null);
             try {
-                const response = await fetchWithErrorHandling("/misapi/api/ordinary/province");
+                const response = await fetchWithErrorHandling("/api/ordinary/province");
                 if (!Array.isArray(response?.data)) throw new Error("Invalid provinces data format");
                 setProvinces(response.data);
             } catch (err: any) {
@@ -1138,6 +1140,7 @@ const PUCSLSolarConnection: React.FC = () => {
         setVariableReportData([]);
         setTotalSolarData(null);
         setRawSolarData(null);
+        setNetMeteringData(null);
 
         try {
             const requestBody = {
@@ -1148,7 +1151,7 @@ const PUCSLSolarConnection: React.FC = () => {
                 solarType: hideSolarType ? "" : getSolarTypeValue(solarType),
             };
 
-            const response = await fetch("/misapi/api/pucsl/solarConnections", {
+            const response = await fetch("/api/pucsl/solarConnections", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Accept: "application/json" },
                 body: JSON.stringify(requestBody),
@@ -1174,6 +1177,11 @@ const PUCSLSolarConnection: React.FC = () => {
                 if (!rds?.Ordinary && !rds?.Bulk)
                     throw new Error("No data found for the selected criteria.");
                 setRawSolarData(rds);
+            } else if (reportType === "NetMetering") {
+                const nm = result.data as NetMeteringResponse;
+                if (!nm?.Data?.length)
+                    throw new Error("No data found for the selected criteria.");
+                setNetMeteringData(nm);
             } else if (reportType === "VariableSolarData") {
                 if (!Array.isArray(result.data)) throw new Error("No data found for the selected criteria.");
                 setVariableReportData(result.data as VariableSolarDataModel[]);
@@ -1215,6 +1223,9 @@ const PUCSLSolarConnection: React.FC = () => {
 
         } else if (reportType === "RawDataForSolar" && rawSolarData) {
             buildRawDataForSolarCSV(title, selectionInfo, selectedBillCycleDisplay, solarType, billCycle, rawSolarData);
+
+        } else if (reportType === "NetMetering" && netMeteringData) {
+            buildNetMeteringCSV(title, selectionInfo, selectedBillCycleDisplay, billCycle, netMeteringData);
 
         } else if (reportType === "VariableSolarData") {
             const groupLabels = [
@@ -1286,6 +1297,9 @@ const PUCSLSolarConnection: React.FC = () => {
         }
         if (reportType === "RawDataForSolar" && rawSolarData) {
             return <RawDataForSolarTable data={rawSolarData} />;
+        }
+        if (reportType === "NetMetering" && netMeteringData) {
+            return <NetMeteringTable data={netMeteringData} />;
         }
         if (reportType === "VariableSolarData") {
             return <VariableSolarTable data={variableReportData} />;
@@ -1416,7 +1430,7 @@ const PUCSLSolarConnection: React.FC = () => {
                                     <option value="VariableSolarData">Variable Solar Data Submission Report</option>
                                     <option value="TotalSolarCustomers">Total No of Solar Customers</option>
                                     <option value="RawDataForSolar">Raw Data for Solar</option>
-                                    {/* Add more report types here as they are implemented */}
+                                    <option value="NetMetering">Net Metering</option>
                                 </select>
                             </div>
 
