@@ -1,7 +1,7 @@
 // ── pucslUtils.ts ─────────────────────────────────────────────────────────────
 // Pure utility functions for PUCSL Solar Connection reports.
 
-import { OrdinaryData, BulkData, TotalSolarCustomersResponse, RawSolarData, RawDataForSolarResponse } from "./pucslTypes.ts";
+import { OrdinaryData, BulkData, TotalSolarCustomersResponse, RawSolarData, RawDataForSolarResponse, NetMeteringData, NetMeteringResponse } from "./pucslTypes.ts";
 
 // ── Report types that support Net Metering in Solar Type dropdown ─────────────
 // Add a report type value string here when it needs Net Metering shown.
@@ -9,7 +9,7 @@ export const NET_METERING_SUPPORTED_REPORTS: string[] = ["RawDataForSolar"];
 
 // ── Report types that hide the Solar Type dropdown entirely ───────────────────
 // Add a report type value string here when it has no Solar Type.
-export const NO_SOLAR_TYPE_REPORTS: string[] = ["TotalSolarCustomers"];
+export const NO_SOLAR_TYPE_REPORTS: string[] = ["TotalSolarCustomers", "NetMetering"];
 
 // ── Report title map ──────────────────────────────────────────────────────────
 export const getReportTitle = (reportType: string): string => {
@@ -18,6 +18,7 @@ export const getReportTitle = (reportType: string): string => {
         VariableSolarData: "PUCSL Variable Solar Data Submission Report",
         TotalSolarCustomers: "Solar Connection Summary - Total No of Solar Customers",
         RawDataForSolar: "Solar Connection Summary - Raw Data for Solar",
+        NetMetering: "Solar Connection Summary - Net Metering",
     };
     return titles[reportType] || "PUCSL Solar Connection Report";
 };
@@ -258,6 +259,51 @@ export const buildRawDataForSolarCSV = (
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", `PUCSL_RawDataForSolar_${billCycle}_${solarType.replace(/ /g, "")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
+// ── Net Metering — dedicated CSV builder ─────────────────────────────────────
+// Simple single-section flat table matching the XLS exactly.
+
+export const buildNetMeteringCSV = (
+    reportTitle: string,
+    selectionInfo: string,
+    billCycleDisplay: string,
+    billCycle: string,
+    data: NetMeteringResponse
+) => {
+    const header = ["Category", "Year", "Month", "No of Consumers", "Units Day (kWh)"];
+
+    const dataRow = (r: NetMeteringData, isTotal = false) => [
+        isTotal ? "Total" : r.Category,
+        isTotal ? "" : r.Year,
+        isTotal ? "" : r.Month,
+        r.NoOfCustomers,
+        r.UnitsDayKwh,
+    ];
+
+    const allRows: any[][] = [
+        [reportTitle],
+        [selectionInfo],
+        [`Bill Cycle: ${billCycleDisplay}`],
+        [],
+        header,
+        ...data.Data.map((r) => dataRow(r)),
+        ...(data.Total ? [dataRow(data.Total, true)] : []),
+    ];
+
+    const csvContent = allRows
+        .map((row) => row.map((cell) => `"${String(cell)}"`).join(","))
+        .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `PUCSL_NetMetering_${billCycle}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
