@@ -99,3 +99,27 @@ export interface TotalSolarCustomersResponse {
     BulkTotal: BulkData;
     ErrorMessage?: string;
 }
+
+// ── Raw Data for Solar (Report 4) ─────────────────────────────────────────────
+
+export interface RawSolarData {
+    Category: string;
+    Year: string;
+    Month: string;
+    ImportDay: number;
+    ImportPeak: number;
+    ImportOffPeak: number;
+    ExportDay: number;
+    ExportPeak: number;
+    ExportOffPeak: number;
+    BroughtForwardKwh: number;  // Only in Net Metering
+    CarryForwardKwh: number;    // Only in Net Metering
+}
+
+export interface RawDataForSolarResponse {
+    Ordinary: RawSolarData[];
+    OrdinaryTotal: RawSolarData;
+    Bulk: RawSolarData[];
+    BulkTotal: RawSolarData;
+    ErrorMessage?: string;
+}
