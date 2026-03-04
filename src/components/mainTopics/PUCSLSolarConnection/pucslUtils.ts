@@ -1,11 +1,11 @@
 // ── pucslUtils.ts ─────────────────────────────────────────────────────────────
 // Pure utility functions for PUCSL Solar Connection reports.
 
-import { OrdinaryData, BulkData, TotalSolarCustomersResponse } from "./pucslTypes.ts";
+import { OrdinaryData, BulkData, TotalSolarCustomersResponse, RawSolarData, RawDataForSolarResponse } from "./pucslTypes.ts";
 
 // ── Report types that support Net Metering in Solar Type dropdown ─────────────
 // Add a report type value string here when it needs Net Metering shown.
-export const NET_METERING_SUPPORTED_REPORTS: string[] = [];
+export const NET_METERING_SUPPORTED_REPORTS: string[] = ["RawDataForSolar"];
 
 // ── Report types that hide the Solar Type dropdown entirely ───────────────────
 // Add a report type value string here when it has no Solar Type.
@@ -17,6 +17,7 @@ export const getReportTitle = (reportType: string): string => {
         FixedSolarData: "PUCSL Fixed Solar Data Submission Report",
         VariableSolarData: "PUCSL Variable Solar Data Submission Report",
         TotalSolarCustomers: "Solar Connection Summary - Total No of Solar Customers",
+        RawDataForSolar: "Solar Connection Summary - Raw Data for Solar",
     };
     return titles[reportType] || "PUCSL Solar Connection Report";
 };
@@ -182,6 +183,81 @@ export const buildTotalSolarCSV = (
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", `PUCSL_TotalSolarCustomers_${billCycle}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
+// ── Raw Data for Solar — dedicated CSV builder ────────────────────────────────
+// Two-section CSV (Ordinary + Bulk) with two-row headers matching the table.
+// BroughtForward/CarryForward columns always included (empty for non-Net Metering).
+
+export const buildRawDataForSolarCSV = (
+    reportTitle: string,
+    selectionInfo: string,
+    billCycleDisplay: string,
+    solarType: string,
+    billCycle: string,
+    data: RawDataForSolarResponse
+) => {
+    // Two-row header matching the table exactly
+    const headerRow1 = [
+        "Category", "Year", "Month",
+        "Import", "", "",
+        "Export", "", "",
+        "Brought Forward kWh (Only in Net Metering)",
+        "Carry Forward kWh (Only in Net Metering)",
+    ];
+    const headerRow2 = [
+        "", "", "",
+        "Day", "Peak", "Off Peak",
+        "Day", "Peak", "Off Peak",
+        "", "",
+    ];
+
+    const dataRow = (r: RawSolarData, isTotal = false) => [
+        isTotal ? "Total" : r.Category,
+        isTotal ? "" : r.Year,
+        isTotal ? "" : r.Month,
+        r.ImportDay || "",
+        r.ImportPeak || "",
+        r.ImportOffPeak || "",
+        r.ExportDay || "",
+        r.ExportPeak || "",
+        r.ExportOffPeak || "",
+        r.BroughtForwardKwh || "",
+        r.CarryForwardKwh || "",
+    ];
+
+    const allRows: any[][] = [
+        [reportTitle],
+        [selectionInfo],
+        [`Bill Cycle: ${billCycleDisplay}`],
+        [`Solar Type: ${solarType}`],
+        [],
+        ["Ordinary"],
+        headerRow1,
+        headerRow2,
+        ...data.Ordinary.map((r) => dataRow(r)),
+        dataRow(data.OrdinaryTotal, true),
+        [],
+        ["Bulk"],
+        headerRow1,
+        headerRow2,
+        ...data.Bulk.map((r) => dataRow(r)),
+        dataRow(data.BulkTotal, true),
+    ];
+
+    const csvContent = allRows
+        .map((row) => row.map((cell) => `"${String(cell)}"`).join(","))
+        .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `PUCSL_RawDataForSolar_${billCycle}_${solarType.replace(/ /g, "")}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
