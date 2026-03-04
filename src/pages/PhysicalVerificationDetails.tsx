@@ -11,7 +11,8 @@ import PHVShortageSurplusWHwise from "../mainTopics/PhysicalVerification/PHVShor
 import PHVObsoleteIdle from "../mainTopics/PhysicalVerification/PHVObsoleteIdle";
 import PHVDamage from "../mainTopics/PhysicalVerification/PHVDamage";
 import PHVNonMovingWHwiseBOS from "../mainTopics/PhysicalVerification/PHVNonMovingWHwiseBOS";
-
+import PHVObsoleteIdleBOS from "../mainTopics/PhysicalVerification/PHVObsoleteIdleBOS";
+import PHVDamageBOS from "../mainTopics/PhysicalVerification/PHVDamageBOS";
 
 
 
@@ -72,6 +73,11 @@ const PhysicalVerificationDetails = () => {
             case "7. Physical Verification Non-Moving WH wise.BOS - AV/6/BOS":
                 return <PHVNonMovingWHwiseBOS/>;
 
+            case "8. Physical Verification Obsolete Idle BOS - AV/7A/BOS":
+                return <PHVObsoleteIdleBOS/>;
+
+            case "9. Physical Verification Damage BOS - AV/7B/BOS":
+                return <PHVDamageBOS/>;
 
             default:
                 return (

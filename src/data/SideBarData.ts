@@ -387,7 +387,15 @@ export const data = [
 
 			},
 
+			{id: 140,
+			name: "8. Physical Verification Obsolete Idle BOS - AV/7A/BOS",
 
+			},
+
+			{id: 141,
+			name: "9. Physical Verification Damage BOS - AV/7B/BOS",
+
+			},
 
 			
 			
