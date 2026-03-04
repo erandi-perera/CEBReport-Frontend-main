@@ -123,3 +123,21 @@ export interface RawDataForSolarResponse {
     BulkTotal: RawSolarData;
     ErrorMessage?: string;
 }
+
+// ── Net Metering (Report 5) ───────────────────────────────────────────────────
+
+export interface NetMeteringData {
+    Category: string;
+    Year: string;
+    Month: string;
+    NoOfCustomers: number;
+    UnitsDayKwh: number;
+    UnitsPeakKwh: number;    // Bulk only — not displayed in table
+    UnitsOffPeakKwh: number; // Bulk only — not displayed in table
+}
+
+export interface NetMeteringResponse {
+    Data: NetMeteringData[];
+    Total: NetMeteringData;
+    ErrorMessage?: string;
+}
