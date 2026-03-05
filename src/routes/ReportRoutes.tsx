@@ -22,6 +22,7 @@ import SolarJobsDetails from "../pages/SolarJobsDetails";
 import PhysicalVerificationDetails from "../pages/PhysicalVerificationDetails";
 import BillingFinanceReports from "../pages/BillingFinanceReports";
 import TransmissionBilling from "../pages/TransmissionBilling";
+import SolarReligiousPurpose from "../pages/SolarReligiousPurpose";
 
 const ReportRoutes = () => (
 	<>
@@ -204,6 +205,14 @@ const ReportRoutes = () => (
 			element={
 				<Layout>
 					<TransmissionBilling />
+				</Layout>
+			}
+		/>
+		<Route
+			path="/report/SRP"
+			element={
+				<Layout>
+					<SolarReligiousPurpose />
 				</Layout>
 			}
 		/>
