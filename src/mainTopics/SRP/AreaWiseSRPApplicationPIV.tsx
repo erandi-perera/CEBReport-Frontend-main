@@ -148,7 +148,6 @@ const AreaWiseSRPApplicationPIV: React.FC = () => {
 		const csvRows: string[] = [
 			`Area wise SRP Application fee (PIV I) to be paid  Details PIV I Generated date From ${fromDate}  To ${toDate}`,
 			`AREA : ${selectedCompany.compId} / ${selectedCompany.CompName}`,
-			"Currency: LKR",
 			"",
 			headers.map(csvEscape).join(","),
 		];
@@ -365,6 +364,7 @@ h3 { text-align: center; color: #7A0000; font-size: 14px; font-weight: bold; mar
 			{showReport && (
 				<ReportViewer
 					title="Area Wise SRP Application PIV (PIVI) To be Paid Report"
+					currency=""
 					subtitlebold2="Company:"
 					subtitlenormal2={`${selectedCompany?.compId} / ${selectedCompany?.CompName}`}
 					subtitlebold3="Period:"
