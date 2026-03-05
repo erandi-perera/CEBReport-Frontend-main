@@ -13,7 +13,7 @@ import PHVDamage from "../mainTopics/PhysicalVerification/PHVDamage";
 import PHVNonMovingWHwiseBOS from "../mainTopics/PhysicalVerification/PHVNonMovingWHwiseBOS";
 import PHVObsoleteIdleBOS from "../mainTopics/PhysicalVerification/PHVObsoleteIdleBOS";
 import PHVDamageBOS from "../mainTopics/PhysicalVerification/PHVDamageBOS";
-
+import LastDocNo from "../mainTopics/PhysicalVerification/LastDocNo";
 
 
 type Subtopic = {
@@ -78,6 +78,11 @@ const PhysicalVerificationDetails = () => {
 
             case "9. Physical Verification Damage BOS - AV/7B/BOS":
                 return <PHVDamageBOS/>;
+
+            case "10. Last Document No - Selected Year":
+                return <LastDocNo/>;
+
+
 
             default:
                 return (
