@@ -365,7 +365,7 @@ export const data = [
 		icon: TbReportAnalytics,
 		subtopics: [
 			{id: 130,
-			 name: "1.PHV Entry Form",
+			 name: "1. PHV Entry Form",
 
 			},	
 
@@ -390,12 +390,44 @@ export const data = [
 			},
 
 			{id: 135,
-			 name: "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
+			 name: "4. Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
 
 			},
 
+			{id: 136,
+			 name: "5. Physical Verification Shortage / Surplus WH wise AV/1/B",
 
-			
+			},
+
+			{id: 137,
+			 name: "6.1 Physical Verification Obsolete / Idle(GRADE Code) AV/7A",
+
+			},
+
+			{id: 138,
+			name: "6.2 Physical Verification Damage AV/7B",
+
+			},
+
+			{id: 139,
+			name: "7. Physical Verification Non-Moving WH wise.BOS - AV/6/BOS",
+
+			},
+
+			{id: 140,
+			name: "8. Physical Verification Obsolete Idle BOS - AV/7A/BOS",
+
+			},
+
+			{id: 141,
+			name: "9. Physical Verification Damage BOS - AV/7B/BOS",
+
+			},
+
+			{id: 142,
+			name: "10. Last Document No - Selected Year",
+
+			},
 			
 		],
 
