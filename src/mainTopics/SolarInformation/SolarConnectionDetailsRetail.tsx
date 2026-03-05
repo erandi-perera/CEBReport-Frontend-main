@@ -670,7 +670,7 @@ const SolarConnectionDetailsRetail: React.FC = () => {
             const typeCode =
                 selectedCategory === "Entire CEB" ? "" : categoryValue;
 
-            const baseUrl = `/solarapi/solarConnectionDetails/retail/${reportType === "Detailed Report" ? "detailed" : "summary"
+            const baseUrl = `/misapi/solarapi/solarConnectionDetails/retail/${reportType === "Detailed Report" ? "detailed" : "summary"
                 }`;
 
             const params = new URLSearchParams({
