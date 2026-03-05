@@ -1271,7 +1271,7 @@ const AgeAnalysis: React.FC = () => {
                   : "Loading..."}
               </span>
             ) : (
-              "View Report"
+              "Generate Report"
             )}
           </button>
         </div>

@@ -181,7 +181,7 @@ const SolarPaymentRetail: React.FC = () => {
 			setIsLoadingAreas(true);
 			setAreaError(null);
 			try {
-				const areaData = await fetchWithErrorHandling("/misapi/api/areas");
+				const areaData = await fetchWithErrorHandling("/misapi/api/ordinary/areas");
 				const sortedAreas = (areaData.data || []).sort((a: Area, b: Area) =>
 					a.AreaName.localeCompare(b.AreaName)
 				);
@@ -206,7 +206,7 @@ const SolarPaymentRetail: React.FC = () => {
 			setProvinceError(null);
 			try {
 				const provinceData = await fetchWithErrorHandling(
-					"/misapi/solarapi/ordinary/province"
+					"/misapi/api/ordinary/province"
 				);
 				const sortedProvinces = (provinceData.data || []).sort(
 					(a: Province, b: Province) =>
@@ -234,7 +234,7 @@ const SolarPaymentRetail: React.FC = () => {
 			setDivisionError(null);
 			try {
 				const divisionData = await fetchWithErrorHandling(
-					"/misapi/solarapi/ordinary/region"
+					"/misapi/api/ordinary/region"
 				);
 				const sortedDivisions = (divisionData.data || []).sort(
 					(a: Division, b: Division) =>
@@ -273,7 +273,7 @@ const SolarPaymentRetail: React.FC = () => {
 
 			try {
 				const cycleData = await fetchWithErrorHandling(
-					"/misapi/solarapi/retail/billcycle"
+					"/misapi/api/ordinary/netmtcons/billcycle/max"
 				);
 				if (cycleData.data && cycleData.data.BillCycles?.length > 0) {
 					const options = generateCycleOptions(

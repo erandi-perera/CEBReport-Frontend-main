@@ -51,7 +51,7 @@ const BillingForm = ({ onSubmit }: Props) => {
       console.log("Fetched months:", response.data.yrMnthDetail);
       setError("");
     } catch (err) {
-      setError("Failed to fetch data for account number.");
+      
       setMonths([]);
       console.error(err);
     } finally {
@@ -150,7 +150,7 @@ const BillingForm = ({ onSubmit }: Props) => {
           type="submit"
           className="bg-[#800000] text-white px-4 py-2 rounded-md text-xs font-medium w-full sm:w-[12%] h-8 hover:bg-[#800000]/90 transition-colors focus:ring-2 focus:ring-[#800000]/20 focus:outline-none"
         >
-          Submit
+          Generate Report
         </button>
       </form>
 
