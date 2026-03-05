@@ -195,7 +195,7 @@ const PHVDamageBOS: React.FC = () => {
     setReportData([]);
     try {
       const res = await fetch(
-        `http://localhost:44381/api/phv-damage-obs/list?deptId=${encodeURIComponent(
+        `/misapi/api/phv-damage-obs/list?deptId=${encodeURIComponent(
           selectedDept.DeptId
         )}&warehouseCode=${encodeURIComponent(
           selectedWarehouse
