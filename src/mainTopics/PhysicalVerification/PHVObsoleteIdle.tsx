@@ -221,7 +221,7 @@ const PHVObsoleteIdleWHwise: React.FC = () => {
     setReportData([]);
     try {
      const res = await fetch(
-  `http://localhost:44381/api/phv-obsolete-idle/list?deptId=${encodeURIComponent(
+  `/misapi/api/phv-obsolete-idle/list?deptId=${encodeURIComponent(
     selectedDept.DeptId
   )}&repYear=${selectedYear}&repMonth=${selectedMonth}&warehouseCode=${encodeURIComponent(
     selectedWarehouse
