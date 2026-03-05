@@ -423,5 +423,14 @@ export const data = [
 		],
 		path: "/report/transmission-billing",
 	},
+	{
+		id: 20,
+		name: "Solar Religious Purpose (SRP)",
+		icon: GiSolarPower,
+		subtopics: [
+			{id: 1036, name: "Area Wise SRP Application PIV (PIVI) To be Paid Report"},
+		],
+		path: "/report/SRP",
+	},
 
 ];
