@@ -194,7 +194,7 @@ const PHVNonMovingWHwiseBOS: React.FC = () => {
     setReportData([]);
     try {
       const res = await fetch(
-        `http://localhost:44381/api/phv-nonmovingwhwisebos-report/list?deptId=${encodeURIComponent(
+        `/misapi/api/phv-nonmovingwhwisebos-report/list?deptId=${encodeURIComponent(
           selectedDept.DeptId
         )}&repYear=${selectedYear}&repMonth=${selectedMonth}&warehouseCode=${encodeURIComponent(
           selectedWarehouse

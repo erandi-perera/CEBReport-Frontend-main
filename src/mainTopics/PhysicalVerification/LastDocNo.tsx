@@ -157,7 +157,7 @@ const yearOptions = Array.from(
     setReportData([]);
     try {
       const res = await fetch(
-        `http://localhost:44381/api/last-doc/list?deptId=${encodeURIComponent(
+        `/misapi/api/last-doc/list?deptId=${encodeURIComponent(
           selectedDept.DeptId
         )}&repYear=${selectedYear}`
       );
