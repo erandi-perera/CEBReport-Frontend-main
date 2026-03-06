@@ -136,13 +136,13 @@ const AreaWiseSRPApplicationPIV: React.FC = () => {
 			"Description",
 			"PIV No",
 			"Paid Date",
-			"PIV Amount",
 			"Tariff Code",
 			"Phase",
 			"Existing Account No",
 			"Area",
 			"Province",
 			"Cost Center",
+			"PIV Amount",
 		];
 
 		const csvRows: string[] = [
@@ -164,16 +164,20 @@ const AreaWiseSRPApplicationPIV: React.FC = () => {
 				item.Description || "",
 				`="${item.Piv_No ?? ""}"`,
 				formatDate(item.Paid_Date),
-				item.Piv_Amount ?? "",
 				item.Tariff_Code || "",
 				item.Phase || "",
 				`="${item.Existing_Acc_No ?? ""}"`,
 				item.Area || "",
 				item.Province || "",
 				item.Cct_Name || "",
+				item.Piv_Amount ?? "",
 			];
 			csvRows.push(row.map(csvEscape).join(","));
 		});
+
+		const csvTotal = reportData.reduce((sum, item) => sum + (Number(item.Piv_Amount) || 0), 0);
+		const totalRow = [...Array(15).fill(""), "Total", csvTotal.toFixed(2)];
+		csvRows.push(totalRow.map(csvEscape).join(","));
 
 		const csvContent = csvRows.join("\n");
 		const blob = new Blob(["\uFEFF" + csvContent], {
@@ -199,6 +203,7 @@ const AreaWiseSRPApplicationPIV: React.FC = () => {
       .numeric { text-align: right; }
       .center { text-align: center; }
       .nowrap { white-space: nowrap; }
+      .total-row td { border-top: 2px solid #555; font-weight: bold; background: #f0f0f0; }
     `;
 
 		const colWidths = [
@@ -212,16 +217,18 @@ const AreaWiseSRPApplicationPIV: React.FC = () => {
 			"100px", // Description
 			"130px", // PIV No
 			"80px",  // Paid Date
-			"90px",  // PIV Amount
 			"60px",  // Tariff Code
 			"50px",  // Phase
 			"100px", // Existing Acc No
 			"80px",  // Area
 			"80px",  // Province
 			"120px", // Cost Center
+			"90px",  // PIV Amount
 		];
 
 		const colGroupHTML = colWidths.map((w) => `<col style="width: ${w};" />`).join("");
+
+		const totalPivAmount = reportData.reduce((sum, item) => sum + (Number(item.Piv_Amount) || 0), 0);
 
 		let bodyHTML = "";
 		reportData.forEach((item, idx) => {
@@ -236,15 +243,20 @@ const AreaWiseSRPApplicationPIV: React.FC = () => {
         <td>${escapeHtml(item.Description)}</td>
         <td class="nowrap">${escapeHtml(item.Piv_No)}</td>
         <td>${formatDate(item.Paid_Date)}</td>
-        <td class="numeric">${formatAmount(item.Piv_Amount)}</td>
         <td class="center">${escapeHtml(item.Tariff_Code)}</td>
         <td class="center">${escapeHtml(item.Phase)}</td>
         <td>${escapeHtml(item.Existing_Acc_No)}</td>
         <td>${escapeHtml(item.Area)}</td>
         <td>${escapeHtml(item.Province)}</td>
         <td>${escapeHtml(item.Cct_Name)}</td>
+        <td class="numeric">${formatAmount(item.Piv_Amount)}</td>
       </tr>`;
 		});
+
+		bodyHTML += `<tr class="total-row">
+        <td colspan="16" style="text-align:right;"><strong>Total</strong></td>
+        <td class="numeric"><strong>${formatAmount(totalPivAmount)}</strong></td>
+      </tr>`;
 
 		const fullHTML = `<!DOCTYPE html>
 <html>
@@ -285,13 +297,13 @@ h3 { text-align: center; color: #7A0000; font-size: 14px; font-weight: bold; mar
       <th>Description</th>
       <th>PIV No</th>
       <th>Paid Date</th>
-      <th class="numeric">PIV Amount</th>
       <th class="center">Tariff Code</th>
       <th class="center">Phase</th>
       <th>Existing Acc No</th>
       <th>Area</th>
       <th>Province</th>
       <th>Cost Center</th>
+      <th class="numeric">PIV Amount</th>
     </tr>
   </thead>
   <tbody>${bodyHTML}</tbody>
@@ -388,13 +400,13 @@ h3 { text-align: center; color: #7A0000; font-size: 14px; font-weight: bold; mar
 								<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Description</th>
 								<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">PIV No</th>
 								<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Paid Date</th>
-								<th className="border border-gray-400 px-2 py-2 text-right whitespace-nowrap">PIV Amount</th>
-								<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Tariff Code</th>
-								<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Phase</th>
-								<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Existing Acc No</th>
-								<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Area</th>
-								<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Province</th>
-								<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Cost Center</th>
+							<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Tariff Code</th>
+							<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Phase</th>
+							<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Existing Acc No</th>
+							<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Area</th>
+							<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Province</th>
+							<th className="border border-gray-400 px-2 py-2 whitespace-nowrap">Cost Center</th>
+							<th className="border border-gray-400 px-2 py-2 text-right whitespace-nowrap">PIV Amount</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -413,13 +425,13 @@ h3 { text-align: center; color: #7A0000; font-size: 14px; font-weight: bold; mar
 									<td className="border border-gray-300 px-2 py-2 whitespace-normal">{item.Description}</td>
 									<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Piv_No}</td>
 									<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{formatDate(item.Paid_Date)}</td>
-									<td className="border border-gray-300 px-2 py-2 text-right whitespace-nowrap">{formatAmount(item.Piv_Amount)}</td>
-									<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Tariff_Code}</td>
-									<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Phase}</td>
-									<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Existing_Acc_No}</td>
-									<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Area}</td>
-									<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Province}</td>
-									<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Cct_Name}</td>
+								<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Tariff_Code}</td>
+								<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Phase}</td>
+								<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Existing_Acc_No}</td>
+								<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Area}</td>
+								<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Province}</td>
+								<td className="border border-gray-300 px-2 py-2 whitespace-nowrap">{item.Cct_Name}</td>
+								<td className="border border-gray-300 px-2 py-2 text-right whitespace-nowrap">{formatAmount(item.Piv_Amount)}</td>
 								</tr>
 							))}
 						</tbody>
