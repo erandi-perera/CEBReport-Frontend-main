@@ -461,8 +461,16 @@ export const data = [
 		icon: GiSolarPower,
 		subtopics: [
 			{id: 1036, name: "Area Wise SRP Application PIV (PIVI) To be Paid Report"},
+
+			{id: 1037, name: "Area Wise SRP Application PIV (PIVI) Paid Report"},
+			
 		],
 		path: "/report/SRP",
+
+			
+		
 	},
+
+	
 
 ];
