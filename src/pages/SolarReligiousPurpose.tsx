@@ -4,6 +4,7 @@ import { Outlet } from "react-router-dom";
 import SubtopicCard from "../components/shared/SubtopicCard";
 
 import AreaWiseSRPApplicationPIV from "../mainTopics/SRP/AreaWiseSRPApplicationPIV";
+import AreaWiseSRPApplicationPIVStatus from "../mainTopics/SRP/AreaWiseSRPApplicationPIVStatus";
 
 type Subtopic = {
   id: number;
@@ -35,6 +36,8 @@ const SolarReligiousPurpose = () => {
     switch (subtopicName) {
       case "Area Wise SRP Application PIV (PIVI) To be Paid Report":
         return <AreaWiseSRPApplicationPIV />;
+      case "Area Wise SRP Application PIV Status Report":
+        return <AreaWiseSRPApplicationPIVStatus />;
       default:
         return (
           <div className="text-red-500 text-xs">
