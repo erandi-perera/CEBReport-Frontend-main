@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
 import DishonouredCheques from "../mainTopics/Collections/DishonouredCheques";
+import HeadOfficeCollectionTotal from "../mainTopics/Collections/CollectionTot";
 
 type Subtopic = {
   id: number;
@@ -30,25 +31,28 @@ const Collections = () => {
     }
   };
 
-  const renderSubtopicContent = (subtopicName: string) => {
-    switch (subtopicName) {
-      case "Online counter collections":
-      case "Sales and collection":
-      case "Stamp duty for payment collections":
-      case "Monthly revenue collection of different channels":
-      case "Kiosk payment collection":
-      case "Payment collection":
-      case "Suspense payment details":
-      case "Finalized account details":
-      case "Written off account details":
-      case "Receivable position":
-      case "Unload loan information":
+const renderSubtopicContent = (subtopicName: string) => {
+  switch (subtopicName) {
+    case "Online counter collections":
+    case "Sales and collection":
+    case "Stamp duty for payment collections":
+    case "Monthly revenue collection of different channels":
+    case "Kiosk payment collection":
+    case "Payment collection":
+    case "Suspense payment details":
+    case "Finalized account details":
+    case "Written off account details":
+    case "Receivable position":
+    case "Unload loan information":
+      return <div>{subtopicName} Content</div>;
+    case "Dishonoured cheques":
+      return <DishonouredCheques />;
+    case "Head office collection total":
+      return <HeadOfficeCollectionTotal />;
 
-      
-        
-        return <div>{subtopicName} Content</div>;
-case "Dishonoured cheques":
-  return <DishonouredCheques />;
+  
+  
+  
 
 
 

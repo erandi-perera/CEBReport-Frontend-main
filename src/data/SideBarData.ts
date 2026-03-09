@@ -93,6 +93,7 @@ export const data = [
 			{id: 40, name: "Receivable position"},
 			{id: 41, name: "Unload loan information"},
 			{id: 42, name: "Dishonoured cheques"},
+			{id: 1025, name: "Head office collection total"},
 		],
 		path: "/report/collections",
 	},
