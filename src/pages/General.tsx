@@ -44,12 +44,10 @@ const General = () => {
       case "Active customers and sales by tariff":
       case "Standing order report":
       case "Registered consumers for SMS alerts":
-      case "Transformer wise Consumption Analysis":
       case "Finalized Accounts":
       case "Outstanding Dues":
       case "Largest Consumption": 
-      case "Security deposit & Contract Demand - Bulk":
-      case "Arrears Position":  
+      case "Security deposit & Contract Demand - Bulk":  
         return <div>{subtopicName} Content</div>;
       default:
         return (

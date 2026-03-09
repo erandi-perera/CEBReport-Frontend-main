@@ -5,7 +5,7 @@ import { useUser } from "../../contexts/UserContext";
 import { useLogged } from "../../contexts/UserLoggedStateContext";
 import { postJSON } from "../../helpers/LoginHelper";
 import InputField from "../shared/InputField";
-import ceb from "../../assets/CEBLOGO.png";
+// import ceb from "../../assets/CEBLOGO.png";
 
 const LoginCard = () => {
   const { setLogged } = useLogged();
@@ -56,11 +56,11 @@ const LoginCard = () => {
     <div className="w-full">
       <div className="bg-[#ffffff] shadow-lg rounded-lg p-4 sm:p-6 md:p-8">
         <div className="flex justify-center mb-4">
-          <img
+          {/* <img
             src={ceb}
             alt="CEB Logo"
             className="w-24 sm:w-32 md:w-35 h-auto"
-          />
+          /> */}
         </div>
         <div className="text-center text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
           Sign In With Credentials

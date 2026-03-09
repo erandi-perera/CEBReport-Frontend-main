@@ -338,6 +338,21 @@ export const printReportPDF = (
                 .header { font-weight: bold; margin-bottom: 5px; color: #7A0000; font-size: 12px; }
                 .subheader { margin-bottom: 12px; font-size: 11px; }
                 .footer { margin-top: 10px; font-size: 9px; color: #666; }
+                @page {
+                margin-bottom: 18mm;
+                @bottom-left {
+                    content: "Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | Reporting@2026";
+                    font-size: 9px;
+                    color: #666;
+                    font-family: Arial;
+                }
+                @bottom-right {
+                    content: "Page " counter(page) " of " counter(pages);
+                    font-size: 9px;
+                    color: #666;
+                    font-family: Arial;
+                }
+                }
                 th { background-color: #d3d3d3; font-weight: bold; text-align: center; }
                 tr:nth-child(even) { background-color: #f9f9f9; }
                 .font-medium, .font-semibold, .font-bold { font-weight: bold !important; }
@@ -348,9 +363,6 @@ export const printReportPDF = (
             <div class="header">${reportTitle}</div>
             <div class="subheader">${subheader}</div>
             ${tableHTML}
-            <div class="footer">
-                Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | CEB@2025
-            </div>
         </body>
         </html>
     `);
