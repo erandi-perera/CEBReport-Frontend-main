@@ -5,6 +5,7 @@ import SubtopicCard from "../components/shared/SubtopicCard";
 
 import AreaWiseSRPApplicationPIV from "../mainTopics/SRP/AreaWiseSRPApplicationPIV";
 import AreaWiseSRPApplicationPIVStatus from "../mainTopics/SRP/AreaWiseSRPApplicationPIVStatus";
+import AreaWiseSRPEstimationPIV from "../mainTopics/SRP/AreaWiseSRPEstimationPIV";
 
 type Subtopic = {
   id: number;
@@ -38,6 +39,8 @@ const SolarReligiousPurpose = () => {
         return <AreaWiseSRPApplicationPIV />;
       case "Area Wise SRP Application PIV Status Report":
         return <AreaWiseSRPApplicationPIVStatus />;
+      case "Area Wise SRP Estimation PIV (PIVII) To be Paid Report":
+        return <AreaWiseSRPEstimationPIV />;
       default:
         return (
           <div className="text-red-500 text-xs">
