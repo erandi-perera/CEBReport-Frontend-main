@@ -464,7 +464,6 @@ const printPDF = () => {
         overflow: hidden;
         padding-bottom: 1mm;
       }
-      h1 { font-size: 13pt; color: #7A0000; font-weight: bold; margin: 1mm 0 0.5mm; line-height: 1.2; }
       h2 { font-size: 11pt; color: #7A0000; font-weight: bold; margin: 0 0 0.5mm;   line-height: 1.2; }
       h3 { font-size:  9pt; color: #333;    font-weight: 600;  margin: 0;           line-height: 1.2; }
 
@@ -559,7 +558,6 @@ const printPDF = () => {
 
       const headerHTML = isFirst
         ? `<div class="header" style="height:${FULL_HEADER_H}mm;">
-             <h1>CEYLON ELECTRICITY BOARD</h1>
              <h2>ANNUAL VERIFICATION SHORTAGE/SURPLUS OF STORES - ${selectedYear}</h2>
              <h3>COST CENTRE: ${esc(selectedDept.DeptId)} - ${esc(selectedDept.DeptName)} | WAREHOUSE: ${esc(selectedWarehouse)}</h3>
            </div>`

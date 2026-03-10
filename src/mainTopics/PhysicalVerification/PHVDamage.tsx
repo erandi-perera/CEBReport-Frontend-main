@@ -593,8 +593,7 @@ const printPDF = () => {
     html += `
 <div class="page-wrapper">
 <div class="header-section">
-<h2>CEYLON ELECTRICITY BOARD</h2>
-<h3>STATEMENT OF DAMAGED MATERIALS IN STOCKS - ${selectedYear}</h3>
+<h2>STATEMENT OF DAMAGED MATERIALS IN STOCKS - ${selectedYear}</h2>
 <h3>COST CENTRE : ${selectedDept.DeptId} WARE HOUSE - ${selectedWarehouse}</h3>
 
 <div class="subtitles">

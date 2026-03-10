@@ -229,7 +229,6 @@ const PHVNonMovingWHwiseBOS: React.FC = () => {
     if (!reportData.length || !selectedDept) return;
 
     const rows: string[] = [];
-    rows.push(`"CEYLON ELECTRICITY BOARD"`);
     rows.push(`"Form - AV/6 /BOS"`);
     rows.push(`"Board of Survey Recommendation for Non Moving Stocks - Annual Verification of the Year-${selectedYear}"`);
     rows.push(`"Cost Center: ${selectedDept.DeptId} - ${selectedDept.DeptName} | Warehouse: ${selectedWarehouse}"`);
@@ -348,13 +347,7 @@ const PHVNonMovingWHwiseBOS: React.FC = () => {
         justify-content: space-between;
         align-items: flex-start;
       }
-      .header-org {
-        font-size: 12pt;
-        font-weight: bold;
-        text-align: center;
-        flex: 1;
-        color: #7A0000;
-      }
+    
       .header-form {
         font-size: 8.5pt;
         font-weight: bold;
@@ -526,7 +519,6 @@ const PHVNonMovingWHwiseBOS: React.FC = () => {
       <div class="header">
         <div class="header-top">
           <div style="flex:1"></div>
-          <div class="header-org">CEYLON ELECTRICITY BOARD</div>
           <div style="flex:1; display:flex; justify-content:flex-end; align-items:flex-start;">
             <div class="header-form">Form - AV/6 /BOS</div>
           </div>
