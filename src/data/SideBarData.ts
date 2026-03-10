@@ -463,7 +463,11 @@ export const data = [
 			{id: 1036, name: "Area Wise SRP Application PIV (PIVI) To be Paid Report"},
 
 			{id: 1037, name: "Area Wise SRP Application PIV (PIVI) Paid Report"},
-			
+
+			{id: 1039, name: "Division Wise SRP Application PIV (PIVI) To be Paid Report"},
+
+			{id: 1041, name: "Area Wise SRP Estimation PIV (PIVII) Paid Report"},
+
 		],
 		path: "/report/SRP",
 
