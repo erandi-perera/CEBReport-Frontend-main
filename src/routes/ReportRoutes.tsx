@@ -20,13 +20,10 @@ import CashBookDetails from "../pages/CashBookDetails";
 import PIVDetails from "../pages/PIVDetails";
 import SolarJobsDetails from "../pages/SolarJobsDetails";
 import PhysicalVerificationDetails from "../pages/PhysicalVerificationDetails";
-<<<<<<< HEAD
 import JobSearchDetails from "../pages/JobSearchDetails";
-=======
 import BillingFinanceReports from "../pages/BillingFinanceReports";
 import TransmissionBilling from "../pages/TransmissionBilling";
 import SolarReligiousPurpose from "../pages/SolarReligiousPurpose";
->>>>>>> f93849956265a0acb1f2c3cdf7c66d373d1eb9d9
 
 const ReportRoutes = () => (
 	<>
@@ -196,14 +193,15 @@ const ReportRoutes = () => (
 				</Layout>
 			}
 		/>
-<<<<<<< HEAD
 
 		<Route
 			path="/report/jobsearch"
 			element={
 				<Layout>
 					<JobSearchDetails />
-=======
+				</Layout>
+			}
+		/>
 		<Route
 			path="/report/billing-finance-reports"
 			element={
@@ -225,7 +223,6 @@ const ReportRoutes = () => (
 			element={
 				<Layout>
 					<SolarReligiousPurpose />
->>>>>>> f93849956265a0acb1f2c3cdf7c66d373d1eb9d9
 				</Layout>
 			}
 		/>
