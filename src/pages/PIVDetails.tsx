@@ -27,6 +27,9 @@ import AccountCodesWisePivReport from "../mainTopics/PIV/AccountCodesWisePivRepo
 import AccCodeWisePivNotAfmhqReport from "../mainTopics/PIV/AccCodeWisePivNotAfmhqReport";
 import RefundedPivReport from "../mainTopics/PIV/RefundedPivReport";
 import RegionPivFromOtherCC from "../mainTopics/PIV/RegionPivFromOtherCC";
+import BankPaidPIVDetails from "../mainTopics/PIV/BankPaidPIVDetails";
+import BankPivTabulation from "../mainTopics/PIV/BankPivTabulation";
+import CostCenterwisePivDetails from "../mainTopics/PIV/CostCenterwisePivDetails";
 
 type Subtopic = {
 	id: number;
@@ -106,6 +109,14 @@ const PIVDetails = () => {
 				return <RefundedPivReport />;
 			case "23. Region wise PIV Collections by Provincial POS relevant to Other Cost Centers":
 				return <RegionPivFromOtherCC />;
+			case "24. Bank PIV Tabulation":
+				return <BankPivTabulation />;
+
+			case "25. Bank Paid Piv Details":
+				return <BankPaidPIVDetails />;
+
+			case "26. Cost Center wise PIV Details (Status Report)":
+				return <CostCenterwisePivDetails />;
 
 			default:
 				return (

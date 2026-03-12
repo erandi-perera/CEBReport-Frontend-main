@@ -20,6 +20,7 @@ import CashBookDetails from "../pages/CashBookDetails";
 import PIVDetails from "../pages/PIVDetails";
 import SolarJobsDetails from "../pages/SolarJobsDetails";
 import PhysicalVerificationDetails from "../pages/PhysicalVerificationDetails";
+import JobSearchDetails from "../pages/JobSearchDetails";
 
 const ReportRoutes = () => (
 	<>
@@ -186,6 +187,15 @@ const ReportRoutes = () => (
 			element={
 				<Layout>
 					<PhysicalVerificationDetails />
+				</Layout>
+			}
+		/>
+
+		<Route
+			path="/report/jobsearch"
+			element={
+				<Layout>
+					<JobSearchDetails />
 				</Layout>
 			}
 		/>

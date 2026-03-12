@@ -157,6 +157,7 @@ export const data = [
 			{id: 101, name: "Cost Center wise Quantity on Hand"},
 			{id: 100, name: "Average Consumptions - All Material Codes"},
 			{id: 102, name: "Average Consumptions - Selected Maerial Codes"},
+			{id: 103, name: "Quantity on Hand All Region Material (Active ,Online )"},
 		],
 		path: "/report/inventory",
 	},
@@ -211,6 +212,13 @@ export const data = [
 		],
 
 		path: "/report/jobs",
+	},
+	{
+		id: 18,
+		name: "Job Search",
+		icon: FiBriefcase,
+		subtopics: [{id: 111, name: "Job Search"}],
+		path: "/report/jobsearch",
 	},
 
 	{
@@ -355,6 +363,18 @@ export const data = [
 				id: 164,
 				name: "23. Region wise PIV Collections by Provincial POS relevant to Other Cost Centers",
 			},
+			{
+				id: 165,
+				name: "24. Bank PIV Tabulation",
+			},
+			{
+				id: 166,
+				name: "25. Bank Paid Piv Details",
+			},
+			{
+				id: 167,
+				name: "26. Cost Center wise PIV Details (Status Report)",
+			},
 		],
 		path: "/report/PIV",
 	},
@@ -386,5 +406,5 @@ export const data = [
 		path: "/report/PhysicalVerification",
 	},
 
-	// id = 17 is used above for Solar Information - Jobs
+	// id = 18 is used above for Solar Information - Jobs
 ];
