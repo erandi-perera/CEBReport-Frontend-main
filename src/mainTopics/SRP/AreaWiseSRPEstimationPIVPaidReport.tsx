@@ -1,6 +1,3 @@
-// Area Wise SRP Estimation PIV (PIV II / PIV III) Paid Report
-// File: AreaWiseSRPEstimationPIVPaid.tsx
-
 import React, { useState, useRef, useCallback } from "react";
 import { useUser } from "../../contexts/UserContext";
 import { toast } from "react-toastify";
@@ -8,9 +5,6 @@ import DateRangePicker from "../../components/utils/DateRangePicker";
 import ReusableCompanyList from "../../components/utils/ReusableCompanyList";
 import ReportViewer from "../../components/utils/ReportViewer";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-// Field names will be confirmed from API response — using same pattern as
-// AreaWiseSRPApplicationPIVPaid which had identical structure
 
 interface EstimationPIVPaidItem {
   Division:        string;
@@ -110,7 +104,7 @@ const AreaWiseSRPEstimationPIVPaidReport: React.FC = () => {
 
     try {
       const url =
-        `http://localhost:44381/api/area-wise-srp-estimation-piv-paid/list` +
+        `/misapi/api/area-wise-srp-estimation-piv-paid/list` +
         `?compId=${company.compId.trim()}` +
         `&fromDate=${fromDate.replace(/-/g, "")}` +
         `&toDate=${toDate.replace(/-/g, "")}`;

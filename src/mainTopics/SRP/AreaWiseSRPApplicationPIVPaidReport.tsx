@@ -1,6 +1,3 @@
-// Area Wise SRP Application PIV (PIVI) Paid Report
-// File: AreaWiseSRPApplicationPIVPaid.tsx
-
 import React, { useState, useRef, useCallback } from "react";
 import { useUser } from "../../contexts/UserContext";
 import { toast } from "react-toastify";
@@ -8,28 +5,26 @@ import DateRangePicker from "../../components/utils/DateRangePicker";
 import ReusableCompanyList from "../../components/utils/ReusableCompanyList";
 import ReportViewer from "../../components/utils/ReportViewer";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-// Field names follow the SAME pattern as the working reference frontend
-// (AreaWiseSRPApplicationPIV) — PascalCase with underscores matching API response
+
 
 interface AreaWiseSRPPIVPaidItem {
-  DeptId:          string;   // <DeptId>
-  IdNo:            string;   // <IdNo>
-  ApplicationNo:   string;   // <ApplicationNo>
-  Name:            string;   // <Name>
-  Address:         string;   // <Address>
-  SubmitDate:      string | null;  // <SubmitDate>
-  PivNo:           string;   // <PivNo>
-  PaidDate:        string | null;  // <PaidDate>
-  PivAmount:       number;   // <PivAmount>
-  TariffCode:      string;   // <TariffCode>
-  Phase:           string;   // <Phase>
-  ExistingAccNo:   string;   // <ExistingAccNo>
-  Area:            string;   // <Area>
-  Province:        string;   // <Province>
-  CCT_NAME:        string;   // <CCT_NAME>
-  Division:        string;   // <Division>
-  Description:     string;   // <Description>
+  DeptId:          string;   
+  IdNo:            string;   
+  ApplicationNo:   string; 
+  Name:            string;   
+  Address:         string;   
+  SubmitDate:      string | null;  
+  PivNo:           string;   
+  PaidDate:        string | null;  
+  PivAmount:       number;   
+  TariffCode:      string;   
+  Phase:           string;   
+  ExistingAccNo:   string;   
+  Area:            string;   
+  Province:        string;   
+  CCT_NAME:        string;  
+  Division:        string;   
+  Description:     string;   
   [key: string]:   any;
 }
 
@@ -113,7 +108,7 @@ const AreaWiseSRPApplicationPIVPaidReport: React.FC = () => {
 
     try {
       const url =
-        `http://localhost:44381/api/area-wise-srp-piv-paid/list` +
+        `/misapi/api/area-wise-srp-piv-paid/list` +
         `?compId=${company.compId.trim()}` +
         `&fromDate=${fromDate.replace(/-/g, "")}` +
         `&toDate=${toDate.replace(/-/g, "")}`;

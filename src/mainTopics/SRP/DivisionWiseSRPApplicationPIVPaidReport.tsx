@@ -1,6 +1,3 @@
-// Divisional SRP Application PIV (PIVI) Pending Summary Report
-// File: DivisionWiseSRPApplicationPIVPendingReport.tsx
-
 import React, { useState, useRef, useCallback } from "react";
 import { useUser } from "../../contexts/UserContext";
 import { toast } from "react-toastify";
@@ -11,13 +8,13 @@ import ReportViewer from "../../components/utils/ReportViewer";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PIVPendingItem {
-  Province:                string;  // "Province"
-  Area_nm:                 string;  // "Area_nm"
-  Dept_nm:                 string;  // "Dept_nm"
-  No_of_pending_estimation: number; // "No_of_pending_estimation"
-  Division_Name:           string;  // "Division_Name"
-  Comp_nm:                 string;  // "Comp_nm"
-  Category:                string;  // "Category"
+  Province:                string;  
+  Area_nm:                 string;  
+  Dept_nm:                 string;  
+  No_of_pending_estimation: number; 
+  Division_Name:           string;
+  Comp_nm:                 string;  
+  Category:                string;  
   [key: string]:           any;
 }
 
@@ -127,7 +124,7 @@ const DivisionWiseSRPApplicationPIVPendingReport: React.FC = () => {
 
     try {
       const url =
-        `http://localhost:44381/api/area-wise-srp-piv-pending/list` +
+        `misapi/api/area-wise-srp-piv-pending/list` +
         `?compId=${company.compId.trim()}` +
         `&fromDate=${fromDate.replace(/-/g, "/")}` +
         `&toDate=${toDate.replace(/-/g, "/")}`;
