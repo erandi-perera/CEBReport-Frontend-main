@@ -5,6 +5,7 @@ import SubtopicCard from "../components/shared/SubtopicCard";
 import AverageConsumptions from "../mainTopics/inventory/AverageConsumptions";
 import CostCenterQuantityHnad from "../mainTopics/inventory/CostCenterQuantityHnad";
 import AverageConsumptionSelected from "../mainTopics/inventory/AverageConsumptionSelected";
+import QtyOnHandAllRegion from "../mainTopics/inventory/QtyOnHandAllRegions";
 import ProvincialQtyHand from "../mainTopics/inventory/provincialQtyHand";
 
 type Subtopic = {
@@ -49,6 +50,8 @@ const Inventory = () => {
 				return <AverageConsumptions />;
 			case "Average Consumptions - Selected Maerial Codes":
 				return <AverageConsumptionSelected />;
+			case "Quantity on Hand All Region Material (Active ,Online )":
+				return <QtyOnHandAllRegion/>;
 
 			default:
 				return (
