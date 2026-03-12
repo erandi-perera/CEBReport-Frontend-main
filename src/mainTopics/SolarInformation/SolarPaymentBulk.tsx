@@ -148,7 +148,7 @@ const SolarPaymentBulk: React.FC = () => {
             setIsLoadingBillCycles(true);
             setBillCycleError(null);
             try {
-                const response = await fetchWithErrorHandling("/misapi/solarapi/bill-cycle");
+                const response = await fetchWithErrorHandling("/misapi/api/bulk/netmtcons/billcycle/max");
                 
                 console.log("Bill cycle response:", response); // Debug log
                 
@@ -197,7 +197,7 @@ const SolarPaymentBulk: React.FC = () => {
             setIsLoadingAreas(true);
             setAreaError(null);
             try {
-                const areaData = await fetchWithErrorHandling("/misapi/solarapi/areas");
+                const areaData = await fetchWithErrorHandling("/misapi/api/bulk/areas");
                 setAreas(areaData.data || []);
             } catch (err: any) {
                 console.error("Error fetching areas:", err);
@@ -219,7 +219,7 @@ const SolarPaymentBulk: React.FC = () => {
             setProvinceError(null);
             try {
                 const provinceData = await fetchWithErrorHandling(
-                    "/misapi/solarapi/province"
+                    "/misapi/api/bulk/province"
                 );
                 setProvinces(provinceData.data || []);
             } catch (err: any) {
@@ -242,7 +242,7 @@ const SolarPaymentBulk: React.FC = () => {
             setDivisionError(null);
             try {
                 const divisionData = await fetchWithErrorHandling(
-                    "/misapi/solarapi/region"
+                    "/misapi/api/bulk/region"
                 );
                 setDivisions(divisionData.data || []);
             } catch (err: any) {
@@ -684,6 +684,21 @@ const SolarPaymentBulk: React.FC = () => {
               font-size: 9px; 
               color: #666;
             }
+            @page {
+              margin-bottom: 18mm;
+              @bottom-left {
+                content: "Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | Reporting@2026";
+                font-size: 9px;
+                color: #666;
+                font-family: Arial;
+              }
+              @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 9px;
+                color: #666;
+                font-family: Arial;
+              }
+            }
             th { 
               background-color: #f0f0f0; 
               font-weight: bold; 
@@ -731,9 +746,6 @@ const SolarPaymentBulk: React.FC = () => {
             Month: <span class="bold">${selectedBillCycleDisplay}</span> | Net Type: <span class="bold">${netType}</span>
           </div>
           ${printRef.current.innerHTML}
-          <div class="footer">
-            Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | CEB@2025
-          </div>
         </body>
       </html>
     `);

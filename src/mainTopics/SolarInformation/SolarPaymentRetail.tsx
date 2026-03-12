@@ -181,7 +181,7 @@ const SolarPaymentRetail: React.FC = () => {
 			setIsLoadingAreas(true);
 			setAreaError(null);
 			try {
-				const areaData = await fetchWithErrorHandling("/misapi/api/areas");
+				const areaData = await fetchWithErrorHandling("/misapi/api/ordinary/areas");
 				const sortedAreas = (areaData.data || []).sort((a: Area, b: Area) =>
 					a.AreaName.localeCompare(b.AreaName)
 				);
@@ -206,7 +206,7 @@ const SolarPaymentRetail: React.FC = () => {
 			setProvinceError(null);
 			try {
 				const provinceData = await fetchWithErrorHandling(
-					"/misapi/solarapi/ordinary/province"
+					"/misapi/api/ordinary/province"
 				);
 				const sortedProvinces = (provinceData.data || []).sort(
 					(a: Province, b: Province) =>
@@ -234,7 +234,7 @@ const SolarPaymentRetail: React.FC = () => {
 			setDivisionError(null);
 			try {
 				const divisionData = await fetchWithErrorHandling(
-					"/misapi/solarapi/ordinary/region"
+					"/misapi/api/ordinary/region"
 				);
 				const sortedDivisions = (divisionData.data || []).sort(
 					(a: Division, b: Division) =>
@@ -273,7 +273,7 @@ const SolarPaymentRetail: React.FC = () => {
 
 			try {
 				const cycleData = await fetchWithErrorHandling(
-					"/misapi/solarapi/retail/billcycle"
+					"/misapi/api/ordinary/netmtcons/billcycle/max"
 				);
 				if (cycleData.data && cycleData.data.BillCycles?.length > 0) {
 					const options = generateCycleOptions(
@@ -846,6 +846,21 @@ const SolarPaymentRetail: React.FC = () => {
               font-size: 9px; 
               color: #666;
             }
+            @page {
+              margin-bottom: 18mm;
+              @bottom-left {
+                content: "Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | Reporting@2026";
+                font-size: 9px;
+                color: #666;
+                font-family: Arial;
+              }
+              @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 9px;
+                color: #666;
+                font-family: Arial;
+              }
+            }
             th { 
               background-color: #d3d3d3; 
               font-weight: bold; 
@@ -893,9 +908,6 @@ const SolarPaymentRetail: React.FC = () => {
             ${selectionInfo}
           </div>
           ${printRef.current.innerHTML}
-          <div class="footer">
-            Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | CEB@2025
-          </div>
         </body>
       </html>
     `);
