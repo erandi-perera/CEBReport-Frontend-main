@@ -190,7 +190,7 @@ const getNetTypeDisplayName = (netTypeCode: string): string => {
             setIsLoadingBillCycles(true);
             setBillCycleError(null);
             try {
-                const response = await fetchWithErrorHandling("/misapi/solarapi/bill-cycle");
+                const response = await fetchWithErrorHandling("/misapi/api/bulk/netmtcons/billcycle/max");
                 
                 const billCyclesArray = response?.data?.BillCycles;
                 const maxBillCycle = response?.data?.MaxBillCycle;
@@ -227,7 +227,7 @@ const getNetTypeDisplayName = (netTypeCode: string): string => {
             setIsLoadingAreas(true);
             setAreaError(null);
             try {
-                const response = await fetchWithErrorHandling("/misapi/solarapi/areas");
+                const response = await fetchWithErrorHandling("/misapi/api/bulk/areas");
                 if (response?.data && Array.isArray(response.data)) {
                     setAreas(response.data);
                 } else {
@@ -252,7 +252,7 @@ const getNetTypeDisplayName = (netTypeCode: string): string => {
             setIsLoadingProvinces(true);
             setProvinceError(null);
             try {
-                const response = await fetchWithErrorHandling("/misapi/solarapi/province");
+                const response = await fetchWithErrorHandling("/misapi/api/bulk/province");
                 if (response?.data && Array.isArray(response.data)) {
                     setProvinces(response.data);
                 } else {
@@ -277,7 +277,7 @@ const getNetTypeDisplayName = (netTypeCode: string): string => {
             setIsLoadingDivisions(true);
             setDivisionError(null);
             try {
-                const response = await fetchWithErrorHandling("/misapi/solarapi/region");
+                const response = await fetchWithErrorHandling("/misapi/api/bulk/region");
                 if (response?.data && Array.isArray(response.data)) {
                     setDivisions(response.data);
                 } else {
@@ -561,6 +561,21 @@ const getNetTypeDisplayName = (netTypeCode: string): string => {
               font-size: 9px; 
               color: #666;
             }
+            @page {
+              margin-bottom: 18mm;
+              @bottom-left {
+                content: "Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | Reporting@2026";
+                font-size: 9px;
+                color: #666;
+                font-family: Arial;
+              }
+              @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 9px;
+                color: #666;
+                font-family: Arial;
+              }
+            }
             th { 
               background-color: #d3d3d3; 
               font-weight: bold; 
@@ -608,9 +623,6 @@ const getNetTypeDisplayName = (netTypeCode: string): string => {
             ${selectionInfo}
           </div>
           ${printRef.current.innerHTML}
-          <div class="footer">
-            Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | CEB@2025
-          </div>
         </body>
       </html>
     `);

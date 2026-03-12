@@ -1,6 +1,6 @@
-import {MdPayment} from "react-icons/md";
+import {MdPayment, MdPower} from "react-icons/md";
 import {RiBankLine} from "react-icons/ri";
-import {FaBoxes} from "react-icons/fa";
+import {FaBoxes, FaFileInvoiceDollar} from "react-icons/fa";
 import {BsFolder2Open} from "react-icons/bs";
 import {MdAssignmentTurnedIn} from "react-icons/md";
 import {GiSolarPower} from "react-icons/gi";
@@ -19,7 +19,6 @@ export const data = [
 		name: "General",
 		icon: MdPayment,
 		subtopics: [
-			{id: 18, name: "Tariff Block Wise Consumption Report"},
 			{id: 1, name: "Bill calculation"},
 			{id: 3, name: "Listing of customers"},
 			{id: 4, name: "List of government accounts"},
@@ -32,20 +31,26 @@ export const data = [
 			{id: 13, name: "Shakthi LED distribution summary"},
 			{id: 14, name: "Active customers and sales by tariff"},
 			{id: 15, name: "Standing order report"},
-			{id: 16, name: "Illicit tapping of electricity"},
 			{id: 17, name: "Registered consumers for SMS alerts"},
+			{id: 1019, name: "Finalized Accounts"},
+			{id: 1020, name: "Outstanding Dues"},
+			{id: 1021, name: "Largest Consumption"},
+			{id: 1022, name: "Security deposit & Contract Demand - Bulk"},
 		],
 		path: "/report/general",
 	},
 	{
 		id: 2,
-		name: "Billing & Payment",
+		name: "Customer Details",
 		icon: RiBankLine,
 		subtopics: [
 			{id: 19, name: "Customer Information"},
-			// { id: 20, name: "Printed bill information" },
-			// { id: 21, name: "Payment inquiries" },
-			// { id: 22, name: "Customer balance with latest transactions" },
+			{id: 1020, name: "Transaction History" },
+			{id: 1021, name: "Bill Information" },
+			{id: 1022, name: "Payment inquiries" },
+			{id: 1023, name: "Bill SMS Inquiry" },
+			{id: 1024, name: "Arrears Position – Single customer" },
+			{id: 1025, name: "Suspense Payment" },
 		],
 		path: "/report/billing-payment",
 	},
@@ -64,6 +69,8 @@ export const data = [
 			{id: 29, name: "Financial analysis"},
 			{id: 30, name: "Assessed unit analysis"},
 			// { id: 32, name: "unit analysis" },
+			{id: 1028, name: "Age Analysis – Bulk"},
+			{id: 1029, name: "Consumption Pattern Analysis"},
 		],
 		path: "/report/analysis",
 	},
@@ -92,13 +99,15 @@ export const data = [
 		name: "Consumption Analysis",
 		icon: MdAssignmentTurnedIn,
 		subtopics: [
-			{id: 43, name: "Consumer consumption analysis"},
-			{id: 44, name: "Tariff category wise consumption analysis"},
-			{id: 45, name: "Business category wise consumption analysis"},
-			{id: 46, name: "Transformer wise consumption analysis"},
-			{id: 47, name: "Consumption pattern analysis"},
-			{id: 48, name: "Assessed meter reading details"},
-			{id: 49, name: "Zero consumption details"},
+			//{id: 43, name: "Consumer consumption analysis"},
+			//{id: 44, name: "Tariff category wise consumption analysis"},
+			//{id: 47, name: "Consumption pattern analysis"},
+			//{id: 48, name: "Assessed meter reading details"},
+			//{id: 49, name: "Zero consumption details"},
+			{id: 1026, name: "Tariff Block Wise Consumption Report"},
+			{id: 43, name: "Tariff and Block wise Consumption Analysis"},
+			{id: 44, name: "Transformer wise Consumption Analysis"},
+			{id: 45, name: "Business Category wise Consumption Analysis"},
 		],
 		path: "/report/consumption-analysis",
 	},
@@ -122,6 +131,7 @@ export const data = [
 				name: "Solar connection details (incl. Reading and usage) - bulk",
 			},
 			{id: 58, name: "Solar customer information"},
+			{id: 1027, name: "Rooftop Solar Input Data portal for T and D Loss Calculation"},
 		],
 		path: "/report/solar-information",
 	},
@@ -157,6 +167,7 @@ export const data = [
 			{id: 101, name: "Cost Center wise Quantity on Hand"},
 			{id: 100, name: "Average Consumptions - All Material Codes"},
 			{id: 102, name: "Average Consumptions - Selected Maerial Codes"},
+			{id: 103, name: "Provincial Quantity on Hand - Cross Tab"},
 			{id: 103, name: "Quantity on Hand All Region Material (Active ,Online )"},
 		],
 		path: "/report/inventory",
@@ -214,7 +225,7 @@ export const data = [
 		path: "/report/jobs",
 	},
 	{
-		id: 18,
+		id: 31,
 		name: "Job Search",
 		icon: FiBriefcase,
 		subtopics: [{id: 111, name: "Job Search"}],
@@ -384,6 +395,10 @@ export const data = [
 		name: "Physical Verification",
 		icon: TbReportAnalytics,
 		subtopics: [
+			{id: 130,
+			 name: "1. PHV Entry Form",
+
+			},	
 			{id: 130, name: "1.PHV Entry Form"},
 
 			{id: 131, name: "2.1 PHV Validation"},
@@ -397,14 +412,96 @@ export const data = [
 				name: "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A",
 			},
 
+			{id: 135,
+			 name: "4. Physical Verification Non-Moving / Slow-Moving WH wise AV/6"},
+
 			{
 				id: 135,
 				name: "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
 			},
+
+			{id: 136,
+			 name: "5. Physical Verification Shortage / Surplus WH wise AV/1/B",
+
+			},
+
+			{id: 137,
+			 name: "6.1 Physical Verification Obsolete / Idle(GRADE Code) AV/7A",
+
+			},
+
+			{id: 138,
+			name: "6.2 Physical Verification Damage AV/7B",
+
+			},
+
+			{id: 139,
+			name: "7. Physical Verification Non-Moving WH wise.BOS - AV/6/BOS",
+
+			},
+
+			{id: 140,
+			name: "8. Physical Verification Obsolete Idle BOS - AV/7A/BOS",
+
+			},
+
+			{id: 141,
+			name: "9. Physical Verification Damage BOS - AV/7B/BOS",
+
+			},
+
+			{id: 142,
+			name: "10. Last Document No - Selected Year",
+
+			},
+			
 		],
 
 		path: "/report/PhysicalVerification",
 	},
 
 	// id = 18 is used above for Solar Information - Jobs
+	{
+		id: 18,
+		name: "Billing Finance Reports",
+		icon: FaFileInvoiceDollar,
+		subtopics: [
+			{id: 1032, name: "Financial statement Reports"},
+			{id: 1033, name: "Financial Reports"},
+		],
+		path: "/report/billing-finance-reports",
+	},
+	{
+		id: 19,
+		name: "Transmission Billing",
+		icon: MdPower,
+		subtopics: [
+			{id: 1034, name: "Monthly Energy Sales (Assessed units taken from consolidated data)"},
+			{id: 1035, name: "Monthly Energy Sales (Assessed units taken from provincial data)"},
+		],
+		path: "/report/transmission-billing",
+	},
+	{
+		id: 20,
+		name: "Solar Religious Purpose (SRP)",
+		icon: GiSolarPower,
+		subtopics: [
+			{id: 1036, name: "Area Wise SRP Application PIV (PIVI) To be Paid Report"},
+
+			{id: 1037, name: "Area Wise SRP Application PIV (PIVI) Paid Report"},
+
+			{id: 1039, name: "Division Wise SRP Application PIV (PIVI) To be Paid Report"},
+
+			{id: 1041, name: "Area Wise SRP Estimation PIV (PIVII) Paid Report"},
+
+		],
+		path: "/report/SRP",
+
+			
+		
+	},
+	// id: 21 is used above for the Job Search -- 
+
+	
+
 ];

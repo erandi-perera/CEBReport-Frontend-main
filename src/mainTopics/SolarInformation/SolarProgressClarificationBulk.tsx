@@ -131,8 +131,8 @@ const SolarProgressClarificationBulk: React.FC = () => {
       setIsLoadingAreas(true);
       setAreaError(null);
       try {
-        // Using the same API endpoint pattern as AgeAnalysis
-        const areaData = await fetchWithErrorHandling("/misapi/solarapi/areas");
+        // Using the API endpoint
+        const areaData = await fetchWithErrorHandling("/misapi/api/bulk/areas");
         setAreas(areaData.data || []);
       } catch (err: any) {
         console.error("Error fetching areas:", err);
@@ -154,7 +154,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
       setProvinceError(null);
       try {
         const provinceData = await fetchWithErrorHandling(
-          "/misapi/solarapi/province"
+          "/misapi/api/bulk/province"
         );
         setProvinces(provinceData.data || []);
       } catch (err: any) {
@@ -177,7 +177,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
       setDivisionError(null);
       try {
         const divisionData = await fetchWithErrorHandling(
-          "/misapi/solarapi/region"
+          "/misapi/api/bulk/region"
         );
         setDivisions(divisionData.data || []);
       } catch (err: any) {
@@ -200,7 +200,7 @@ const SolarProgressClarificationBulk: React.FC = () => {
       setBillCycleError(null);
       try {
         const maxCycleData = await fetchWithErrorHandling(
-          "/misapi/solarapi/billcycle/max"
+          "/misapi/api/bulk/netmtchg/billcycle/max"
         );
         if (maxCycleData.data && maxCycleData.data.BillCycles?.length > 0) {
           const options = generateBillCycleOptions(
@@ -473,6 +473,21 @@ const SolarProgressClarificationBulk: React.FC = () => {
               font-size: 9px; 
               color: #666;
             }
+            @page {
+              margin-bottom: 18mm;
+              @bottom-left {
+                content: "Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | Reporting@2026";
+                font-size: 9px;
+                color: #666;
+                font-family: Arial;
+              }
+              @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 9px;
+                color: #666;
+                font-family: Arial;
+              }
+            }
             .total-row { 
               font-weight: bold; 
               background-color: #f5f5f5; 
@@ -497,9 +512,6 @@ const SolarProgressClarificationBulk: React.FC = () => {
             Bill Cycle: <span class="bold">${selectedBillCycleDisplay}</span>
           </div>
           ${printRef.current.innerHTML}
-          <div class="footer">
-            Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | CEB@2025
-          </div>
         </body>
       </html>
     `);

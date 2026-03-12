@@ -5,7 +5,12 @@ import SubtopicCard from "../components/shared/SubtopicCard";
 import AverageConsumptions from "../mainTopics/inventory/AverageConsumptions";
 import CostCenterQuantityHnad from "../mainTopics/inventory/CostCenterQuantityHnad";
 import AverageConsumptionSelected from "../mainTopics/inventory/AverageConsumptionSelected";
+<<<<<<< HEAD
 import QtyOnHandAllRegion from "../mainTopics/inventory/QtyOnHandAllRegions";
+=======
+import ProvincialQtyHand from "../mainTopics/inventory/provincialQtyHand";
+
+>>>>>>> f93849956265a0acb1f2c3cdf7c66d373d1eb9d9
 type Subtopic = {
   id: number;
   name: string;
@@ -39,6 +44,10 @@ const Inventory = () => {
 				return <MaterialMaster />;
 			case "Cost Center wise Quantity on Hand":
 				return <CostCenterQuantityHnad />;
+
+      case "Provincial Quantity on Hand - Cross Tab":
+				return <ProvincialQtyHand/>;
+
 
 			case "Average Consumptions - All Material Codes":
 				return <AverageConsumptions />;
