@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { data as sidebarData } from "../data/SideBarData";
 import SubtopicCard from "../components/shared/SubtopicCard";
+import LargestCus from "../mainTopics/general/LargestCus";
 
 
 type Subtopic = {
@@ -35,6 +36,7 @@ const General = () => {
       case "Listing of customers":
       case "List of government accounts":
       case "Largest 100 customer details":
+        return <LargestCus />
       case "Sequence change accounts":
       case "Retails Journal":
       case "Arrears position – meter reader wise":
