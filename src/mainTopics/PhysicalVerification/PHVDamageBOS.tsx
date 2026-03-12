@@ -229,7 +229,6 @@ const PHVDamageBOS: React.FC = () => {
   const handleDownloadCSV = () => {
     if (!reportData.length || !selectedDept) return;
     const rows: string[] = [];
-    rows.push(`"CEYLON ELECTRICITY BOARD"`);
     rows.push(`"Form - AV/7B /BOS"`);
     rows.push(`"Board of Survey Recommendation for Damaged Stock Items - Annual Verification of the Year-${selectedYear}"`);
     rows.push(`"Cost Center: ${selectedDept.DeptId} - ${selectedDept.DeptName} | Warehouse: ${selectedWarehouse}"`);
@@ -371,10 +370,7 @@ const PHVDamageBOS: React.FC = () => {
       /* ── HEADER ── */
       .header { height: ${HEADER_H}mm; }
       .header-top { display: flex; justify-content: space-between; align-items: flex-start; }
-      .header-org {
-        font-size: 12pt; font-weight: bold;
-        text-align: center; flex: 1; color: #7A0000;
-      }
+     
       .header-form {
         font-size: 8.5pt; font-weight: bold;
         text-align: right; white-space: nowrap;
@@ -512,7 +508,6 @@ const PHVDamageBOS: React.FC = () => {
       <div class="header">
         <div class="header-top">
           <div style="flex:1"></div>
-          <div class="header-org">CEYLON ELECTRICITY BOARD</div>
           <div style="flex:1; display:flex; justify-content:flex-end; align-items:flex-start;">
             <div class="header-form">Form - AV/7B /BOS</div>
           </div>

@@ -437,8 +437,7 @@ const printPDF = () => {
   // ── FULL HEADER — repeated on every page to match PDF ─────────────────
   const fullHeaderHTML = `
     <div class="header" style="height:${FULL_HEADER_H}mm;">
-      <h1>CEYLON ELECTRICITY BOARD</h1>
-      <h2>STATEMENT OF OBSOLETE AND IDLE MATERIALS IN STOCKS - ${selectedYear}</h2>
+      <h1>STATEMENT OF OBSOLETE AND IDLE MATERIALS IN STOCKS - ${selectedYear}</h1>
       <h3>COST CENTRE : ${esc(selectedDept.DeptId)} &nbsp; WARE HOUSE - ${esc(selectedWarehouse)}</h3>
       <div class="subtitles-row">
         <span>1.ORIGINAL &nbsp;&nbsp;:&nbsp; Deputy General Manager</span>
@@ -532,7 +531,6 @@ const signatureHTML = `
     /* ── HEADER ── */
     .header { overflow: hidden; padding-bottom: 1mm; }
     h1 { font-size: 12pt; color: #7A0000; font-weight: bold; text-align: center; margin: 0 0 0.5mm; line-height: 1.2; }
-    h2 { font-size: 10pt; color: #7A0000; font-weight: bold; text-align: center; margin: 0 0 0.5mm; line-height: 1.2; }
     h3 { font-size:  9pt; color: #333;    font-weight: 600;  text-align: center; margin: 0 0 1.5mm; line-height: 1.2; }
 
     .subtitles-row {

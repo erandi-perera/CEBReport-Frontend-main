@@ -167,6 +167,7 @@ export const data = [
 			{id: 101, name: "Cost Center wise Quantity on Hand"},
 			{id: 100, name: "Average Consumptions - All Material Codes"},
 			{id: 102, name: "Average Consumptions - Selected Maerial Codes"},
+			{id: 103, name: "Provincial Quantity on Hand - Cross Tab"},
 		],
 		path: "/report/inventory",
 	},
@@ -459,8 +460,20 @@ export const data = [
 		icon: GiSolarPower,
 		subtopics: [
 			{id: 1036, name: "Area Wise SRP Application PIV (PIVI) To be Paid Report"},
+
+			{id: 1037, name: "Area Wise SRP Application PIV (PIVI) Paid Report"},
+
+			{id: 1039, name: "Division Wise SRP Application PIV (PIVI) To be Paid Report"},
+
+			{id: 1041, name: "Area Wise SRP Estimation PIV (PIVII) Paid Report"},
+
 		],
 		path: "/report/SRP",
+
+			
+		
 	},
+
+	
 
 ];
