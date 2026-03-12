@@ -144,8 +144,8 @@ export const data = [
 		name: "Solar Information - Jobs",
 		icon: GiSolarPower,
 		subtopics: [
-			{id: 140, name: "Area-wise Solar Sent to Billing Details"},
-			{id: 141, name: "Solar Retail Rooftop Pending Jobs after PIV2 Paid"},
+			{id: 1400, name: "Area-wise Solar Sent to Billing Details"},
+			{id: 1410, name: "Solar Retail Rooftop Pending Jobs after PIV2 Paid"},
 		],
 		path: "/report/SolarInformationJobs",
 	},
@@ -234,7 +234,7 @@ export const data = [
 		id: 21,
 		name: "Job Search",
 		icon: FiBriefcase,
-		subtopics: [{id: 111, name: "Job Search"}],
+		subtopics: [{id: 400, name: "Job Search"}],
 		path: "/report/jobsearch",
 	},
 
@@ -407,17 +407,6 @@ export const data = [
 
 			{id: 132, name: "2.2 PHV Validation (Warehousewise)"},
 
-			{id: 133, name: "3.1 Annual Verification Sheet (Signature) - AV/1/A"},
-
-			{
-				id: 134,
-				name: "3.2 Annual Verification sheet (WHwise Signature) - AV/1/A",
-			},
-
-			{
-				id: 135,
-				name: "3.4 Physical Verification Non-Moving / Slow-Moving WH wise AV/6",
-			},
 
 			{id: 133, name: "3.1 Annual Verification Sheet (Signature) - AV/1/A"},
 
