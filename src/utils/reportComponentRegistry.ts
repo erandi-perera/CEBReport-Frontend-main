@@ -245,6 +245,7 @@ import MaterialReqJobwiseNoMatReport from "../mainTopics/Common/MaterialReqJobwi
 import TransactionsPerCostCenterReport from "../mainTopics/Common/TransactionsPerCostCenterReport.tsx";
 import ProvinceMaterialReqSummaryReport from "../mainTopics/Common/ProvinceMaterialReqSummaryReport.tsx";
 import ProvinceMaterialReqDetailReport from "../mainTopics/Common/ProvinceMaterialReqDetailReport.tsx";
+import TenderDocInquiryReport from "../mainTopics/Common/TenderDocInquiryReport.tsx";
 
 //General Ledger Reports
 import CostCenterWiseGLDocumentReport from "../mainTopics/GeneralLedger/CostcenterwiseGlDocumentReport.tsx";
@@ -572,6 +573,7 @@ export const reportComponentRegistry: ReportComponentRegistry = {
 	"no of transactions per cost center": TransactionsPerCostCenterReport,
 	"province wise material requisition summary inquiry": ProvinceMaterialReqSummaryReport,
 	"province wise material requisition details inquiry": ProvinceMaterialReqDetailReport,
+	"tender document inquiry": TenderDocInquiryReport,
 
 	//General Ledger Reports
 	"cost center wise gl document inquiry": CostCenterWiseGLDocumentReport,
